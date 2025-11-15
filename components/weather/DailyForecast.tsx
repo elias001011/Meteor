@@ -1,0 +1,26 @@
+
+import React from 'react';
+import type { DailyForecast } from '../../types';
+
+interface DailyForecastProps {
+  data: DailyForecast[];
+}
+
+const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data }) => {
+  return (
+    <div className="bg-gray-800/50 backdrop-blur-sm rounded-3xl p-4">
+      <h3 className="text-sm text-gray-400 mb-2 px-2">Previsão para 5 dias</h3>
+      <div className="space-y-2">
+        {data.map((item, index) => (
+          <div key={index} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-700/50">
+            <span className="font-medium w-1/3">{item.day}</span>
+            <span className="text-2xl w-1/3 text-center">{item.conditionIcon}</span>
+            <span className="font-bold w-1/3 text-right">{item.temperature}°</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default DailyForecastComponent;
