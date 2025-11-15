@@ -57,7 +57,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeView, setView }) => {
         <NavItem icon={<LightbulbIcon className="w-6 h-6" />} label="Dicas" isActive={activeView === 'tips'} onClick={() => setView('tips')} />
         <NavItem icon={<MoreHorizontalIcon className="w-6 h-6" />} label="Mais" isActive={isMoreMenuOpen} onClick={() => setIsMoreMenuOpen(prev => !prev)} />
 
-        <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-[calc(50%+18px)] flex flex-col items-center group">
+        <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-[calc(50%+12px)] flex flex-col items-center group">
           <button
             onClick={() => setView('ai')}
             className="bg-cyan-500 group-hover:bg-cyan-400 text-white rounded-full w-16 h-16 flex items-center justify-center shadow-lg shadow-cyan-500/30 border-4 border-gray-900 transition-transform transform group-hover:scale-105"
