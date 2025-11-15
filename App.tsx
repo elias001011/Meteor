@@ -97,7 +97,7 @@ const App: React.FC = () => {
           <div className={`${view === 'ai' ? 'block' : 'hidden'} h-full`}>
             <AiView messages={messages} onSendMessage={handleSendMessage} isSending={isSending} />
           </div>
-          <div className={`${view === 'map' ? 'block' : 'hidden'} h-full`}>
+          <div className={`${view === 'map' ? 'block' : 'hidden'} h-full pb-24`}>
             <MapView />
           </div>
           <div className={`${view === 'news' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24`}>
