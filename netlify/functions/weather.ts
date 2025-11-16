@@ -197,8 +197,11 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
 
                 if (UNSPLASH_KEY) {
                     try {
-                        console.log(`Fetching Unsplash image for query: ${resolvedCityName}`);
-                        const unsplashUrl = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(resolvedCityName)} city&per_page=1&orientation=landscape`;
+                        const weatherCondition = weatherBundle.weatherData.condition || 'weather';
+                        const searchQuery = `${resolvedCityName} ${weatherCondition}`;
+                        console.log(`Fetching Unsplash image for query: ${searchQuery}`);
+                        const unsplashUrl = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(searchQuery)}&per_page=1&orientation=landscape`;
+                        
                         const unsplashRes = await fetch(unsplashUrl, {
                             headers: { 'Authorization': `Client-ID ${UNSPLASH_KEY}` }
                         });
@@ -209,7 +212,7 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
                                 imageUrl = unsplashData.results[0].urls.regular;
                                 console.log(`Unsplash image found: ${imageUrl}`);
                             } else {
-                                console.warn(`No Unsplash results for ${resolvedCityName}. Using fallback.`);
+                                console.warn(`No Unsplash results for ${searchQuery}. Using fallback.`);
                             }
                         } else {
                             console.warn(`Unsplash API failed with status: ${unsplashRes.status}. Using fallback image.`);
