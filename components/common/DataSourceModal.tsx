@@ -52,7 +52,7 @@ const DataSourceModal: React.FC<DataSourceModalProps> = ({
 
   return (
     <div 
-        className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" 
+        className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center lg:justify-start p-4 lg:pl-12" 
         onClick={onClose}
         role="dialog"
         aria-modal="true"
