@@ -14,7 +14,7 @@ const CurrentWeather: React.FC<CurrentWeatherProps> = ({ data }) => {
   });
 
   return (
-    <div className="relative rounded-3xl p-6 text-white overflow-hidden bg-black/30">
+    <div className="relative rounded-3xl p-6 text-white overflow-hidden bg-gray-800">
         <img 
             key={data.imageUrl}
             src={data.imageUrl} 

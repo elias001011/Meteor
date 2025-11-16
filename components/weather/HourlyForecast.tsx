@@ -9,7 +9,7 @@ interface HourlyForecastProps {
 
 const HourlyForecastComponent: React.FC<HourlyForecastProps> = ({ data }) => {
   return (
-    <div className="bg-gray-800/50 backdrop-blur-sm rounded-3xl p-4">
+    <div className="bg-gray-800 rounded-3xl p-4">
       <h3 className="text-sm text-gray-400 mb-3 px-2">Previsão por hora</h3>
       <div className="flex space-x-4 overflow-x-auto pb-2 -mx-4 px-4">
         {data.map((item, index) => (

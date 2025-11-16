@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { WeatherAlert } from '../../types';
 import { AlertTriangleIcon, InfoIcon } from '../icons';
@@ -9,7 +10,7 @@ interface AlertsProps {
 const Alerts: React.FC<AlertsProps> = ({ alerts }) => {
     if (!alerts || alerts.length === 0) {
         return (
-            <div className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-4 text-gray-400">
+            <div className="bg-gray-800 border border-gray-700/50 rounded-2xl p-4 text-gray-400">
                 <div className="flex items-center gap-3">
                     <InfoIcon className="w-6 h-6 flex-shrink-0 text-gray-500" />
                     <div>
@@ -33,7 +34,7 @@ const Alerts: React.FC<AlertsProps> = ({ alerts }) => {
     return (
         <div className="space-y-3">
             {alerts.map((alert, index) => (
-                <div key={index} className="bg-yellow-500/20 border border-yellow-500/30 rounded-2xl p-4 text-yellow-200">
+                <div key={index} className="bg-gray-800 border border-yellow-500/30 rounded-2xl p-4 text-yellow-200">
                     <div className="flex items-start gap-3">
                         <AlertTriangleIcon className="w-6 h-6 flex-shrink-0 text-yellow-400 mt-1" />
                         <div>
