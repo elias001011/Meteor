@@ -1,4 +1,4 @@
-import type { WeatherData, AirQualityData, HourlyForecast, DailyForecast, CitySearchResult } from '../types';
+import type { AllWeatherData, CitySearchResult } from '../types';
 
 // Fetches a list of cities matching the query from our secure Netlify function
 export const searchCities = async (city: string): Promise<CitySearchResult[]> => {
@@ -18,7 +18,7 @@ export const searchCities = async (city: string): Promise<CitySearchResult[]> =>
 };
 
 // Main function to fetch all weather-related data via our secure BFF Netlify function
-export const fetchAllWeatherData = async (lat: number, lon: number, cityInfo?: { name: string, country: string }) => {
+export const fetchAllWeatherData = async (lat: number, lon: number, cityInfo?: { name: string, country: string }): Promise<AllWeatherData> => {
     const params = new URLSearchParams({ 
         endpoint: 'all', 
         lat: lat.toString(), 
@@ -32,7 +32,7 @@ export const fetchAllWeatherData = async (lat: number, lon: number, cityInfo?: {
         throw new Error(errorData.message || 'Falha ao buscar dados do clima.');
     }
     
-    const data = await response.json();
+    const data: AllWeatherData = await response.json();
 
     const locationName = cityInfo?.name || 'Localização Atual';
     const countryName = cityInfo?.country || '';
@@ -66,6 +66,7 @@ export const fetchAllWeatherData = async (lat: number, lon: number, cityInfo?: {
         airQualityData: data.airQualityData,
         hourlyForecast: data.hourlyForecast,
         dailyForecast: data.dailyForecast,
-        alerts: data.alerts // Will be an empty array if fallback is used
+        alerts: data.alerts,
+        dataSource: data.dataSource,
     };
 };

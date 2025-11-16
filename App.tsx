@@ -31,6 +31,8 @@ const App: React.FC = () => {
   const [weatherStatus, setWeatherStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [weatherError, setWeatherError] = useState<string | null>(null);
   const [currentCoords, setCurrentCoords] = useState<{lat: number, lon: number} | null>(null);
+  const [dataSource, setDataSource] = useState<'onecall' | 'free' | null>(null);
+
 
   const handleFetchWeather = useCallback(async (coords: { lat: number; lon: number }, cityInfo?: { name: string; country: string }) => {
     setWeatherStatus('loading');
@@ -43,6 +45,7 @@ const App: React.FC = () => {
       setHourlyForecast(data.hourlyForecast);
       setDailyForecast(data.dailyForecast);
       setAlerts(data.alerts);
+      setDataSource(data.dataSource);
       setWeatherStatus('success');
     } catch (error) {
       console.error("Failed to fetch weather data:", error);
@@ -135,6 +138,7 @@ const App: React.FC = () => {
     hourlyForecast,
     dailyForecast,
     alerts,
+    dataSource,
     onCitySelect: handleCitySelect,
     onGeolocate: fetchUserLocationWeather,
     onRetry: initialLoad, // Retry loads the default city

@@ -60,3 +60,12 @@ export interface WeatherAlert {
     description: string;
     tags: string[];
 }
+
+export interface AllWeatherData {
+    weatherData: WeatherData;
+    airQualityData: AirQualityData | null;
+    hourlyForecast: HourlyForecast[];
+    dailyForecast: DailyForecast[];
+    alerts: WeatherAlert[];
+    dataSource: 'onecall' | 'free';
+}
