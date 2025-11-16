@@ -5,7 +5,7 @@ import AiView from './components/ai/AiView';
 import MapView from './components/map/MapView';
 import BottomNav from './components/layout/BottomNav';
 import Header from './components/layout/Header';
-import type { ChatMessage, View, CitySearchResult, AllWeatherData, GroundingSource, SearchResultItem } from './types';
+import type { ChatMessage, View, CitySearchResult, AllWeatherData, GroundingSource, SearchResultItem, DataSource } from './types';
 import { streamChatResponse } from './services/geminiService';
 import { getSearchResults } from './services/searchService';
 import { fetchAllWeatherData } from './services/weatherService';
@@ -14,6 +14,7 @@ import PlaceholderView from './components/common/PlaceholderView';
 import MobileAiControls from './components/ai/MobileAiControls';
 import { Content } from '@google/genai';
 import ErrorPopup from './components/common/ErrorPopup';
+import DataSourceModal from './components/common/DataSourceModal';
 
 
 const App: React.FC = () => {
@@ -40,6 +41,9 @@ const App: React.FC = () => {
   const [weatherStatus, setWeatherStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [weatherError, setWeatherError] = useState<string | null>(null);
   const [currentCoords, setCurrentCoords] = useState<{lat: number, lon: number} | null>(null);
+  const [currentCityInfo, setCurrentCityInfo] = useState<{name: string, country: string} | null>(null);
+  const [isDataSourceModalOpen, setIsDataSourceModalOpen] = useState(false);
+  const [preferredDataSource, setPreferredDataSource] = useState<DataSource | 'auto'>('auto');
 
   const { weatherData, airQualityData, hourlyForecast, dailyForecast, alerts, dataSource, lastUpdated } = weatherInfo;
 
@@ -82,12 +86,14 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const handleFetchWeather = useCallback(async (coords: { lat: number; lon: number }, cityInfo?: { name: string; country: string }) => {
+  const handleFetchWeather = useCallback(async (coords: { lat: number; lon: number }, cityInfo?: { name: string; country: string }, source: DataSource | 'auto' = 'auto') => {
     setWeatherStatus('loading');
     setWeatherError(null);
     setCurrentCoords(coords);
+    if(cityInfo) setCurrentCityInfo(cityInfo);
+
     try {
-      const data = await fetchAllWeatherData(coords.lat, coords.lon, cityInfo);
+      const data = await fetchAllWeatherData(coords.lat, coords.lon, cityInfo, source);
       setWeatherInfo(data);
       setWeatherStatus('success');
     } catch (error) {
@@ -98,8 +104,8 @@ const App: React.FC = () => {
   }, []);
   
   const handleCitySelect = useCallback((city: CitySearchResult) => {
-    handleFetchWeather({ lat: city.lat, lon: city.lon }, { name: city.name, country: city.country });
-  }, [handleFetchWeather]);
+    handleFetchWeather({ lat: city.lat, lon: city.lon }, { name: city.name, country: city.country }, preferredDataSource);
+  }, [handleFetchWeather, preferredDataSource]);
 
   const fetchUserLocationWeather = useCallback(() => {
     setWeatherStatus('loading');
@@ -107,7 +113,7 @@ const App: React.FC = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          handleFetchWeather({ lat: position.coords.latitude, lon: position.coords.longitude });
+          handleFetchWeather({ lat: position.coords.latitude, lon: position.coords.longitude }, undefined, preferredDataSource);
         },
         (error) => {
           console.warn(`Geolocation error: ${error.message}.`);
@@ -120,7 +126,7 @@ const App: React.FC = () => {
       setWeatherError("Geolocalização não é suportada neste navegador.");
       setWeatherStatus('error');
     }
-  }, [handleFetchWeather]);
+  }, [handleFetchWeather, preferredDataSource]);
 
   const initialLoad = useCallback(() => {
     const portoAlegre: CitySearchResult = {
@@ -137,6 +143,14 @@ const App: React.FC = () => {
     initialLoad();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleDataSourceChange = useCallback((newSource: DataSource | 'auto') => {
+      setPreferredDataSource(newSource);
+      setIsDataSourceModalOpen(false);
+      if (currentCoords) {
+          handleFetchWeather(currentCoords, currentCityInfo || undefined, newSource);
+      }
+  }, [currentCoords, currentCityInfo, handleFetchWeather]);
 
   const sendQueryToModel = useCallback(async (query: string, searchResults: SearchResultItem[] | null) => {
     setIsSending(true);
@@ -213,7 +227,14 @@ const App: React.FC = () => {
     weatherData, airQualityData, hourlyForecast, dailyForecast, alerts, dataSource, lastUpdated,
     onCitySelect: handleCitySelect,
     onGeolocate: fetchUserLocationWeather,
-    onRetry: initialLoad,
+    onRetry: () => {
+        if (currentCoords) {
+            handleFetchWeather(currentCoords, currentCityInfo || undefined, preferredDataSource)
+        } else {
+            initialLoad();
+        }
+    },
+    onDataSourceInfoClick: () => setIsDataSourceModalOpen(true),
   };
   
   const aiViewProps = {
@@ -227,6 +248,14 @@ const App: React.FC = () => {
     <div className="bg-gray-900 text-white min-h-screen font-sans flex flex-col h-screen overflow-hidden">
       <Header activeView={view} setView={setView} />
       {appError && <ErrorPopup message={appError} onClose={() => setAppError(null)} />}
+      
+      <DataSourceModal 
+        isOpen={isDataSourceModalOpen}
+        onClose={() => setIsDataSourceModalOpen(false)}
+        currentSource={dataSource}
+        preferredSource={preferredDataSource}
+        onSourceChange={handleDataSourceChange}
+      />
 
       <main className="flex-1 pt-16 overflow-hidden">
         {/* --- DESKTOP VIEW --- */}

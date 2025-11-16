@@ -20,6 +20,129 @@ const mapOwmIconToEmoji = (icon: string): string => {
     return iconMap[icon] || '-';
 };
 
+// --- START OPEN-METEO ---
+const mapOpenMeteoCodeToEmoji = (code: number, isDay: boolean = true): string => {
+    const codeMap: { [key: number]: [string, string] } = {
+        0: ['☀️', '🌙'], 1: ['🌤️', '☁️'], 2: ['🌥️', '☁️'], 3: ['☁️', '☁️'], 45: ['🌫️', '🌫️'], 48: ['🌫️', '🌫️'],
+        51: ['🌦️', '🌦️'], 53: ['🌦️', '🌦️'], 55: ['🌦️', '🌦️'], 56: ['🌨️', '🌨️'], 57: ['🌨️', '🌨️'],
+        61: ['🌧️', '🌧️'], 63: ['🌧️', '🌧️'], 65: ['🌧️', '🌧️'], 66: ['🌧️❄️', '🌧️❄️'], 67: ['🌧️❄️', '🌧️❄️'],
+        71: ['❄️', '❄️'], 73: ['❄️', '❄️'], 75: ['❄️', '❄️'], 77: ['❄️', '❄️'],
+        80: ['🌧️', '🌧️'], 81: ['🌧️', '🌧️'], 82: ['🌧️', '🌧️'], 85: ['❄️', '❄️'], 86: ['❄️', '❄️'],
+        95: ['⛈️', '⛈️'], 96: ['⛈️', '⛈️'], 99: ['⛈️', '⛈️'],
+    };
+    const icons = codeMap[code] || ['-','-'];
+    return isDay ? icons[0] : icons[1];
+};
+
+const mapWmoCodeToDescription = (code: number): string => {
+    const descriptionMap: { [key: number]: string } = {
+        0: 'Céu limpo', 1: 'Principalmente limpo', 2: 'Parcialmente nublado', 3: 'Nublado', 45: 'Nevoeiro', 48: 'Nevoeiro com geada',
+        51: 'Garoa leve', 53: 'Garoa moderada', 55: 'Garoa densa', 56: 'Garoa gelada leve', 57: 'Garoa gelada densa',
+        61: 'Chuva fraca', 63: 'Chuva moderada', 65: 'Chuva forte', 66: 'Chuva gelada leve', 67: 'Chuva gelada forte',
+        71: 'Neve fraca', 73: 'Neve moderada', 75: 'Neve forte', 77: 'Grãos de neve',
+        80: 'Pancadas de chuva fracas', 81: 'Pancadas de chuva moderadas', 82: 'Pancadas de chuva violentas',
+        85: 'Pancadas de neve fracas', 86: 'Pancadas de neve fortes',
+        95: 'Trovoada', 96: 'Trovoada com granizo fraco', 99: 'Trovoada com granizo forte',
+    };
+    return descriptionMap[code] || 'Condição desconhecida';
+};
+
+const fetchWithOpenMeteo = async (lat: string, lon: string) => {
+    console.log("Attempting to fetch data from Open-Meteo API");
+    const forecastParams = new URLSearchParams({
+        latitude: lat,
+        longitude: lon,
+        current: 'temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,cloud_cover,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m',
+        hourly: 'temperature_2m,weather_code,precipitation_probability',
+        daily: 'weather_code,temperature_2m_max,sunrise,sunset,precipitation_probability_max',
+        timezone: 'auto',
+        forecast_days: '7',
+    });
+    const airQualityParams = new URLSearchParams({
+        latitude: lat,
+        longitude: lon,
+        current: 'pm2_5,nitrogen_dioxide,sulphur_dioxide,ozone',
+        domains: 'auto'
+    });
+
+    const forecastUrl = `https://api.open-meteo.com/v1/forecast?${forecastParams.toString()}`;
+    const airQualityUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?${airQualityParams.toString()}`;
+    
+    const [forecastRes, airQualityRes] = await Promise.all([
+        fetch(forecastUrl),
+        fetch(airQualityUrl)
+    ]);
+    
+    if (!forecastRes.ok) {
+        const errorData = await forecastRes.json().catch(() => ({ reason: 'Unknown Open-Meteo forecast error' }));
+        throw new Error(`[${forecastRes.status}] ${errorData.reason}`);
+    }
+    
+    console.log("Successfully fetched forecast data from Open-Meteo");
+    const forecastApiData = await forecastRes.json();
+    
+    let airQualityApiData = null;
+    if (airQualityRes.ok) {
+        airQualityApiData = await airQualityRes.json();
+        console.log("Successfully fetched air quality data from Open-Meteo");
+    } else {
+        console.warn("Could not fetch air quality data from Open-Meteo. It will be omitted.");
+    }
+
+    const current = forecastApiData.current;
+    const daily = forecastApiData.daily;
+
+    const weatherData = {
+        dt: new Date(current.time).getTime() / 1000,
+        temperature: current.temperature_2m,
+        feels_like: current.apparent_temperature,
+        condition: mapWmoCodeToDescription(current.weather_code),
+        conditionIcon: mapOpenMeteoCodeToEmoji(current.weather_code, current.is_day),
+        windSpeed: Math.round(current.wind_speed_10m),
+        wind_gust: Math.round(current.wind_gusts_10m),
+        wind_deg: current.wind_direction_10m,
+        humidity: current.relative_humidity_2m,
+        pressure: current.surface_pressure,
+        clouds: current.cloud_cover,
+        rain_1h: current.precipitation,
+        sunrise: new Date(daily.sunrise[0]).getTime() / 1000,
+        sunset: new Date(daily.sunset[0]).getTime() / 1000,
+    };
+    
+    const hourlyForecast = forecastApiData.hourly.time.slice(0, 8).map((time: string, index: number) => ({
+        dt: new Date(time).getTime() / 1000,
+        temperature: forecastApiData.hourly.temperature_2m[index],
+        conditionIcon: mapOpenMeteoCodeToEmoji(forecastApiData.hourly.weather_code[index]),
+        pop: forecastApiData.hourly.precipitation_probability[index] / 100,
+    }));
+    
+    const dailyForecast = daily.time.map((time: string, index: number) => ({
+        dt: new Date(time).getTime() / 1000,
+        temperature: daily.temperature_2m_max[index],
+        conditionIcon: mapOpenMeteoCodeToEmoji(daily.weather_code[index]),
+        pop: daily.precipitation_probability_max[index] / 100,
+    }));
+
+    const airQualityData = airQualityApiData?.current
+      ? {
+          components: {
+              pm2_5: airQualityApiData.current.pm2_5,
+              no2: airQualityApiData.current.nitrogen_dioxide,
+              o3: airQualityApiData.current.ozone,
+              so2: airQualityApiData.current.sulphur_dioxide,
+          },
+        }
+      : null;
+    
+    return {
+        weatherData, airQualityData, hourlyForecast, dailyForecast,
+        alerts: [], // Open-Meteo does not provide alerts
+        dataSource: 'open-meteo' as const,
+    };
+}
+// --- END OPEN-METEO ---
+
+
 const fetchWithOneCall = async (lat: string, lon: string) => {
     console.log("Attempting to fetch data from One Call API 3.0");
     const onecallUrl = `https://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${lon}&units=metric&lang=pt_br&exclude=minutely&appid=${API_KEY}`;
@@ -186,51 +309,65 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
                 const lon = params.lon;
                 const q = params.q; // City name from search
                 const country = params.country;
+                const source = params.source; // 'onecall', 'free', 'open-meteo'
 
                 if (!lat || !lon) return { statusCode: 400, body: JSON.stringify({ message: "Latitude e longitude são obrigatórias." }) };
                 
                 let weatherBundle;
-                let useFallbackDirectly = false;
-
-                // --- Rate Limiting Logic ---
-                try {
-                    const store = getStore("onecall-rate-limit");
-                    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-                    const counterKey = `onecall_requests_${today}`;
-                    
-                    const currentCount = (await store.get(counterKey)) as number | null;
-                    
-                    console.log(`[Rate Limit Check] Key: ${counterKey}. Current count: ${currentCount || 0}/${ONE_CALL_DAILY_LIMIT}.`);
-
-                    if (currentCount && currentCount >= ONE_CALL_DAILY_LIMIT) {
-                        console.warn(`[Rate Limit Action] One Call API daily limit reached. Forcing fallback.`);
-                        useFallbackDirectly = true;
-                    }
-                } catch (blobError) {
-                    console.warn(`[Rate Limit Info] Netlify Blobs (KV Store) could not be accessed, rate limiting is disabled for this execution. This is expected in unlinked local development. Error: ${blobError.message}`);
-                    // Proceed without rate limiting, will fallback if API itself fails
-                }
-
-                if (useFallbackDirectly) {
+                
+                if (source === 'onecall') {
+                    weatherBundle = await fetchWithOneCall(lat, lon);
+                } else if (source === 'free') {
                     weatherBundle = await fetchWithFreeTier(lat, lon);
+                } else if (source === 'open-meteo') {
+                    weatherBundle = await fetchWithOpenMeteo(lat, lon);
                 } else {
+                    // AUTO MODE (default fallback behavior)
+                    let useFallbackDirectly = false;
                     try {
-                        weatherBundle = await fetchWithOneCall(lat, lon);
-                        // On success, try to increment the counter.
-                        try {
-                            const store = getStore("onecall-rate-limit");
-                            const today = new Date().toISOString().split('T')[0];
-                            const counterKey = `onecall_requests_${today}`;
-                            const currentCount = (await store.get(counterKey)) as number | null;
-                            const newCount = (currentCount || 0) + 1;
-                            await store.set(counterKey, newCount, { ttl: 86400 }); // TTL of 24 hours
-                            console.log(`[Rate Limit Action] Incremented count for ${counterKey}. New count: ${newCount}.`);
-                        } catch (blobError) {
-                             console.warn(`[Rate Limit Info] Failed to increment rate limit counter. Error: ${blobError.message}`);
+                        const store = getStore("onecall-rate-limit");
+                        const today = new Date().toISOString().split('T')[0];
+                        const counterKey = `onecall_requests_${today}`;
+                        const currentCount = (await store.get(counterKey)) as number | null;
+                        
+                        console.log(`[Rate Limit Check] Key: ${counterKey}. Current count: ${currentCount || 0}/${ONE_CALL_DAILY_LIMIT}.`);
+                        if (currentCount && currentCount >= ONE_CALL_DAILY_LIMIT) {
+                            console.warn(`[Rate Limit Action] One Call API daily limit reached. Forcing fallback.`);
+                            useFallbackDirectly = true;
                         }
-                    } catch (error) {
-                        console.warn(`One Call API failed: ${error.message}. Falling back to developer tier APIs.`);
-                        weatherBundle = await fetchWithFreeTier(lat, lon);
+                    } catch (blobError) {
+                        console.warn(`[Rate Limit Info] Netlify Blobs not accessible, rate limiting is disabled. Error: ${blobError.message}`);
+                    }
+
+                    if (useFallbackDirectly) {
+                         try {
+                            weatherBundle = await fetchWithFreeTier(lat, lon);
+                        } catch (error) {
+                            console.warn(`Free tier also failed: ${error.message}. Falling back to Open-Meteo.`);
+                            weatherBundle = await fetchWithOpenMeteo(lat, lon);
+                        }
+                    } else {
+                        try {
+                            weatherBundle = await fetchWithOneCall(lat, lon);
+                            try { // Increment counter on success
+                                const store = getStore("onecall-rate-limit");
+                                const today = new Date().toISOString().split('T')[0];
+                                const counterKey = `onecall_requests_${today}`;
+                                const newCount = ((await store.get(counterKey)) as number || 0) + 1;
+                                await store.set(counterKey, newCount, { ttl: 86400 });
+                                console.log(`[Rate Limit Action] Incremented count for ${counterKey}. New count: ${newCount}.`);
+                            } catch (blobError) {
+                                console.warn(`[Rate Limit Info] Failed to increment rate limit counter. Error: ${blobError.message}`);
+                            }
+                        } catch (error) {
+                            console.warn(`One Call API failed: ${error.message}. Falling back to developer tier APIs.`);
+                            try {
+                                weatherBundle = await fetchWithFreeTier(lat, lon);
+                            } catch (error2) {
+                                console.warn(`Developer tier APIs also failed: ${error2.message}. Falling back to Open-Meteo.`);
+                                weatherBundle = await fetchWithOpenMeteo(lat, lon);
+                            }
+                        }
                     }
                 }
                 
@@ -249,15 +386,13 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
                             weatherBundle.weatherData.country = geoData[0].country;
                         } else {
                             resolvedCityName = "Localização Atual";
-                            weatherBundle.weatherData.city = "Localização Atual";
-                            weatherBundle.weatherData.country = "";
                         }
                     } else {
                          resolvedCityName = "Localização Atual";
-                         weatherBundle.weatherData.city = "Localização Atual";
-                         weatherBundle.weatherData.country = "";
                     }
                 }
+                weatherBundle.weatherData.city = weatherBundle.weatherData.city || resolvedCityName;
+                weatherBundle.weatherData.country = weatherBundle.weatherData.country || '';
                 
                 let imageUrl = `https://picsum.photos/seed/${encodeURIComponent(resolvedCityName)}/600/400`;
 
@@ -268,26 +403,17 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
                         console.log(`Fetching Unsplash image for query: ${searchQuery}`);
                         const unsplashUrl = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(searchQuery)}&per_page=1&orientation=landscape`;
                         
-                        const unsplashRes = await fetch(unsplashUrl, {
-                            headers: { 'Authorization': `Client-ID ${UNSPLASH_KEY}` }
-                        });
+                        const unsplashRes = await fetch(unsplashUrl, { headers: { 'Authorization': `Client-ID ${UNSPLASH_KEY}` } });
 
                         if (unsplashRes.ok) {
                             const unsplashData = await unsplashRes.json();
                             if (unsplashData.results && unsplashData.results.length > 0) {
                                 imageUrl = unsplashData.results[0].urls.regular;
-                                console.log(`Unsplash image found: ${imageUrl}`);
-                            } else {
-                                console.warn(`No Unsplash results for ${searchQuery}. Using fallback.`);
                             }
-                        } else {
-                            console.warn(`Unsplash API failed with status: ${unsplashRes.status}. Using fallback image.`);
                         }
                     } catch (e) {
                         console.error('Error fetching from Unsplash:', e);
                     }
-                } else {
-                    console.log("UNSPLASH_ACESS_KEY not configured. Using fallback image.");
                 }
                 
                 weatherBundle.weatherData.imageUrl = imageUrl;
@@ -314,12 +440,7 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
                 const response = await fetch(tileUrl);
                 if (!response.ok) throw new Error(`Erro ao buscar tile: ${response.statusText}`);
                 const buffer = await response.arrayBuffer();
-                return {
-                    statusCode: 200,
-                    headers: { 'Content-Type': 'image/png' },
-                    body: Buffer.from(buffer).toString('base64'),
-                    isBase64Encoded: true,
-                };
+                return { statusCode: 200, headers: { 'Content-Type': 'image/png' }, body: Buffer.from(buffer).toString('base64'), isBase64Encoded: true };
             }
 
             case 'relief': {
@@ -329,12 +450,7 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
                  const response = await fetch(tileUrl);
                 if (!response.ok) throw new Error(`Erro ao buscar tile de relevo: ${response.statusText}`);
                 const buffer = await response.arrayBuffer();
-                return {
-                    statusCode: 200,
-                    headers: { 'Content-Type': 'image/png' },
-                    body: Buffer.from(buffer).toString('base64'),
-                    isBase64Encoded: true,
-                };
+                return { statusCode: 200, headers: { 'Content-Type': 'image/png' }, body: Buffer.from(buffer).toString('base64'), isBase64Encoded: true };
             }
 
             default:

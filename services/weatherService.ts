@@ -1,4 +1,4 @@
-import type { AllWeatherData, CitySearchResult } from '../types';
+import type { AllWeatherData, CitySearchResult, DataSource } from '../types';
 
 const CACHE_DURATION_MS = 30 * 60 * 1000; // 30 minutes cache
 
@@ -20,8 +20,14 @@ export const searchCities = async (city: string): Promise<CitySearchResult[]> =>
 };
 
 // Main function to fetch all weather-related data via our secure BFF Netlify function
-export const fetchAllWeatherData = async (lat: number, lon: number, cityInfo?: { name: string, country: string }): Promise<AllWeatherData> => {
-    const cacheKey = `weather_data_${lat.toFixed(4)}_${lon.toFixed(4)}`;
+export const fetchAllWeatherData = async (
+    lat: number, 
+    lon: number, 
+    cityInfo?: { name: string, country: string },
+    source?: DataSource | 'auto'
+): Promise<AllWeatherData> => {
+    const effectiveSource = source || 'auto';
+    const cacheKey = `weather_data_${effectiveSource}_${lat.toFixed(4)}_${lon.toFixed(4)}`;
 
     // 1. Try to get data from cache
     try {
@@ -37,7 +43,7 @@ export const fetchAllWeatherData = async (lat: number, lon: number, cityInfo?: {
         console.warn("Could not read from cache. Fetching new data.", error);
     }
     
-    console.log(`Fetching new weather data for lat:${lat}, lon:${lon}`);
+    console.log(`Fetching new weather data for lat:${lat}, lon:${lon} from source: ${effectiveSource}`);
 
     // 2. If no cache or cache is stale, fetch from the network
     const params = new URLSearchParams({ 
@@ -49,6 +55,10 @@ export const fetchAllWeatherData = async (lat: number, lon: number, cityInfo?: {
     if (cityInfo) {
         params.set('q', cityInfo.name);
         params.set('country', cityInfo.country);
+    }
+
+    if (source && source !== 'auto') {
+        params.set('source', source);
     }
 
     const response = await fetch(`/.netlify/functions/weather?${params.toString()}`);

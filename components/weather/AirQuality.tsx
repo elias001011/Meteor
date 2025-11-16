@@ -27,28 +27,32 @@ const getAqiInfo = (aqi: number): AqiInfo => {
     };
 };
 
-const Pollutant: React.FC<{ name: string; value: number; unit: string }> = ({ name, value, unit }) => (
+const Pollutant: React.FC<{ name: string; value: number | undefined; unit: string }> = ({ name, value, unit }) => (
     <div className="text-center bg-gray-700/40 rounded-lg p-2">
         <p className="text-xs text-gray-400">{name}</p>
-        <p className="font-semibold">{value.toFixed(1)}</p>
+        <p className="font-semibold">{typeof value === 'number' ? value.toFixed(1) : '-'}</p>
         <p className="text-xs text-gray-500">{unit}</p>
     </div>
 );
 
 
 const AirQuality: React.FC<AirQualityProps> = ({ data }) => {
-    const aqiInfo = getAqiInfo(data.aqi);
+    const aqiInfo = typeof data.aqi === 'number' ? getAqiInfo(data.aqi) : null;
 
     return (
         <div className="bg-gray-800/50 backdrop-blur-sm rounded-3xl p-4 space-y-3">
             <div>
                 <h3 className="text-sm text-gray-400 mb-2 px-2">Qualidade do Ar</h3>
-                <div className="flex items-center justify-between px-2">
-                    <span className={`font-bold text-lg ${aqiInfo.textColorClass}`}>{aqiInfo.level}</span>
-                </div>
-                <div className="w-full bg-gray-700 rounded-full h-2 mt-3 mx-auto">
-                    <div className={`${aqiInfo.colorClass} h-2 rounded-full`} style={{ width: `${aqiInfo.percentage}%` }}></div>
-                </div>
+                 {aqiInfo && (
+                    <>
+                        <div className="flex items-center justify-between px-2">
+                            <span className={`font-bold text-lg ${aqiInfo.textColorClass}`}>{aqiInfo.level}</span>
+                        </div>
+                        <div className="w-full bg-gray-700 rounded-full h-2 mt-3 mx-auto">
+                            <div className={`${aqiInfo.colorClass} h-2 rounded-full`} style={{ width: `${aqiInfo.percentage}%` }}></div>
+                        </div>
+                    </>
+                )}
             </div>
             <div>
                 <h4 className="text-xs text-gray-400 mb-2 px-2">Componentes (μg/m³)</h4>

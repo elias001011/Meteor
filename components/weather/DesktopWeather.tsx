@@ -1,5 +1,5 @@
 import React from 'react';
-import type { WeatherData, HourlyForecast, DailyForecast, AirQualityData, CitySearchResult, WeatherAlert } from '../../types';
+import type { WeatherData, HourlyForecast, DailyForecast, AirQualityData, CitySearchResult, WeatherAlert, DataSource } from '../../types';
 import SearchBar from './SearchBar';
 import CurrentWeather from './CurrentWeather';
 import AdditionalInfo from './AdditionalInfo';
@@ -10,6 +10,7 @@ import LoadingSpinner from '../common/LoadingSpinner';
 import ErrorDisplay from '../common/ErrorDisplay';
 import Alerts from './Alerts';
 import DataSourceInfo from './DataSourceInfo';
+import SunriseSunset from './SunriseSunset';
 
 interface DesktopWeatherProps {
     weatherData: WeatherData | null;
@@ -17,13 +18,14 @@ interface DesktopWeatherProps {
     hourlyForecast: HourlyForecast[];
     dailyForecast: DailyForecast[];
     alerts: WeatherAlert[];
-    dataSource: 'onecall' | 'free' | null;
+    dataSource: DataSource | null;
     lastUpdated: number | null;
     status: 'loading' | 'success' | 'error';
     error: string | null;
     onCitySelect: (city: CitySearchResult) => void;
     onGeolocate: () => void;
     onRetry: () => void;
+    onDataSourceInfoClick: () => void;
 }
 
 const DesktopWeather: React.FC<DesktopWeatherProps> = ({
@@ -38,7 +40,8 @@ const DesktopWeather: React.FC<DesktopWeatherProps> = ({
     error,
     onCitySelect,
     onGeolocate,
-    onRetry
+    onRetry,
+    onDataSourceInfoClick
 }) => {
 
     if (status === 'loading') {
@@ -63,12 +66,13 @@ const DesktopWeather: React.FC<DesktopWeatherProps> = ({
             <div className="space-y-6">
                 <SearchBar onCitySelect={onCitySelect} onGeolocate={onGeolocate} />
                 <CurrentWeather data={weatherData} />
-                {dataSource === 'onecall' && <Alerts alerts={alerts} />}
+                {dataSource !== 'open-meteo' && <Alerts alerts={alerts} />}
+                <SunriseSunset sunrise={weatherData.sunrise} sunset={weatherData.sunset} />
                 <AdditionalInfo data={weatherData} />
                 {airQualityData && <AirQuality data={airQualityData} />}
                 <HourlyForecastComponent data={hourlyForecast} />
                 <DailyForecastComponent data={dailyForecast} />
-                <DataSourceInfo source={dataSource} lastUpdated={lastUpdated} />
+                <DataSourceInfo source={dataSource} lastUpdated={lastUpdated} onClick={onDataSourceInfoClick} />
             </div>
         );
     }
