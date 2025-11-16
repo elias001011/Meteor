@@ -1,5 +1,5 @@
 import React from 'react';
-import type { WeatherData, HourlyForecast, DailyForecast, AirQualityData } from '../../types';
+import type { WeatherData, HourlyForecast, DailyForecast, AirQualityData, WeatherAlert } from '../../types';
 import SearchBar from './SearchBar';
 import CurrentWeather from './CurrentWeather';
 import AdditionalInfo from './AdditionalInfo';
@@ -7,13 +7,19 @@ import HourlyForecastComponent from './HourlyForecast';
 import DailyForecastComponent from './DailyForecast';
 import AirQuality from './AirQuality';
 import LoadingSpinner from '../common/LoadingSpinner';
+import ErrorDisplay from '../common/ErrorDisplay';
+import Alerts from './Alerts';
 
 interface DesktopWeatherProps {
     weatherData: WeatherData | null;
     airQualityData: AirQualityData | null;
     hourlyForecast: HourlyForecast[];
     dailyForecast: DailyForecast[];
+    alerts: WeatherAlert[];
     status: 'loading' | 'success' | 'error';
+    error: string | null;
+    onSearch: (city: string) => void;
+    onRetry: () => void;
 }
 
 const DesktopWeather: React.FC<DesktopWeatherProps> = ({
@@ -21,13 +27,26 @@ const DesktopWeather: React.FC<DesktopWeatherProps> = ({
     airQualityData,
     hourlyForecast,
     dailyForecast,
-    status
+    alerts,
+    status,
+    error,
+    onSearch,
+    onRetry
 }) => {
 
     if (status === 'loading') {
         return (
-            <div className="flex items-center justify-center py-10">
+            <div className="flex items-center justify-center h-full">
                 <LoadingSpinner />
+            </div>
+        );
+    }
+    
+    if (status === 'error') {
+        return (
+            <div className="space-y-6">
+                 <SearchBar onSearch={onSearch} onGeolocate={onRetry} />
+                 <ErrorDisplay message={error || "Não foi possível buscar os dados."} onRetry={onRetry} />
             </div>
         );
     }
@@ -35,7 +54,8 @@ const DesktopWeather: React.FC<DesktopWeatherProps> = ({
     if (status === 'success' && weatherData && airQualityData) {
         return (
             <div className="space-y-6">
-                <SearchBar />
+                <SearchBar onSearch={onSearch} onGeolocate={onRetry} />
+                <Alerts data={alerts} />
                 <CurrentWeather data={weatherData} />
                 <AdditionalInfo data={weatherData} />
                 <AirQuality data={airQualityData} />
@@ -45,7 +65,6 @@ const DesktopWeather: React.FC<DesktopWeatherProps> = ({
         );
     }
 
-    // TODO: A proper error component could be rendered here.
     return null;
 };
 
