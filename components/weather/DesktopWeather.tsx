@@ -1,5 +1,5 @@
 import React from 'react';
-import type { WeatherData, HourlyForecast, DailyForecast, AirQualityData, WeatherAlert } from '../../types';
+import type { WeatherData, HourlyForecast, DailyForecast, AirQualityData, WeatherAlert, CitySearchResult } from '../../types';
 import SearchBar from './SearchBar';
 import CurrentWeather from './CurrentWeather';
 import AdditionalInfo from './AdditionalInfo';
@@ -18,7 +18,7 @@ interface DesktopWeatherProps {
     alerts: WeatherAlert[];
     status: 'loading' | 'success' | 'error';
     error: string | null;
-    onSearch: (city: string) => void;
+    onCitySelect: (city: CitySearchResult) => void;
     onGeolocate: () => void;
     onRetry: () => void;
 }
@@ -31,7 +31,7 @@ const DesktopWeather: React.FC<DesktopWeatherProps> = ({
     alerts,
     status,
     error,
-    onSearch,
+    onCitySelect,
     onGeolocate,
     onRetry
 }) => {
@@ -47,7 +47,7 @@ const DesktopWeather: React.FC<DesktopWeatherProps> = ({
     if (status === 'error') {
         return (
             <div className="space-y-6">
-                 <SearchBar onSearch={onSearch} onGeolocate={onGeolocate} />
+                 <SearchBar onCitySelect={onCitySelect} onGeolocate={onGeolocate} />
                  <ErrorDisplay message={error || "Não foi possível buscar os dados."} onRetry={onRetry} />
             </div>
         );
@@ -56,7 +56,7 @@ const DesktopWeather: React.FC<DesktopWeatherProps> = ({
     if (status === 'success' && weatherData && airQualityData) {
         return (
             <div className="space-y-6">
-                <SearchBar onSearch={onSearch} onGeolocate={onGeolocate} />
+                <SearchBar onCitySelect={onCitySelect} onGeolocate={onGeolocate} />
                 <Alerts data={alerts} />
                 <CurrentWeather data={weatherData} />
                 <AdditionalInfo data={weatherData} />

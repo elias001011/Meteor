@@ -27,7 +27,7 @@ export const searchCities = async (city: string): Promise<CitySearchResult[]> =>
 };
 
 // Main function to fetch all weather-related data via our secure Netlify function
-export const fetchAllWeatherData = async (lat: number, lon: number) => {
+export const fetchAllWeatherData = async (lat: number, lon: number, cityInfo?: { name: string, country: string }) => {
     const response = await fetch(`/.netlify/functions/weather?lat=${lat}&lon=${lon}`);
 
     if (!response.ok) {
@@ -35,22 +35,25 @@ export const fetchAllWeatherData = async (lat: number, lon: number) => {
         throw new Error(errorData.error || 'Falha ao buscar dados do clima.');
     }
     
-    const { forecastData, airQualityData } = await response.json();
+    const { oneCallData, airQualityData, reverseGeoData } = await response.json();
 
     // --- Transform data ---
     
+    const locationName = cityInfo?.name || reverseGeoData?.[0]?.name || 'Localização Desconhecida';
+    const countryName = cityInfo?.country || reverseGeoData?.[0]?.country || '';
+
     // Current Weather
-    const current = forecastData.list[0];
+    const current = oneCallData.current;
     const weatherData: WeatherData = {
-        city: forecastData.city.name,
-        country: forecastData.city.country,
-        date: new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }),
-        temperature: Math.round(current.main.temp),
+        city: locationName,
+        country: countryName,
+        date: new Date(current.dt * 1000).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }),
+        temperature: Math.round(current.temp),
         condition: current.weather[0].description.charAt(0).toUpperCase() + current.weather[0].description.slice(1),
         conditionIcon: mapOwmIconToEmoji(current.weather[0].icon),
-        windSpeed: Math.round(current.wind.speed * 3.6), // m/s to km/h
-        humidity: current.main.humidity,
-        pressure: current.main.pressure,
+        windSpeed: Math.round(current.wind_speed * 3.6), // m/s to km/h
+        humidity: current.humidity,
+        pressure: current.pressure,
     };
     
     // Air Quality
@@ -62,49 +65,39 @@ export const fetchAllWeatherData = async (lat: number, lon: number) => {
     const aqiMap = { 1: 25, 2: 75, 3: 125, 4: 175, 5: 250 };
     aqiResult.aqi = aqiMap[aqiResult.aqi as keyof typeof aqiMap] || 0;
 
-
-    // Hourly Forecast (next 5 entries, 15 hours)
-    const hourlyForecast: HourlyForecast[] = forecastData.list.slice(0, 5).map((item: any) => ({
+    // Hourly Forecast (next 8 hours)
+    const hourlyForecast: HourlyForecast[] = oneCallData.hourly.slice(1, 9).map((item: any) => ({
         time: new Date(item.dt * 1000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-        temperature: Math.round(item.main.temp),
+        temperature: Math.round(item.temp),
         conditionIcon: mapOwmIconToEmoji(item.weather[0].icon),
     }));
 
-    // Daily Forecast (process the full list)
-    const dailyForecasts: { [key: string]: { temps: number[], icons: string[] } } = {};
-    forecastData.list.forEach((item: any) => {
-        const day = new Date(item.dt * 1000).toLocaleDateString('pt-BR', { weekday: 'short' });
-        if (!dailyForecasts[day]) {
-            dailyForecasts[day] = { temps: [], icons: [] };
+    // Daily Forecast (next 5 days)
+    const dailyForecast: DailyForecast[] = oneCallData.daily.slice(1, 6).map((item: any) => {
+        const date = new Date(item.dt * 1000);
+        const today = new Date();
+        const isToday = date.getDate() === today.getDate();
+        
+        let dayLabel = date.toLocaleDateString('pt-BR', { weekday: 'short' });
+        if (isToday) {
+            dayLabel = 'Hoje';
+        } else {
+            dayLabel = dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1, 3);
         }
-        dailyForecasts[day].temps.push(item.main.temp);
-        // We'll grab the icon around midday for a representative weather condition
-        if (new Date(item.dt * 1000).getHours() >= 12 && new Date(item.dt * 1000).getHours() <= 15) {
-             dailyForecasts[day].icons.push(item.weather[0].icon);
-        }
-    });
-
-    const dailyForecast: DailyForecast[] = Object.keys(dailyForecasts).slice(0, 5).map(day => {
-        const dayData = dailyForecasts[day];
-        const maxTemp = Math.round(Math.max(...dayData.temps));
-        // Find the most frequent icon, or default to the first one
-        const mostFrequentIcon = dayData.icons.sort((a,b) =>
-              dayData.icons.filter(v => v===a).length
-            - dayData.icons.filter(v => v===b).length
-        ).pop() || dayData.icons[0] || forecastData.list[0].weather[0].icon;
-
-        // Use 'Hoje' for today
-        const todayShort = new Date().toLocaleDateString('pt-BR', { weekday: 'short' });
 
         return {
-            day: day === todayShort ? 'Hoje' : day.charAt(0).toUpperCase() + day.slice(1, 3),
-            temperature: maxTemp,
-            conditionIcon: mapOwmIconToEmoji(mostFrequentIcon),
-        };
+            day: dayLabel,
+            temperature: Math.round(item.temp.max),
+            conditionIcon: mapOwmIconToEmoji(item.weather[0].icon),
+        }
     });
 
-    // Alerts (mocked as empty since it's a paid feature)
-    const alerts: WeatherAlert[] = [];
+    // Alerts
+    const alerts: WeatherAlert[] = (oneCallData.alerts || []).map((alert: any) => ({
+        event: alert.event,
+        description: alert.description,
+        sender_name: alert.sender_name,
+    }));
     
     return {
         weatherData,
