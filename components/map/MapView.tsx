@@ -26,7 +26,7 @@ const MapView: React.FC = () => {
                 shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
                 iconSize: [25, 41],
                 iconAnchor: [12, 41],
-                popupAnchor: [0, -41], // Precisely align popup over the icon tip
+                popupAnchor: [1, -34], // Use standard value for perfect alignment
                 shadowSize: [41, 41]
             });
 
