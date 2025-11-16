@@ -44,16 +44,17 @@ export interface ChatMessage {
     text: string;
 }
 
-export interface WeatherAlert {
-    event: string;
-    description: string;
-    sender_name: string;
-}
-
 export interface CitySearchResult {
     name: string;
     country: string;
     state?: string;
     lat: number;
     lon: number;
+}
+
+// FIX: Added WeatherAlert interface to resolve missing type error in components/weather/Alerts.tsx.
+export interface WeatherAlert {
+    sender_name: string;
+    event: string;
+    description: string;
 }

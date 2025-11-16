@@ -1,4 +1,4 @@
-import type { WeatherData, AirQualityData, HourlyForecast, DailyForecast, WeatherAlert, CitySearchResult } from '../types';
+import type { WeatherData, AirQualityData, HourlyForecast, DailyForecast, CitySearchResult } from '../types';
 
 // Fetches a list of cities matching the query from our secure Netlify function
 export const searchCities = async (city: string): Promise<CitySearchResult[]> => {
@@ -20,7 +20,7 @@ export const searchCities = async (city: string): Promise<CitySearchResult[]> =>
 // Main function to fetch all weather-related data via our secure BFF Netlify function
 export const fetchAllWeatherData = async (lat: number, lon: number, cityInfo?: { name: string, country: string }) => {
     const params = new URLSearchParams({ 
-        endpoint: 'onecall', 
+        endpoint: 'all', 
         lat: lat.toString(), 
         lon: lon.toString() 
     });
@@ -34,12 +34,10 @@ export const fetchAllWeatherData = async (lat: number, lon: number, cityInfo?: {
     
     const data = await response.json();
 
-    // The backend now does all the processing. We just need to add the city/country if we have it.
     const locationName = cityInfo?.name || 'Localização Atual';
     const countryName = cityInfo?.country || '';
 
-    // If cityInfo is not provided, we might need a reverse lookup, but for now we simplify
-    // and assume the frontend knows the city name if it's not from geolocation.
+    // If cityInfo is not provided by the search, perform a reverse lookup for geolocation
     if (!cityInfo) {
         try {
             const geoResponse = await fetch(`/.netlify/functions/weather?endpoint=reverse&lat=${lat}&lon=${lon}`);
@@ -48,10 +46,15 @@ export const fetchAllWeatherData = async (lat: number, lon: number, cityInfo?: {
                 if(geoData.length > 0) {
                     data.weatherData.city = geoData[0].name;
                     data.weatherData.country = geoData[0].country;
+                } else {
+                    data.weatherData.city = locationName;
+                    data.weatherData.country = countryName;
                 }
             }
         } catch (e) {
             console.warn("Reverse geocoding failed, using default name.", e);
+            data.weatherData.city = locationName;
+            data.weatherData.country = countryName;
         }
     } else {
         data.weatherData.city = locationName;
@@ -59,14 +62,15 @@ export const fetchAllWeatherData = async (lat: number, lon: number, cityInfo?: {
     }
     
     // Add formatted date to weather data
-    data.weatherData.date = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
-
+    const now = new Date();
+    now.toLocaleString('pt-BR', { timeZone: data.timezone }); // Adjust to city's timezone if available
+    data.weatherData.date = now.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
 
     return {
         weatherData: data.weatherData,
         airQualityData: data.airQualityData,
         hourlyForecast: data.hourlyForecast,
         dailyForecast: data.dailyForecast,
-        alerts: data.alerts
+        alerts: data.alerts // Will be an empty array
     };
 };
