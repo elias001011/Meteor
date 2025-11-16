@@ -1,7 +1,8 @@
 import type { Handler, HandlerEvent, HandlerContext } from "@netlify/functions";
 
 const API_KEY = process.env.CLIMA_API;
-const BASE_URL = 'https://api.openweathermap.org/data/2.5';
+const ONE_CALL_URL = 'https://api.openweathermap.org/data/3.0/onecall';
+const AIR_POLLUTION_URL = 'https://api.openweathermap.org/data/2.5/air_pollution';
 const GEO_URL = 'https://api.openweathermap.org/geo/1.0';
 
 const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
@@ -42,29 +43,35 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
             };
 
         } else if (lat && lon) {
-            // Weather data request
-            const [forecastResponse, airQualityResponse] = await Promise.all([
-                fetch(`${BASE_URL}/forecast?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric&lang=pt_br`),
-                fetch(`${BASE_URL}/air_pollution?lat=${lat}&lon=${lon}&appid=${API_KEY}`)
+            // Weather data request using One Call API
+            const [oneCallResponse, airQualityResponse, reverseGeoResponse] = await Promise.all([
+                fetch(`${ONE_CALL_URL}?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric&lang=pt_br&exclude=minutely`),
+                fetch(`${AIR_POLLUTION_URL}?lat=${lat}&lon=${lon}&appid=${API_KEY}`),
+                fetch(`${GEO_URL}/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${API_KEY}`)
             ]);
             
-            if (forecastResponse.status === 401 || airQualityResponse.status === 401) {
+            if (oneCallResponse.status === 401 || airQualityResponse.status === 401 || reverseGeoResponse.status === 401) {
                 return { statusCode: 401, body: JSON.stringify({ error: authErrorMessage }) };
             }
 
-            if (!forecastResponse.ok) {
-                return { statusCode: forecastResponse.status, body: JSON.stringify({ error: 'Falha ao buscar previsão do tempo.' }) };
+            if (!oneCallResponse.ok) {
+                return { statusCode: oneCallResponse.status, body: JSON.stringify({ error: 'Falha ao buscar previsão do tempo.' }) };
             }
             if (!airQualityResponse.ok) {
                 return { statusCode: airQualityResponse.status, body: JSON.stringify({ error: 'Falha ao buscar qualidade do ar.' }) };
             }
+             if (!reverseGeoResponse.ok) {
+                // This is not critical, we can proceed without a name
+                console.warn("Reverse geocoding failed.");
+            }
 
-            const forecastData = await forecastResponse.json();
+            const oneCallData = await oneCallResponse.json();
             const airQualityData = await airQualityResponse.json();
+            const reverseGeoData = await reverseGeoResponse.json().catch(() => null);
             
             return {
                 statusCode: 200,
-                body: JSON.stringify({ forecastData, airQualityData }),
+                body: JSON.stringify({ oneCallData, airQualityData, reverseGeoData }),
             };
 
         } else {

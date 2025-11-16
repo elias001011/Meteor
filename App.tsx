@@ -6,11 +6,10 @@ import BottomNav from './components/layout/BottomNav';
 import Header from './components/layout/Header';
 import type { ChatMessage, View, WeatherData, AirQualityData, HourlyForecast, DailyForecast, WeatherAlert, CitySearchResult } from './types';
 import { streamChatResponse } from './services/geminiService';
-import { fetchAllWeatherData, searchCities } from './services/weatherService';
+import { fetchAllWeatherData } from './services/weatherService';
 import DesktopWeather from './components/weather/DesktopWeather';
 import PlaceholderView from './components/common/PlaceholderView';
 import MobileAiControls from './components/ai/MobileAiControls';
-import CitySelectionModal from './components/common/CitySelectionModal';
 
 const App: React.FC = () => {
   const [view, setView] = useState<View>('weather');
@@ -32,15 +31,11 @@ const App: React.FC = () => {
   const [weatherStatus, setWeatherStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [weatherError, setWeatherError] = useState<string | null>(null);
 
-  // City search state
-  const [citySearchResults, setCitySearchResults] = useState<CitySearchResult[]>([]);
-  const [isCitySelectionOpen, setIsCitySelectionOpen] = useState(false);
-
-  const handleFetchWeather = useCallback(async (coords: { lat: number; lon: number }) => {
+  const handleFetchWeather = useCallback(async (coords: { lat: number; lon: number }, cityInfo?: { name: string; country: string }) => {
     setWeatherStatus('loading');
     setWeatherError(null);
     try {
-      const data = await fetchAllWeatherData(coords.lat, coords.lon);
+      const data = await fetchAllWeatherData(coords.lat, coords.lon, cityInfo);
       setWeatherData(data.weatherData);
       setAirQualityData(data.airQualityData);
       setHourlyForecast(data.hourlyForecast);
@@ -54,62 +49,44 @@ const App: React.FC = () => {
     }
   }, []);
   
-  const handleCitySearch = useCallback(async (city: string) => {
-      setWeatherStatus('loading');
-      setWeatherError(null);
-      setIsCitySelectionOpen(false);
-      try {
-          const results = await searchCities(city);
-          if (results.length === 0) {
-              throw new Error("Nenhuma cidade encontrada com esse nome.");
-          }
-          if (results.length === 1) {
-              await handleFetchWeather({ lat: results[0].lat, lon: results[0].lon });
-          } else {
-              setCitySearchResults(results);
-              setIsCitySelectionOpen(true);
-              // Restore previous status to keep UI stable behind the modal
-              setWeatherStatus(weatherData ? 'success' : 'error');
-          }
-      } catch (error) {
-          console.error("Failed to search city:", error);
-          setWeatherError(error instanceof Error ? error.message : "Não foi possível encontrar a cidade.");
-          setWeatherStatus('error');
-      }
-  }, [handleFetchWeather, weatherData]);
-
-  const handleCitySelect = (city: CitySearchResult) => {
-    setIsCitySelectionOpen(false);
-    handleFetchWeather({ lat: city.lat, lon: city.lon });
-  };
+  const handleCitySelect = useCallback((city: CitySearchResult) => {
+    handleFetchWeather({ lat: city.lat, lon: city.lon }, { name: city.name, country: city.country });
+  }, [handleFetchWeather]);
 
   const fetchUserLocationWeather = useCallback(() => {
+    setWeatherStatus('loading');
+    setWeatherError(null);
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           handleFetchWeather({ lat: position.coords.latitude, lon: position.coords.longitude });
         },
         (error) => {
-          console.warn(`Geolocation error: ${error.message}. Defaulting to Porto Alegre.`);
-          // Inform user about geolocation failure before falling back
-          setWeatherError("Não foi possível obter sua localização. Mostrando o clima de Porto Alegre.");
+          console.warn(`Geolocation error: ${error.message}.`);
+          setWeatherError("Não foi possível obter sua localização. Verifique as permissões do seu navegador e tente novamente.");
           setWeatherStatus('error');
-          // Give user a chance to see the error before fetching default
-          setTimeout(() => handleCitySearch('Porto Alegre'), 500);
         }
       );
     } else {
-      console.warn("Geolocation is not supported by this browser. Defaulting to Porto Alegre.");
-      setWeatherError("Geolocalização não é suportada neste navegador. Mostrando o clima de Porto Alegre.");
+      console.warn("Geolocation is not supported by this browser.");
+      setWeatherError("Geolocalização não é suportada neste navegador.");
       setWeatherStatus('error');
-      setTimeout(() => handleCitySearch('Porto Alegre'), 500);
     }
-  }, [handleFetchWeather, handleCitySearch]);
+  }, [handleFetchWeather]);
+
+  const initialLoad = useCallback(() => {
+    const portoAlegre: CitySearchResult = {
+      name: 'Porto Alegre',
+      country: 'BR',
+      state: 'Rio Grande do Sul',
+      lat: -30.0346,
+      lon: -51.2177
+    };
+    handleCitySelect(portoAlegre);
+  }, [handleCitySelect]);
 
   useEffect(() => {
-    // Load default city on initial render instead of asking for location
-    handleCitySearch('Porto Alegre');
-    // We only want this to run once on initial load.
+    initialLoad();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -156,9 +133,9 @@ const App: React.FC = () => {
     hourlyForecast,
     dailyForecast,
     alerts,
-    onSearch: handleCitySearch,
+    onCitySelect: handleCitySelect,
     onGeolocate: fetchUserLocationWeather,
-    onRetry: () => handleCitySearch('Porto Alegre'),
+    onRetry: initialLoad, // Retry loads the default city
   };
 
   return (
@@ -212,14 +189,6 @@ const App: React.FC = () => {
         </div>
       </main>
       
-      {isCitySelectionOpen && (
-        <CitySelectionModal 
-          results={citySearchResults}
-          onSelect={handleCitySelect}
-          onClose={() => setIsCitySelectionOpen(false)}
-        />
-      )}
-
       <div className="lg:hidden">
         <BottomNav activeView={view} setView={setView} />
         <MobileAiControls 
