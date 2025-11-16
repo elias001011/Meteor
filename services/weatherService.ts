@@ -66,6 +66,6 @@ export const fetchAllWeatherData = async (lat: number, lon: number, cityInfo?: {
         airQualityData: data.airQualityData,
         hourlyForecast: data.hourlyForecast,
         dailyForecast: data.dailyForecast,
-        alerts: data.alerts // Will be an empty array if fallback is used
+        alerts: data.alerts
     };
 };
