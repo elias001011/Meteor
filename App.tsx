@@ -41,7 +41,7 @@ const App: React.FC = () => {
   const [weatherError, setWeatherError] = useState<string | null>(null);
   const [currentCoords, setCurrentCoords] = useState<{lat: number, lon: number} | null>(null);
 
-  const { weatherData, airQualityData, hourlyForecast, dailyForecast, alerts, dataSource } = weatherInfo;
+  const { weatherData, airQualityData, hourlyForecast, dailyForecast, alerts, dataSource, lastUpdated } = weatherInfo;
 
   // Setup Speech Recognition
   useEffect(() => {
@@ -210,7 +210,7 @@ const App: React.FC = () => {
   const weatherProps = {
     status: weatherStatus,
     error: weatherError,
-    weatherData, airQualityData, hourlyForecast, dailyForecast, alerts, dataSource,
+    weatherData, airQualityData, hourlyForecast, dailyForecast, alerts, dataSource, lastUpdated,
     onCitySelect: handleCitySelect,
     onGeolocate: fetchUserLocationWeather,
     onRetry: initialLoad,

@@ -1,6 +1,6 @@
 import type { AllWeatherData, CitySearchResult } from '../types';
 
-const CACHE_DURATION_MS = 15 * 60 * 1000; // 15 minutes cache
+const CACHE_DURATION_MS = 30 * 60 * 1000; // 30 minutes cache
 
 // Fetches a list of cities matching the query from our secure Netlify function
 export const searchCities = async (city: string): Promise<CitySearchResult[]> => {
@@ -30,7 +30,7 @@ export const fetchAllWeatherData = async (lat: number, lon: number, cityInfo?: {
             const { timestamp, data } = JSON.parse(cachedItem);
             if (Date.now() - timestamp < CACHE_DURATION_MS) {
                 console.log(`Returning cached weather data for ${data.weatherData.city || cacheKey}`);
-                return data; // Return fresh cached data
+                return data as AllWeatherData; // Return fresh cached data
             }
         }
     } catch (error) {
@@ -58,21 +58,17 @@ export const fetchAllWeatherData = async (lat: number, lon: number, cityInfo?: {
         throw new Error(errorData.message || 'Falha ao buscar dados do clima.');
     }
     
-    const data: AllWeatherData = await response.json();
+    const dataFromApi: Omit<AllWeatherData, 'lastUpdated'> = await response.json();
 
-    const finalData = {
-        weatherData: data.weatherData,
-        airQualityData: data.airQualityData,
-        hourlyForecast: data.hourlyForecast,
-        dailyForecast: data.dailyForecast,
-        alerts: data.alerts,
-        dataSource: data.dataSource,
+    const finalData: AllWeatherData = {
+        ...dataFromApi,
+        lastUpdated: Date.now(),
     };
 
     // 3. Save the newly fetched data to cache
     try {
         const itemToCache = {
-            timestamp: Date.now(),
+            timestamp: finalData.lastUpdated,
             data: finalData
         };
         localStorage.setItem(cacheKey, JSON.stringify(itemToCache));
