@@ -63,7 +63,6 @@ export const fetchAllWeatherData = async (lat: number, lon: number, cityInfo?: {
     
     // Add formatted date to weather data
     const now = new Date();
-    now.toLocaleString('pt-BR', { timeZone: data.timezone }); // Adjust to city's timezone if available
     data.weatherData.date = now.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
 
     return {
