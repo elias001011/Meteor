@@ -11,6 +11,9 @@ export interface WeatherData {
   humidity: number;
   pressure: number;
   imageUrl: string;
+  uvi?: number;
+  sunrise: number;
+  sunset: number;
 }
 
 export interface AirQualityData {
@@ -75,6 +78,7 @@ export interface AllWeatherData {
     dailyForecast: DailyForecast[];
     alerts: WeatherAlert[];
     dataSource: 'onecall' | 'free';
+    lastUpdated: number;
 }
 
 export interface SearchResultItem {

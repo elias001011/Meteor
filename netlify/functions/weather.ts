@@ -53,6 +53,9 @@ const fetchWithOneCall = async (lat: string, lon: string) => {
         windSpeed: Math.round(onecallApiData.current.wind_speed * 3.6),
         humidity: onecallApiData.current.humidity,
         pressure: onecallApiData.current.pressure,
+        uvi: onecallApiData.current.uvi,
+        sunrise: onecallApiData.current.sunrise,
+        sunset: onecallApiData.current.sunset,
     };
 
     const hourlyForecast = onecallApiData.hourly.slice(0, 8).map((item: any) => ({
@@ -119,6 +122,8 @@ const fetchWithFreeTier = async (lat: string, lon: string) => {
         windSpeed: Math.round(weatherApiData.wind.speed * 3.6),
         humidity: weatherApiData.main.humidity,
         pressure: weatherApiData.main.pressure,
+        sunrise: weatherApiData.sys.sunrise,
+        sunset: weatherApiData.sys.sunset,
     };
     
     const hourlyForecast = hourlyApiData.list.slice(0, 8).map((item: any) => ({

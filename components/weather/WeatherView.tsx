@@ -9,6 +9,7 @@ import AirQuality from './AirQuality';
 import LoadingSpinner from '../common/LoadingSpinner';
 import ErrorDisplay from '../common/ErrorDisplay';
 import Alerts from './Alerts';
+import DataSourceInfo from './DataSourceInfo';
 
 interface WeatherViewProps {
     weatherData: WeatherData | null;
@@ -17,6 +18,7 @@ interface WeatherViewProps {
     dailyForecast: DailyForecast[];
     alerts: WeatherAlert[];
     dataSource: 'onecall' | 'free' | null;
+    lastUpdated: number | null;
     status: 'loading' | 'success' | 'error';
     error: string | null;
     onCitySelect: (city: CitySearchResult) => void;
@@ -31,6 +33,7 @@ const WeatherView: React.FC<WeatherViewProps> = ({
     dailyForecast,
     alerts,
     dataSource,
+    lastUpdated,
     status,
     error,
     onCitySelect,
@@ -66,6 +69,7 @@ const WeatherView: React.FC<WeatherViewProps> = ({
                 {airQualityData && <AirQuality data={airQualityData} />}
                 <HourlyForecastComponent data={hourlyForecast} />
                 <DailyForecastComponent data={dailyForecast} />
+                <DataSourceInfo source={dataSource} lastUpdated={lastUpdated} />
             </div>
         );
     }
