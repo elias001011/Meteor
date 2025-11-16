@@ -16,6 +16,7 @@ interface DesktopWeatherProps {
     hourlyForecast: HourlyForecast[];
     dailyForecast: DailyForecast[];
     alerts: WeatherAlert[];
+    dataSource: 'onecall' | 'free' | null;
     status: 'loading' | 'success' | 'error';
     error: string | null;
     onCitySelect: (city: CitySearchResult) => void;
@@ -29,6 +30,7 @@ const DesktopWeather: React.FC<DesktopWeatherProps> = ({
     hourlyForecast,
     dailyForecast,
     alerts,
+    dataSource,
     status,
     error,
     onCitySelect,
@@ -58,7 +60,7 @@ const DesktopWeather: React.FC<DesktopWeatherProps> = ({
             <div className="space-y-6">
                 <SearchBar onCitySelect={onCitySelect} onGeolocate={onGeolocate} />
                 <CurrentWeather data={weatherData} />
-                {alerts && alerts.length > 0 && <Alerts alerts={alerts} />}
+                {dataSource === 'onecall' && <Alerts alerts={alerts} />}
                 <AdditionalInfo data={weatherData} />
                 {airQualityData && <AirQuality data={airQualityData} />}
                 <HourlyForecastComponent data={hourlyForecast} />

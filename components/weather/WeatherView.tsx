@@ -16,6 +16,7 @@ interface WeatherViewProps {
     hourlyForecast: HourlyForecast[];
     dailyForecast: DailyForecast[];
     alerts: WeatherAlert[];
+    dataSource: 'onecall' | 'free' | null;
     status: 'loading' | 'success' | 'error';
     error: string | null;
     onCitySelect: (city: CitySearchResult) => void;
@@ -29,6 +30,7 @@ const WeatherView: React.FC<WeatherViewProps> = ({
     hourlyForecast,
     dailyForecast,
     alerts,
+    dataSource,
     status,
     error,
     onCitySelect,
@@ -59,7 +61,7 @@ const WeatherView: React.FC<WeatherViewProps> = ({
             <div className="p-4 sm:p-6 space-y-6">
                 <SearchBar onCitySelect={onCitySelect} onGeolocate={onGeolocate} />
                 <CurrentWeather data={weatherData} />
-                {alerts && alerts.length > 0 && <Alerts alerts={alerts} />}
+                {dataSource === 'onecall' && <Alerts alerts={alerts} />}
                 <AdditionalInfo data={weatherData} />
                 {airQualityData && <AirQuality data={airQualityData} />}
                 <HourlyForecastComponent data={hourlyForecast} />

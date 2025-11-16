@@ -1,12 +1,26 @@
 import React from 'react';
 import type { WeatherAlert } from '../../types';
-import { AlertTriangleIcon } from '../icons';
+import { AlertTriangleIcon, InfoIcon } from '../icons';
 
 interface AlertsProps {
     alerts: WeatherAlert[];
 }
 
 const Alerts: React.FC<AlertsProps> = ({ alerts }) => {
+    if (!alerts || alerts.length === 0) {
+        return (
+            <div className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-4 text-gray-400">
+                <div className="flex items-center gap-3">
+                    <InfoIcon className="w-6 h-6 flex-shrink-0 text-gray-500" />
+                    <div>
+                        <h3 className="font-bold text-white">Alertas Meteorológicos</h3>
+                        <p className="text-sm mt-1">Nenhum alerta no momento.</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     const formatDate = (timestamp: number) => {
         return new Date(timestamp * 1000).toLocaleDateString('pt-BR', {
             hour: '2-digit',
