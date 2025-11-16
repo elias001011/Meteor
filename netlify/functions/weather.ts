@@ -14,7 +14,7 @@ const mapOwmIconToEmoji = (icon: string): string => {
     return iconMap[icon] || '-';
 };
 
-const fetchFreeTierData = async (lat: string, lon: string) => {
+const fetchWeatherData = async (lat: string, lon: string) => {
     const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&lang=pt_br&appid=${API_KEY}`;
     const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&lang=pt_br&appid=${API_KEY}`;
     const airPollutionUrl = `https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${API_KEY}`;
@@ -23,15 +23,24 @@ const fetchFreeTierData = async (lat: string, lon: string) => {
         fetch(weatherUrl), fetch(forecastUrl), fetch(airPollutionUrl)
     ]);
 
-    if (!weatherRes.ok || !forecastRes.ok || !airPollutionRes.ok) {
-        const error = !weatherRes.ok ? await weatherRes.json() : !forecastRes.ok ? await forecastRes.json() : await airPollutionRes.json();
-        throw new Error(error.message || 'Falha ao buscar dados de uma das APIs do clima.');
+    // Check if any of the essential fetches failed
+    if (!weatherRes.ok || !forecastRes.ok) {
+        const error = !weatherRes.ok ? await weatherRes.json() : await forecastRes.json();
+        throw new Error(error.message || 'Falha ao buscar dados essenciais do clima.');
     }
 
-    const [weatherApiData, forecastApiData, airPollutionApiData] = await Promise.all([
-        weatherRes.json(), forecastRes.json(), airPollutionRes.json()
+    const [weatherApiData, forecastApiData] = await Promise.all([
+        weatherRes.json(), forecastRes.json()
     ]);
     
+    // Air pollution is not critical, so we can handle its failure gracefully
+    let airPollutionApiData = null;
+    if (airPollutionRes.ok) {
+        airPollutionApiData = await airPollutionRes.json();
+    } else {
+        console.warn("Could not fetch air pollution data. It will be omitted.");
+    }
+
     const weatherData = {
         dt: weatherApiData.dt,
         temperature: Math.round(weatherApiData.main.temp),
@@ -60,64 +69,11 @@ const fetchFreeTierData = async (lat: string, lon: string) => {
     const dailyForecast = Object.entries(dailyAggregates).slice(0, 5).map(([dayKey]) => {
         const mostFrequentIcon = Object.keys(dailyAggregates[dayKey].icons).reduce((a, b) => dailyAggregates[dayKey].icons[a] > dailyAggregates[dayKey].icons[b] ? a : b, '');
         return {
-            dt: dailyAggregates[dayKey].dts[0], // Use the first dt for the day
+            dt: dailyAggregates[dayKey].dts[0],
             temperature: Math.round(Math.max(...dailyAggregates[dayKey].temps)),
             conditionIcon: mapOwmIconToEmoji(mostFrequentIcon),
         };
     });
-
-    return {
-        weatherData,
-        airQualityData: { aqi: airPollutionApiData.list[0].main.aqi, components: airPollutionApiData.list[0].components },
-        hourlyForecast,
-        dailyForecast,
-        alerts: [], // Alerts not available in free tier
-    };
-};
-
-const fetchOneCallData = async (lat: string, lon: string) => {
-    const oneCallUrl = `https://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${lon}&units=metric&lang=pt_br&exclude=minutely&appid=${API_KEY}`;
-    const airPollutionUrl = `https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${API_KEY}`;
-    
-    const [oneCallRes, airPollutionRes] = await Promise.all([
-        fetch(oneCallUrl), fetch(airPollutionUrl)
-    ]);
-    
-    if (!oneCallRes.ok) {
-        const error = await oneCallRes.json().catch(() => ({ message: 'One Call API request failed.' }));
-        throw new Error(`[${oneCallRes.status}] ${error.message}`);
-    }
-
-    if (!airPollutionRes.ok) {
-        console.warn("Could not fetch air pollution data. It will be omitted.");
-    }
-    
-    const [oneCallApiData, airPollutionApiData] = await Promise.all([
-        oneCallRes.json(),
-        airPollutionRes.ok ? airPollutionRes.json() : Promise.resolve(null)
-    ]);
-
-    const weatherData = {
-        dt: oneCallApiData.current.dt,
-        temperature: Math.round(oneCallApiData.current.temp),
-        condition: oneCallApiData.current.weather[0].description.charAt(0).toUpperCase() + oneCallApiData.current.weather[0].description.slice(1),
-        conditionIcon: mapOwmIconToEmoji(oneCallApiData.current.weather[0].icon),
-        windSpeed: Math.round(oneCallApiData.current.wind_speed * 3.6),
-        humidity: oneCallApiData.current.humidity,
-        pressure: oneCallApiData.current.pressure,
-    };
-    
-    const hourlyForecast = oneCallApiData.hourly.slice(0, 8).map((item: any) => ({
-        dt: item.dt,
-        temperature: Math.round(item.temp),
-        conditionIcon: mapOwmIconToEmoji(item.weather[0].icon),
-    }));
-
-    const dailyForecast = oneCallApiData.daily.slice(0, 5).map((item: any) => ({
-        dt: item.dt,
-        temperature: Math.round(item.temp.max), 
-        conditionIcon: mapOwmIconToEmoji(item.weather[0].icon),
-    }));
     
     const airQualityData = airPollutionApiData && airPollutionApiData.list?.[0]
         ? { aqi: airPollutionApiData.list[0].main.aqi, components: airPollutionApiData.list[0].components }
@@ -128,7 +84,7 @@ const fetchOneCallData = async (lat: string, lon: string) => {
         airQualityData,
         hourlyForecast,
         dailyForecast,
-        alerts: oneCallApiData.alerts || [],
+        alerts: [], // Alerts are never available in free tier
     };
 };
 
@@ -147,19 +103,10 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
                 const lon = params.lon;
                 if (!lat || !lon) return { statusCode: 400, body: JSON.stringify({ message: "Latitude e longitude são obrigatórias." }) };
 
-                try {
-                    console.log("Attempting to fetch data from One Call API 3.0");
-                    const oneCallData = await fetchOneCallData(lat, lon);
-                    console.log("Successfully fetched data from One Call API 3.0");
-                    return { statusCode: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(oneCallData) };
-                } catch (error) {
-                    console.warn(`One Call API failed: ${error.message}. Falling back to free tier APIs.`);
-                    
-                    console.log("Attempting to fetch data from Free Tier APIs");
-                    const freeTierData = await fetchFreeTierData(lat, lon);
-                    console.log("Successfully fetched data from Free Tier APIs");
-                    return { statusCode: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(freeTierData) };
-                }
+                console.log("Fetching weather data from Free Tier APIs");
+                const data = await fetchWeatherData(lat, lon);
+                console.log("Successfully fetched data from Free Tier APIs");
+                return { statusCode: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) };
             }
 
             case 'direct':
