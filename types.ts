@@ -51,10 +51,3 @@ export interface CitySearchResult {
     lat: number;
     lon: number;
 }
-
-// FIX: Added WeatherAlert interface to resolve missing type error in components/weather/Alerts.tsx.
-export interface WeatherAlert {
-    sender_name: string;
-    event: string;
-    description: string;
-}
