@@ -27,6 +27,7 @@ const fetchWithFallback = async (lat: string, lon: string) => {
         const [oneCallData, airPollutionData] = await Promise.all([oneCallRes.json(), airPollutionRes.json()]);
         
         const weatherData = {
+            dt: oneCallData.current.dt,
             temperature: Math.round(oneCallData.current.temp),
             condition: oneCallData.current.weather[0].description.charAt(0).toUpperCase() + oneCallData.current.weather[0].description.slice(1),
             conditionIcon: mapOwmIconToEmoji(oneCallData.current.weather[0].icon),
@@ -36,18 +37,14 @@ const fetchWithFallback = async (lat: string, lon: string) => {
         };
         
         const hourlyForecast = oneCallData.hourly.slice(1, 9).map((item: any) => ({
-            time: new Date(item.dt * 1000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+            dt: item.dt,
             temperature: Math.round(item.temp),
             conditionIcon: mapOwmIconToEmoji(item.weather[0].icon),
         }));
         
-        const dailyForecast = oneCallData.daily.slice(0, 5).map((item: any, index: number) => {
-            const date = new Date(item.dt * 1000);
-            let dayLabel = new Date(item.dt * 1000).toLocaleDateString('pt-BR', { weekday: 'short' });
-            dayLabel = dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1, 3);
-            if (index === 0) dayLabel = 'Hoje';
+        const dailyForecast = oneCallData.daily.slice(0, 5).map((item: any) => {
             return {
-                day: dayLabel,
+                dt: item.dt,
                 temperature: Math.round(item.temp.max),
                 conditionIcon: mapOwmIconToEmoji(item.weather[0].icon),
             };
@@ -82,6 +79,7 @@ const fetchWithFallback = async (lat: string, lon: string) => {
     ]);
     
     const weatherData = {
+        dt: weatherApiData.dt,
         temperature: Math.round(weatherApiData.main.temp),
         condition: weatherApiData.weather[0].description.charAt(0).toUpperCase() + weatherApiData.weather[0].description.slice(1),
         conditionIcon: mapOwmIconToEmoji(weatherApiData.weather[0].icon),
@@ -92,26 +90,24 @@ const fetchWithFallback = async (lat: string, lon: string) => {
     
     // Process forecast data from the fallback API
     const hourlyForecast = forecastApiData.list.slice(0, 8).map((item: any) => ({
-        time: new Date(item.dt * 1000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        dt: item.dt,
         temperature: Math.round(item.main.temp),
         conditionIcon: mapOwmIconToEmoji(item.weather[0].icon),
     }));
     
-    const dailyAggregates: { [key: string]: { temps: number[], icons: { [icon: string]: number } } } = {};
+    const dailyAggregates: { [key: string]: { temps: number[], icons: { [icon: string]: number }, dts: number[] } } = {};
     forecastApiData.list.forEach((item: any) => {
         const dayKey = new Date(item.dt * 1000).toISOString().split('T')[0];
-        if (!dailyAggregates[dayKey]) dailyAggregates[dayKey] = { temps: [], icons: {} };
+        if (!dailyAggregates[dayKey]) dailyAggregates[dayKey] = { temps: [], icons: {}, dts: [] };
         dailyAggregates[dayKey].temps.push(item.main.temp);
+        dailyAggregates[dayKey].dts.push(item.dt);
         dailyAggregates[dayKey].icons[item.weather[0].icon] = (dailyAggregates[dayKey].icons[item.weather[0].icon] || 0) + 1;
     });
 
-    const dailyForecast = Object.entries(dailyAggregates).slice(0, 5).map(([dayKey], index) => {
-        let dayLabel = new Date(dayKey + 'T12:00:00Z').toLocaleDateString('pt-BR', { weekday: 'short' });
-        dayLabel = dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1, 3);
-        if (index === 0) dayLabel = 'Hoje';
+    const dailyForecast = Object.entries(dailyAggregates).slice(0, 5).map(([dayKey]) => {
         const mostFrequentIcon = Object.keys(dailyAggregates[dayKey].icons).reduce((a, b) => dailyAggregates[dayKey].icons[a] > dailyAggregates[dayKey].icons[b] ? a : b, '');
         return {
-            day: dayLabel,
+            dt: dailyAggregates[dayKey].dts[0], // Use the first dt for the day
             temperature: Math.round(Math.max(...dailyAggregates[dayKey].temps)),
             conditionIcon: mapOwmIconToEmoji(mostFrequentIcon),
         };

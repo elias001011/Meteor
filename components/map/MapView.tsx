@@ -5,33 +5,39 @@ declare var L: any;
 
 type WeatherLayer = 'temp_new' | 'clouds_new' | 'precipitation_new' | 'wind_new';
 
-const MapView: React.FC = () => {
+interface MapViewProps {
+    lat: number;
+    lon: number;
+}
+
+const MapView: React.FC<MapViewProps> = ({ lat, lon }) => {
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const mapInstanceRef = useRef<any>(null);
+    const markerRef = useRef<any>(null);
     const activeLayerRef = useRef<any>(null);
     const [isLayerMenuOpen, setIsLayerMenuOpen] = useState(false);
 
+    // Effect for map initialization (runs only once)
     useEffect(() => {
-        if (!mapContainerRef.current || typeof L === 'undefined') return;
+        if (!mapContainerRef.current || typeof L === 'undefined' || mapInstanceRef.current) return;
 
-        if (!mapInstanceRef.current) {
-            const map = L.map(mapContainerRef.current, { zoomControl: false }).setView([-30.0346, -51.2177], 10);
-            L.control.zoom({ position: 'bottomright' }).addTo(map);
+        const map = L.map(mapContainerRef.current, { zoomControl: false }).setView([lat, lon], 10);
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
-                maxZoom: 19
-            }).addTo(map);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        }).addTo(map);
 
-            const customIcon = L.icon({
-                iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-                shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-                iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
-            });
-            L.marker([-30.0346, -51.2177], { icon: customIcon }).addTo(map).bindPopup('Porto Alegre');
-            
-            mapInstanceRef.current = map;
-        }
+        const customIcon = L.icon({
+            iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+            shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+            iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+        });
+        
+        markerRef.current = L.marker([lat, lon], { icon: customIcon }).addTo(map);
+        
+        mapInstanceRef.current = map;
 
         const resizeObserver = new ResizeObserver(() => {
             mapInstanceRef.current?.invalidateSize();
@@ -41,9 +47,17 @@ const MapView: React.FC = () => {
 
         return () => {
             if (currentContainer) resizeObserver.unobserve(currentContainer);
-            // Don't destroy map on component unmount to preserve state across views
         };
-    }, []);
+    }, []); // Empty dependency array ensures this runs only once
+
+    // Effect for updating map view and marker when props change
+    useEffect(() => {
+        if (mapInstanceRef.current && markerRef.current) {
+            const newLatLng = L.latLng(lat, lon);
+            mapInstanceRef.current.setView(newLatLng, 10);
+            markerRef.current.setLatLng(newLatLng);
+        }
+    }, [lat, lon]);
 
     const toggleWeatherLayer = (layerName: WeatherLayer | null) => {
         const map = mapInstanceRef.current;

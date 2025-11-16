@@ -30,10 +30,12 @@ const App: React.FC = () => {
   const [alerts, setAlerts] = useState<WeatherAlert[]>([]);
   const [weatherStatus, setWeatherStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [weatherError, setWeatherError] = useState<string | null>(null);
+  const [currentCoords, setCurrentCoords] = useState<{lat: number, lon: number} | null>(null);
 
   const handleFetchWeather = useCallback(async (coords: { lat: number; lon: number }, cityInfo?: { name: string; country: string }) => {
     setWeatherStatus('loading');
     setWeatherError(null);
+    setCurrentCoords(coords);
     try {
       const data = await fetchAllWeatherData(coords.lat, coords.lon, cityInfo);
       setWeatherData(data.weatherData);
@@ -151,12 +153,12 @@ const App: React.FC = () => {
                 <DesktopWeather {...weatherProps} />
               </div>
               <div className="h-full rounded-3xl overflow-hidden">
-                <MapView />
+                {currentCoords && <MapView lat={currentCoords.lat} lon={currentCoords.lon} />}
               </div>
             </div>
           )}
           {view === 'ai' && <AiView messages={messages} onSendMessage={handleSendMessage} isSending={isSending} />}
-          {view === 'map' && <MapView />}
+          {view === 'map' && currentCoords && <MapView lat={currentCoords.lat} lon={currentCoords.lon} />}
           {view === 'news' && <PlaceholderView title="Notícias" />}
           {view === 'settings' && <PlaceholderView title="Ajustes" />}
           {view === 'tips' && <PlaceholderView title="Dicas" />}
@@ -172,7 +174,7 @@ const App: React.FC = () => {
             <AiView messages={messages} onSendMessage={handleSendMessage} isSending={isSending} />
           </div>
           <div className={`${view === 'map' ? 'block' : 'hidden'} h-full pb-24`}>
-            <MapView />
+             {currentCoords && <MapView lat={currentCoords.lat} lon={currentCoords.lon} />}
           </div>
           <div className={`${view === 'news' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24`}>
             <PlaceholderView title="Notícias" />
