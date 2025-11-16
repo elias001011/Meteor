@@ -16,6 +16,26 @@ import { Content } from '@google/genai';
 import ErrorPopup from './components/common/ErrorPopup';
 import DataSourceModal from './components/common/DataSourceModal';
 
+// Rain animation component defined locally to avoid creating a new file
+const RainAnimation: React.FC = () => {
+    const numberOfDrops = 100;
+    return (
+        <div className="fixed top-0 left-0 w-full h-full z-0 pointer-events-none overflow-hidden">
+            {Array.from({ length: numberOfDrops }).map((_, i) => (
+                <div
+                    key={i}
+                    className="raindrop"
+                    style={{
+                        left: `${Math.random() * 100}%`,
+                        animationDuration: `${0.5 + Math.random() * 0.5}s`,
+                        animationDelay: `${Math.random() * 5}s`,
+                    }}
+                />
+            ))}
+        </div>
+    );
+};
+
 
 const App: React.FC = () => {
   const [view, setView] = useState<View>('weather');
@@ -244,8 +264,12 @@ const App: React.FC = () => {
       isSearchEnabled, onToggleSearch: () => setIsSearchEnabled(prev => !prev)
   };
 
+  const isRaining = weatherData?.condition?.toLowerCase().includes('chuv');
+
+
   return (
-    <div className="bg-gray-900 text-white min-h-screen font-sans flex flex-col h-screen overflow-hidden">
+    <div className="relative bg-gray-900 text-white min-h-screen font-sans flex flex-col h-screen overflow-hidden">
+      {view === 'weather' && isRaining && <RainAnimation />}
       <Header activeView={view} setView={setView} />
       {appError && <ErrorPopup message={appError} onClose={() => setAppError(null)} />}
       

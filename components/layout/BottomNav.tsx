@@ -47,23 +47,23 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeView, setView }) => {
         )}
       </div>
 
-      <div className="relative bottom-4 bg-gray-800/70 backdrop-blur-lg border border-gray-700/50 rounded-full max-w-lg mx-auto h-20 flex justify-around items-center shadow-lg">
+      <div className="relative bottom-4 bg-gray-800/70 backdrop-blur-lg border border-gray-700/50 rounded-full max-w-lg mx-auto h-18 flex justify-around items-center shadow-lg">
         <NavItem icon={<HomeIcon className="w-6 h-6" />} label="Clima" isActive={activeView === 'weather'} onClick={() => setView('weather')} />
         <NavItem icon={<MapIcon className="w-6 h-6" />} label="Mapa" isActive={activeView === 'map'} onClick={() => setView('map')} />
         
         {/* Placeholder for the AI button to maintain spacing */}
-        <div className="w-16 h-16" />
+        <div className="w-14 h-14" />
 
         <NavItem icon={<LightbulbIcon className="w-6 h-6" />} label="Dicas" isActive={activeView === 'tips'} onClick={() => setView('tips')} />
         <NavItem icon={<MoreHorizontalIcon className="w-6 h-6" />} label="Mais" isActive={isMoreMenuOpen} onClick={() => setIsMoreMenuOpen(prev => !prev)} />
 
-        <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-[calc(50%+12px)] flex flex-col items-center group">
+        <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-[calc(50%+10px)] flex flex-col items-center group">
           <button
             onClick={() => setView('ai')}
-            className="bg-cyan-500 group-hover:bg-cyan-400 text-white rounded-full w-16 h-16 flex items-center justify-center shadow-lg shadow-cyan-500/30 border-4 border-gray-900 transition-transform transform group-hover:scale-105"
+            className="bg-cyan-500 group-hover:bg-cyan-400 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg shadow-cyan-500/30 border-[3px] border-gray-900 transition-transform transform group-hover:scale-105"
             aria-label="Ativar assistente de IA"
           >
-            <SparklesIcon className="w-7 h-7" />
+            <SparklesIcon className="w-6 h-6" />
           </button>
           <span className={`text-xs font-bold mt-2 transition-colors ${activeView === 'ai' ? 'text-cyan-400' : 'text-gray-400 group-hover:text-white'}`}>IA</span>
         </div>

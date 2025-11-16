@@ -36,6 +36,24 @@
       ::-webkit-scrollbar-thumb:hover {
         background-color: rgba(156, 163, 175, 0.5);
       }
+       /* Rain Animation */
+      .raindrop {
+          position: absolute;
+          bottom: 100%;
+          width: 1px;
+          height: 60px;
+          background: linear-gradient(to top, rgba(107, 114, 128, 0) 0%, rgba(107, 114, 128, 0.4) 100%);
+          animation: fall linear infinite;
+      }
+
+      @keyframes fall {
+          from {
+              transform: translateY(0vh);
+          }
+          to {
+              transform: translateY(110vh);
+          }
+      }
     </style>
   <script type="importmap">
 {
