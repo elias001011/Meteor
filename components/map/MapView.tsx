@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { LayersIcon, ThermometerIcon, WindIcon } from '../icons';
+import { LayersIcon, ThermometerIcon, WindIcon, DropletsIcon, GaugeIcon } from '../icons';
 
 declare var L: any;
 
-type WeatherLayer = 'temp_new' | 'clouds_new' | 'precipitation_new' | 'wind_new';
+type WeatherLayer = 'TA2' | 'CL' | 'PR' | 'PA' | 'WS10';
 
 interface MapViewProps {
     lat: number;
@@ -90,9 +90,11 @@ const MapView: React.FC<MapViewProps> = ({ lat, lon }) => {
             <div className="absolute top-4 right-4 z-[401]">
                 {isLayerMenuOpen && (
                     <div className="bg-white/80 backdrop-blur-md border border-gray-300/50 rounded-xl shadow-lg p-2 flex flex-col gap-1 w-48">
-                        <LayerButton icon={<ThermometerIcon className="w-5 h-5 text-orange-500"/>} label="Temperatura" onClick={() => toggleWeatherLayer('temp_new')} />
-                        <LayerButton icon={<WindIcon className="w-5 h-5 text-cyan-500"/>} label="Vento" onClick={() => toggleWeatherLayer('wind_new')} />
-                        <LayerButton icon={<LayersIcon className="w-5 h-5 text-blue-500"/>} label="Nuvens" onClick={() => toggleWeatherLayer('clouds_new')} />
+                        <LayerButton icon={<ThermometerIcon className="w-5 h-5 text-orange-500"/>} label="Temperatura" onClick={() => toggleWeatherLayer('TA2')} />
+                        <LayerButton icon={<WindIcon className="w-5 h-5 text-cyan-500"/>} label="Vento" onClick={() => toggleWeatherLayer('WS10')} />
+                        <LayerButton icon={<LayersIcon className="w-5 h-5 text-gray-500"/>} label="Nuvens" onClick={() => toggleWeatherLayer('CL')} />
+                        <LayerButton icon={<DropletsIcon className="w-5 h-5 text-blue-500"/>} label="Precipitação" onClick={() => toggleWeatherLayer('PR')} />
+                        <LayerButton icon={<GaugeIcon className="w-5 h-5 text-indigo-500"/>} label="Pressão" onClick={() => toggleWeatherLayer('PA')} />
                         <button onClick={() => toggleWeatherLayer(null)} className="w-full text-center text-sm text-gray-500 pt-2 mt-1 border-t border-gray-300/50 hover:text-gray-800">Limpar Camada</button>
                     </div>
                 )}
