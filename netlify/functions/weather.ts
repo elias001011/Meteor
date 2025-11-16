@@ -14,48 +14,118 @@ const mapOwmIconToEmoji = (icon: string): string => {
     return iconMap[icon] || '-';
 };
 
-const processForecastData = (forecastList: any[]) => {
-    const hourly = forecastList.slice(0, 8).map((item: any) => ({
+const fetchWithFallback = async (lat: string, lon: string) => {
+    // Primary method: Use One Call API 2.5
+    const oneCallUrl = `https://api.openweathermap.org/data/2.5/onecall?lat=${lat}&lon=${lon}&exclude=minutely&units=metric&lang=pt_br&appid=${API_KEY}`;
+    const airPollutionUrl = `https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${API_KEY}`;
+    
+    const oneCallRes = await fetch(oneCallUrl);
+    const airPollutionRes = await fetch(airPollutionUrl);
+
+    if (oneCallRes.ok && airPollutionRes.ok) {
+        console.log("Successfully fetched data using One Call API.");
+        const [oneCallData, airPollutionData] = await Promise.all([oneCallRes.json(), airPollutionRes.json()]);
+        
+        const weatherData = {
+            temperature: Math.round(oneCallData.current.temp),
+            condition: oneCallData.current.weather[0].description.charAt(0).toUpperCase() + oneCallData.current.weather[0].description.slice(1),
+            conditionIcon: mapOwmIconToEmoji(oneCallData.current.weather[0].icon),
+            windSpeed: Math.round(oneCallData.current.wind_speed * 3.6),
+            humidity: oneCallData.current.humidity,
+            pressure: oneCallData.current.pressure,
+        };
+        
+        const hourlyForecast = oneCallData.hourly.slice(1, 9).map((item: any) => ({
+            time: new Date(item.dt * 1000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+            temperature: Math.round(item.temp),
+            conditionIcon: mapOwmIconToEmoji(item.weather[0].icon),
+        }));
+        
+        const dailyForecast = oneCallData.daily.slice(0, 5).map((item: any, index: number) => {
+            const date = new Date(item.dt * 1000);
+            let dayLabel = new Date(item.dt * 1000).toLocaleDateString('pt-BR', { weekday: 'short' });
+            dayLabel = dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1, 3);
+            if (index === 0) dayLabel = 'Hoje';
+            return {
+                day: dayLabel,
+                temperature: Math.round(item.temp.max),
+                conditionIcon: mapOwmIconToEmoji(item.weather[0].icon),
+            };
+        });
+
+        return {
+            weatherData,
+            airQualityData: { aqi: airPollutionData.list[0].main.aqi, components: airPollutionData.list[0].components },
+            hourlyForecast,
+            dailyForecast,
+            alerts: oneCallData.alerts || [],
+        };
+    }
+
+    console.warn("One Call API failed, attempting fallback to separate endpoints.");
+    
+    // Fallback method: Use separate weather and forecast APIs
+    const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&lang=pt_br&appid=${API_KEY}`;
+    const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&lang=pt_br&appid=${API_KEY}`;
+    
+    const [weatherRes, forecastRes] = await Promise.all([
+        fetch(weatherUrl), fetch(forecastUrl)
+    ]);
+
+    if (!weatherRes.ok || !forecastRes.ok || !airPollutionRes.ok) {
+        const error = !weatherRes.ok ? await weatherRes.json() : !forecastRes.ok ? await forecastRes.json() : await airPollutionRes.json();
+        throw new Error(error.message || 'Falha ao buscar dados de uma das APIs do clima (Fallback).');
+    }
+
+    const [weatherApiData, forecastApiData, airPollutionApiData] = await Promise.all([
+        weatherRes.json(), forecastRes.json(), airPollutionRes.json()
+    ]);
+    
+    const weatherData = {
+        temperature: Math.round(weatherApiData.main.temp),
+        condition: weatherApiData.weather[0].description.charAt(0).toUpperCase() + weatherApiData.weather[0].description.slice(1),
+        conditionIcon: mapOwmIconToEmoji(weatherApiData.weather[0].icon),
+        windSpeed: Math.round(weatherApiData.wind.speed * 3.6),
+        humidity: weatherApiData.main.humidity,
+        pressure: weatherApiData.main.pressure,
+    };
+    
+    // Process forecast data from the fallback API
+    const hourlyForecast = forecastApiData.list.slice(0, 8).map((item: any) => ({
         time: new Date(item.dt * 1000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
         temperature: Math.round(item.main.temp),
         conditionIcon: mapOwmIconToEmoji(item.weather[0].icon),
     }));
-
+    
     const dailyAggregates: { [key: string]: { temps: number[], icons: { [icon: string]: number } } } = {};
-    forecastList.forEach((item: any) => {
+    forecastApiData.list.forEach((item: any) => {
         const dayKey = new Date(item.dt * 1000).toISOString().split('T')[0];
-        if (!dailyAggregates[dayKey]) {
-            dailyAggregates[dayKey] = { temps: [], icons: {} };
-        }
+        if (!dailyAggregates[dayKey]) dailyAggregates[dayKey] = { temps: [], icons: {} };
         dailyAggregates[dayKey].temps.push(item.main.temp);
-        const icon = item.weather[0].icon;
-        dailyAggregates[dayKey].icons[icon] = (dailyAggregates[dayKey].icons[icon] || 0) + 1;
+        dailyAggregates[dayKey].icons[item.weather[0].icon] = (dailyAggregates[dayKey].icons[item.weather[0].icon] || 0) + 1;
     });
 
-    const daily = Object.entries(dailyAggregates).slice(0, 5).map(([dayKey, data], index) => {
-        const date = new Date(dayKey + 'T12:00:00Z');
-        let dayLabel: string;
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        if (date.setHours(0, 0, 0, 0) === today.getTime()) {
-            dayLabel = 'Hoje';
-        } else {
-            dayLabel = new Date(dayKey + 'T12:00:00Z').toLocaleDateString('pt-BR', { weekday: 'short' });
-            dayLabel = dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1, 3);
-        }
-
-        const mostFrequentIcon = Object.keys(data.icons).reduce((a, b) => data.icons[a] > data.icons[b] ? a : b, '');
-
+    const dailyForecast = Object.entries(dailyAggregates).slice(0, 5).map(([dayKey], index) => {
+        let dayLabel = new Date(dayKey + 'T12:00:00Z').toLocaleDateString('pt-BR', { weekday: 'short' });
+        dayLabel = dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1, 3);
+        if (index === 0) dayLabel = 'Hoje';
+        const mostFrequentIcon = Object.keys(dailyAggregates[dayKey].icons).reduce((a, b) => dailyAggregates[dayKey].icons[a] > dailyAggregates[dayKey].icons[b] ? a : b, '');
         return {
             day: dayLabel,
-            temperature: Math.round(Math.max(...data.temps)),
+            temperature: Math.round(Math.max(...dailyAggregates[dayKey].temps)),
             conditionIcon: mapOwmIconToEmoji(mostFrequentIcon),
         };
     });
 
-    return { hourlyForecast: hourly, dailyForecast: daily };
+    return {
+        weatherData,
+        airQualityData: { aqi: airPollutionApiData.list[0].main.aqi, components: airPollutionApiData.list[0].components },
+        hourlyForecast,
+        dailyForecast,
+        alerts: [], // Alerts not available in fallback
+    };
 };
+
 
 const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
     if (!API_KEY) {
@@ -72,44 +142,8 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
                 const lon = params.lon;
                 if (!lat || !lon) return { statusCode: 400, body: JSON.stringify({ message: "Latitude e longitude são obrigatórias." }) };
 
-                const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&lang=pt_br&appid=${API_KEY}`;
-                const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&lang=pt_br&appid=${API_KEY}`;
-                const airPollutionUrl = `https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${API_KEY}`;
-
-                const [weatherRes, forecastRes, airPollutionRes] = await Promise.all([
-                    fetch(weatherUrl), fetch(forecastUrl), fetch(airPollutionUrl)
-                ]);
-
-                if (!weatherRes.ok || !forecastRes.ok || !airPollutionRes.ok) {
-                    const error = !weatherRes.ok ? await weatherRes.json() : !forecastRes.ok ? await forecastRes.json() : await airPollutionRes.json();
-                    throw new Error(error.message || 'Falha ao buscar dados de uma das APIs do clima.');
-                }
-                
-                const [weatherApiData, forecastApiData, airPollutionApiData] = await Promise.all([
-                    weatherRes.json(), forecastRes.json(), airPollutionRes.json()
-                ]);
-
-                const weatherData = {
-                    temperature: Math.round(weatherApiData.main.temp),
-                    condition: weatherApiData.weather[0].description.charAt(0).toUpperCase() + weatherApiData.weather[0].description.slice(1),
-                    conditionIcon: mapOwmIconToEmoji(weatherApiData.weather[0].icon),
-                    windSpeed: Math.round(weatherApiData.wind.speed * 3.6),
-                    humidity: weatherApiData.main.humidity,
-                    pressure: weatherApiData.main.pressure,
-                };
-                
-                const airQualityData = {
-                    aqi: airPollutionApiData.list[0].main.aqi,
-                    components: airPollutionApiData.list[0].components
-                };
-                
-                const { hourlyForecast, dailyForecast } = processForecastData(forecastApiData.list);
-
-                return {
-                    statusCode: 200,
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ weatherData, airQualityData, hourlyForecast, dailyForecast, alerts: [], timezone: weatherApiData.timezone }),
-                };
+                const allData = await fetchWithFallback(lat, lon);
+                return { statusCode: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(allData) };
             }
 
             case 'direct':
@@ -146,7 +180,7 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
         console.error('Erro na função Netlify:', error);
         const errorMessage = error instanceof Error ? error.message : "Um erro interno ocorreu.";
         if (errorMessage.toLowerCase().includes("unauthorized") || errorMessage.includes("401")) {
-            return { statusCode: 401, body: JSON.stringify({ message: "Erro de autenticação. Verifique se sua chave CLIMA_API é válida e está corretamente configurada no Netlify." }) };
+            return { statusCode: 401, body: JSON.stringify({ message: "Erro de autenticação. Verifique se sua chave CLIMA_API é válida, está configurada no Netlify e tem permissão para a API One Call." }) };
         }
         return { statusCode: 500, body: JSON.stringify({ message: errorMessage }) };
     }

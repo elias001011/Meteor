@@ -45,7 +45,6 @@ const AirQuality: React.FC<AirQualityProps> = ({ data }) => {
                 <h3 className="text-sm text-gray-400 mb-2 px-2">Qualidade do Ar</h3>
                 <div className="flex items-center justify-between px-2">
                     <span className={`font-bold text-lg ${aqiInfo.textColorClass}`}>{aqiInfo.level}</span>
-                    <span className="font-bold text-lg bg-gray-700/60 px-2 py-1 rounded-md">{data.aqi} AQI</span>
                 </div>
                 <div className="w-full bg-gray-700 rounded-full h-2 mt-3 mx-auto">
                     <div className={`${aqiInfo.colorClass} h-2 rounded-full`} style={{ width: `${aqiInfo.percentage}%` }}></div>

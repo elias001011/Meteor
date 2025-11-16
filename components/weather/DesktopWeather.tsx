@@ -1,5 +1,5 @@
 import React from 'react';
-import type { WeatherData, HourlyForecast, DailyForecast, AirQualityData, CitySearchResult } from '../../types';
+import type { WeatherData, HourlyForecast, DailyForecast, AirQualityData, CitySearchResult, WeatherAlert } from '../../types';
 import SearchBar from './SearchBar';
 import CurrentWeather from './CurrentWeather';
 import AdditionalInfo from './AdditionalInfo';
@@ -8,12 +8,14 @@ import DailyForecastComponent from './DailyForecast';
 import AirQuality from './AirQuality';
 import LoadingSpinner from '../common/LoadingSpinner';
 import ErrorDisplay from '../common/ErrorDisplay';
+import Alerts from './Alerts';
 
 interface DesktopWeatherProps {
     weatherData: WeatherData | null;
     airQualityData: AirQualityData | null;
     hourlyForecast: HourlyForecast[];
     dailyForecast: DailyForecast[];
+    alerts: WeatherAlert[];
     status: 'loading' | 'success' | 'error';
     error: string | null;
     onCitySelect: (city: CitySearchResult) => void;
@@ -26,6 +28,7 @@ const DesktopWeather: React.FC<DesktopWeatherProps> = ({
     airQualityData,
     hourlyForecast,
     dailyForecast,
+    alerts,
     status,
     error,
     onCitySelect,
@@ -55,6 +58,7 @@ const DesktopWeather: React.FC<DesktopWeatherProps> = ({
             <div className="space-y-6">
                 <SearchBar onCitySelect={onCitySelect} onGeolocate={onGeolocate} />
                 <CurrentWeather data={weatherData} />
+                {alerts && alerts.length > 0 && <Alerts alerts={alerts} />}
                 <AdditionalInfo data={weatherData} />
                 <AirQuality data={airQualityData} />
                 <HourlyForecastComponent data={hourlyForecast} />
