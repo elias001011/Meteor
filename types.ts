@@ -3,7 +3,7 @@ export type View = 'weather' | 'ai' | 'map' | 'news' | 'settings' | 'tips' | 'in
 export interface WeatherData {
   city: string;
   country: string;
-  date: string;
+  dt: number;
   temperature: number;
   condition: string;
   conditionIcon: string;
@@ -27,13 +27,13 @@ export interface AirQualityData {
 }
 
 export interface HourlyForecast {
-  time: string;
+  dt: number;
   temperature: number;
   conditionIcon: string;
 }
 
 export interface DailyForecast {
-  day: string;
+  dt: number;
   temperature: number;
   conditionIcon: string;
 }

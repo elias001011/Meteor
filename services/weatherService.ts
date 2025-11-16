@@ -60,16 +60,12 @@ export const fetchAllWeatherData = async (lat: number, lon: number, cityInfo?: {
         data.weatherData.city = locationName;
         data.weatherData.country = countryName;
     }
-    
-    // Add formatted date to weather data
-    const now = new Date();
-    data.weatherData.date = now.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
 
     return {
         weatherData: data.weatherData,
         airQualityData: data.airQualityData,
         hourlyForecast: data.hourlyForecast,
         dailyForecast: data.dailyForecast,
-        alerts: data.alerts // Will be an empty array
+        alerts: data.alerts // Will be an empty array if fallback is used
     };
 };
