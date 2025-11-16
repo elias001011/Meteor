@@ -15,7 +15,7 @@ const HourlyForecastComponent: React.FC<HourlyForecastProps> = ({ data }) => {
           <div key={index} className="flex flex-col items-center space-y-1 flex-shrink-0 w-20 text-center bg-gray-700/40 rounded-2xl p-3">
             <span className="text-sm">{new Date(item.dt * 1000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
             <span className="text-2xl">{item.conditionIcon}</span>
-            <span className="font-bold">{item.temperature}°</span>
+            <span className="font-bold">{item.temperature}°C</span>
           </div>
         ))}
       </div>

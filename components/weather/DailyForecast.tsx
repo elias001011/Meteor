@@ -29,7 +29,7 @@ const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data }) => {
           <div key={index} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-700/50">
             <span className="font-medium w-1/3">{getDayLabel(item.dt)}</span>
             <span className="text-2xl w-1/3 text-center">{item.conditionIcon}</span>
-            <span className="font-bold w-1/3 text-right">{item.temperature}°</span>
+            <span className="font-bold w-1/3 text-right">{item.temperature}°C</span>
           </div>
         ))}
       </div>
