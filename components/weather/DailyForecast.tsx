@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { DailyForecast } from '../../types';
 import { UmbrellaIcon } from '../icons';
@@ -22,7 +23,7 @@ const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data }) => {
   };
 
   return (
-    <div className="bg-gray-800/50 backdrop-blur-sm rounded-3xl p-4">
+    <div className="bg-gray-800 rounded-3xl p-4">
       <h3 className="text-sm text-gray-400 mb-2 px-2">Próximos Dias</h3>
       <div className="space-y-1">
         {data.map((item, index) => (

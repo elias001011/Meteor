@@ -40,7 +40,7 @@ const AdditionalInfo: React.FC<AdditionalInfoProps> = ({ data }) => {
   const windDirection = typeof data.wind_deg === 'number' ? ` ${degreesToCardinal(data.wind_deg)}` : '';
 
   return (
-    <div className="bg-gray-800/50 backdrop-blur-sm rounded-3xl p-4">
+    <div className="bg-gray-800 rounded-3xl p-4">
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <InfoItem icon={<SunriseIcon className="w-5 h-5 text-cyan-400" />} label="Nascer do Sol" value={formatTime(data.sunrise)} />
             <InfoItem icon={<SunsetIcon className="w-5 h-5 text-cyan-400" />} label="Pôr do Sol" value={formatTime(data.sunset)} />

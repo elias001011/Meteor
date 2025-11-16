@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { AirQualityData } from '../../types';
 
@@ -40,7 +41,7 @@ const AirQuality: React.FC<AirQualityProps> = ({ data }) => {
     const aqiInfo = typeof data.aqi === 'number' ? getAqiInfo(data.aqi) : null;
 
     return (
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-3xl p-4 space-y-3">
+        <div className="bg-gray-800 rounded-3xl p-4 space-y-3">
             <div>
                 <h3 className="text-sm text-gray-400 mb-2 px-2">Qualidade do Ar</h3>
                  {aqiInfo && (
