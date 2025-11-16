@@ -4,7 +4,7 @@ import AiView from './components/ai/AiView';
 import MapView from './components/map/MapView';
 import BottomNav from './components/layout/BottomNav';
 import Header from './components/layout/Header';
-import type { ChatMessage, View, WeatherData, AirQualityData, HourlyForecast, DailyForecast, WeatherAlert, CitySearchResult } from './types';
+import type { ChatMessage, View, WeatherData, AirQualityData, HourlyForecast, DailyForecast, CitySearchResult } from './types';
 import { streamChatResponse } from './services/geminiService';
 import { fetchAllWeatherData } from './services/weatherService';
 import DesktopWeather from './components/weather/DesktopWeather';
@@ -27,7 +27,6 @@ const App: React.FC = () => {
   const [airQualityData, setAirQualityData] = useState<AirQualityData | null>(null);
   const [hourlyForecast, setHourlyForecast] = useState<HourlyForecast[]>([]);
   const [dailyForecast, setDailyForecast] = useState<DailyForecast[]>([]);
-  const [alerts, setAlerts] = useState<WeatherAlert[]>([]);
   const [weatherStatus, setWeatherStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [weatherError, setWeatherError] = useState<string | null>(null);
 
@@ -40,7 +39,6 @@ const App: React.FC = () => {
       setAirQualityData(data.airQualityData);
       setHourlyForecast(data.hourlyForecast);
       setDailyForecast(data.dailyForecast);
-      setAlerts(data.alerts);
       setWeatherStatus('success');
     } catch (error) {
       console.error("Failed to fetch weather data:", error);
@@ -132,7 +130,6 @@ const App: React.FC = () => {
     airQualityData,
     hourlyForecast,
     dailyForecast,
-    alerts,
     onCitySelect: handleCitySelect,
     onGeolocate: fetchUserLocationWeather,
     onRetry: initialLoad, // Retry loads the default city
