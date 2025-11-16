@@ -34,3 +34,9 @@ export interface ChatMessage {
     role: 'user' | 'model';
     text: string;
 }
+
+export interface WeatherAlert {
+    event: string;
+    description: string;
+    sender_name: string;
+}

@@ -2,6 +2,7 @@
   "name": "Meteor",
   "description": "An advanced weather and environmental alert application powered by a conversational AI assistant. Get real-time weather, maps, forecasts, news, and intelligent insights through a dynamic, voice-enabled interface.",
   "requestFramePermissions": [
-    "microphone"
+    "microphone",
+    "geolocation"
   ]
 }
