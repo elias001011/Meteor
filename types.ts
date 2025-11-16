@@ -25,7 +25,7 @@ export interface WeatherData {
 }
 
 export interface AirQualityData {
-    aqi: number; // Index 1-5
+    aqi?: number; // Index 1-5. Made optional for sources like Open-Meteo.
     components: {
         co: number; // Carbon monoxide
         no: number; // Nitrogen monoxide
@@ -81,13 +81,15 @@ export interface WeatherAlert {
     tags: string[];
 }
 
+export type DataSource = 'onecall' | 'free' | 'open-meteo';
+
 export interface AllWeatherData {
     weatherData: WeatherData;
     airQualityData: AirQualityData | null;
     hourlyForecast: HourlyForecast[];
     dailyForecast: DailyForecast[];
     alerts: WeatherAlert[];
-    dataSource: 'onecall' | 'free';
+    dataSource: DataSource;
     lastUpdated: number;
 }
 

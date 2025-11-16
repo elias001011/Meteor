@@ -1,13 +1,13 @@
 
 import React from 'react';
 import type { WeatherData } from '../../types';
-import { WindIcon, DropletsIcon, GaugeIcon, SunIcon, SunriseIcon, SunsetIcon, EyeIcon, CloudIcon, ThermometerIcon, CloudRainIcon, CloudSnowIcon } from '../icons';
+import { WindIcon, DropletsIcon, GaugeIcon, SunIcon, EyeIcon, CloudIcon, ThermometerIcon, CloudRainIcon, CloudSnowIcon } from '../icons';
 
 interface AdditionalInfoProps {
   data: WeatherData;
 }
 
-const InfoItem: React.FC<{ icon: React.ReactNode; label: string; value: string }> = ({ icon, label, value }) => (
+const InfoItem: React.FC<{ icon: React.ReactNode; label: string; value: string | number }> = ({ icon, label, value }) => (
     <div className="flex items-center gap-3">
         <div className="bg-gray-700/50 rounded-full p-2">
             {icon}
@@ -25,13 +25,6 @@ const degreesToCardinal = (deg: number): string => {
 };
 
 const AdditionalInfo: React.FC<AdditionalInfoProps> = ({ data }) => {
-  const formatTime = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleTimeString('pt-BR', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
   const getUviInfo = (uvi: number) => {
     const uviValue = Math.round(uvi);
     if (uviValue <= 2) return { level: 'Baixo', value: `${uviValue} de 11+` };
@@ -54,10 +47,8 @@ const AdditionalInfo: React.FC<AdditionalInfoProps> = ({ data }) => {
             {typeof data.visibility === 'number' && <InfoItem icon={<EyeIcon className="w-5 h-5 text-cyan-400" />} label="Visibilidade" value={`${(data.visibility / 1000).toFixed(1)} km`} />}
             {typeof data.clouds === 'number' && <InfoItem icon={<CloudIcon className="w-5 h-5 text-cyan-400" />} label="Nuvens" value={`${data.clouds}%`} />}
             {typeof data.dew_point === 'number' && <InfoItem icon={<ThermometerIcon className="w-5 h-5 text-cyan-400" />} label="Ponto de Orvalho" value={`${Math.round(data.dew_point)}°C`} />}
-            {typeof data.rain_1h === 'number' && <InfoItem icon={<CloudRainIcon className="w-5 h-5 text-cyan-400" />} label="Chuva (1h)" value={`${data.rain_1h} mm`} />}
-            {typeof data.snow_1h === 'number' && <InfoItem icon={<CloudSnowIcon className="w-5 h-5 text-cyan-400" />} label="Neve (1h)" value={`${data.snow_1h} mm`} />}
-            <InfoItem icon={<SunriseIcon className="w-5 h-5 text-cyan-400" />} label="Nascer do Sol" value={formatTime(data.sunrise)} />
-            <InfoItem icon={<SunsetIcon className="w-5 h-5 text-cyan-400" />} label="Pôr do Sol" value={formatTime(data.sunset)} />
+            {typeof data.rain_1h === 'number' && data.rain_1h > 0 && <InfoItem icon={<CloudRainIcon className="w-5 h-5 text-cyan-400" />} label="Chuva (1h)" value={`${data.rain_1h} mm`} />}
+            {typeof data.snow_1h === 'number' && data.snow_1h > 0 && <InfoItem icon={<CloudSnowIcon className="w-5 h-5 text-cyan-400" />} label="Neve (1h)" value={`${data.snow_1h} mm`} />}
             {uviInfo && (
                 <InfoItem icon={<SunIcon className="w-5 h-5 text-cyan-400" />} label={`UV (${uviInfo.level})`} value={uviInfo.value} />
             )}
