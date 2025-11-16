@@ -1,6 +1,7 @@
-import type { Handler, HandlerEvent, HandlerContext } from "@netlify/functions";
+// FIX: Module '"@netlify/functions"' has no exported member 'getStore'. This is likely due to a version mismatch. Importing `getStore` directly from `@netlify/blobs` as a documented fallback.
+import { type Handler, type HandlerEvent, type HandlerContext } from "@netlify/functions";
+import { getStore } from "@netlify/blobs";
 import { Buffer } from "buffer";
-import { getStore } from "@netlify/functions";
 
 const API_KEY = process.env.CLIMA_API;
 const UNSPLASH_KEY = process.env.UNSPLASH_ACESS_KEY;
