@@ -16,7 +16,7 @@ const NavItem: React.FC<{ label: string; isActive: boolean; onClick: () => void;
 const DesktopNav: React.FC<DesktopNavProps> = ({ activeView, setView }) => {
     return (
         <nav className="hidden lg:flex items-center space-x-4">
-            <div className="px-3 py-2 rounded-md text-sm font-medium text-white bg-gray-700/80 border border-gray-600/50">
+            <div className="px-3 py-2 text-sm font-medium text-gray-300">
                 <Clock />
             </div>
             <NavItem label="Clima" isActive={activeView === 'weather'} onClick={() => setView('weather')} />
