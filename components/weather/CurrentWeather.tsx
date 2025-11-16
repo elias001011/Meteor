@@ -15,7 +15,11 @@ const CurrentWeather: React.FC<CurrentWeatherProps> = ({ data }) => {
 
   return (
     <div className="relative rounded-3xl p-6 text-white overflow-hidden bg-black/30">
-        <img src="https://picsum.photos/seed/portoalegre/600/400" alt="Weather background" className="absolute inset-0 w-full h-full object-cover opacity-40 z-0" />
+        <img 
+            key={data.imageUrl}
+            src={data.imageUrl} 
+            alt="Weather background" 
+            className="absolute inset-0 w-full h-full object-cover opacity-40 z-0 transition-opacity duration-500" />
         <div className="relative z-10 flex flex-col justify-between h-full">
             <div>
                 <h2 className="text-2xl font-bold">{data.city}</h2>
