@@ -24,7 +24,7 @@ const CurrentWeather: React.FC<CurrentWeatherProps> = ({ data }) => {
                 </div>
             </div>
             <div className="text-right mt-8">
-                <p className="text-7xl font-bold">{data.temperature}°</p>
+                <p className="text-7xl font-bold">{data.temperature}°C</p>
                 <p className="text-lg -mt-2">{data.condition}</p>
             </div>
         </div>
