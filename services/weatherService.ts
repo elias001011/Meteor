@@ -1,5 +1,7 @@
 import type { AllWeatherData, CitySearchResult } from '../types';
 
+const CACHE_DURATION_MS = 15 * 60 * 1000; // 15 minutes cache
+
 // Fetches a list of cities matching the query from our secure Netlify function
 export const searchCities = async (city: string): Promise<CitySearchResult[]> => {
     const response = await fetch(`/.netlify/functions/weather?endpoint=direct&q=${encodeURIComponent(city)}&limit=5`);
@@ -19,6 +21,25 @@ export const searchCities = async (city: string): Promise<CitySearchResult[]> =>
 
 // Main function to fetch all weather-related data via our secure BFF Netlify function
 export const fetchAllWeatherData = async (lat: number, lon: number, cityInfo?: { name: string, country: string }): Promise<AllWeatherData> => {
+    const cacheKey = `weather_data_${lat.toFixed(4)}_${lon.toFixed(4)}`;
+
+    // 1. Try to get data from cache
+    try {
+        const cachedItem = localStorage.getItem(cacheKey);
+        if (cachedItem) {
+            const { timestamp, data } = JSON.parse(cachedItem);
+            if (Date.now() - timestamp < CACHE_DURATION_MS) {
+                console.log(`Returning cached weather data for ${data.weatherData.city || cacheKey}`);
+                return data; // Return fresh cached data
+            }
+        }
+    } catch (error) {
+        console.warn("Could not read from cache. Fetching new data.", error);
+    }
+    
+    console.log(`Fetching new weather data for lat:${lat}, lon:${lon}`);
+
+    // 2. If no cache or cache is stale, fetch from the network
     const params = new URLSearchParams({ 
         endpoint: 'all', 
         lat: lat.toString(), 
@@ -50,6 +71,9 @@ export const fetchAllWeatherData = async (lat: number, lon: number, cityInfo?: {
                     data.weatherData.city = locationName;
                     data.weatherData.country = countryName;
                 }
+            } else {
+                 data.weatherData.city = locationName;
+                 data.weatherData.country = countryName;
             }
         } catch (e) {
             console.warn("Reverse geocoding failed, using default name.", e);
@@ -61,7 +85,7 @@ export const fetchAllWeatherData = async (lat: number, lon: number, cityInfo?: {
         data.weatherData.country = countryName;
     }
 
-    return {
+    const finalData = {
         weatherData: data.weatherData,
         airQualityData: data.airQualityData,
         hourlyForecast: data.hourlyForecast,
@@ -69,4 +93,17 @@ export const fetchAllWeatherData = async (lat: number, lon: number, cityInfo?: {
         alerts: data.alerts,
         dataSource: data.dataSource,
     };
+
+    // 3. Save the newly fetched data to cache
+    try {
+        const itemToCache = {
+            timestamp: Date.now(),
+            data: finalData
+        };
+        localStorage.setItem(cacheKey, JSON.stringify(itemToCache));
+    } catch (error) {
+        console.warn("Could not write to cache.", error);
+    }
+
+    return finalData;
 };
