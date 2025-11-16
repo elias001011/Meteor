@@ -3,9 +3,10 @@ import type { AllWeatherData, SearchResultItem } from '../types';
 
 let ai: GoogleGenAI | null = null;
 
-if (process.env.API_KEY) {
+// FIX: Use GEMINI_API environment variable as specified in Netlify configuration.
+if (process.env.GEMINI_API) {
   try {
-    ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API });
   } catch (error) {
     console.error("Failed to initialize Gemini AI:", error);
   }
@@ -78,7 +79,8 @@ export async function* streamChatResponse(
   
   try {
     const contextualContent = buildContextualContent(weatherContext, searchResults);
-    const model = 'gemini-flash-lite-latest';
+    // UPDATE: Changed model as requested
+    const model = 'gemini-2.5-flash-lite';
     
     const result = await ai.models.generateContentStream({
         model: model,
