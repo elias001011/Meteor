@@ -1,7 +1,7 @@
 import type { Handler, HandlerEvent, HandlerContext } from "@netlify/functions";
 
 const API_KEY = process.env.CLIMA_API;
-const ONE_CALL_URL = 'https://api.openweathermap.org/data/3.0/onecall';
+const ONE_CALL_URL = 'https://api.openweathermap.org/data/2.5/onecall'; // Changed from 3.0 to 2.5
 const AIR_POLLUTION_URL = 'https://api.openweathermap.org/data/2.5/air_pollution';
 const GEO_URL = 'https://api.openweathermap.org/geo/1.0';
 
@@ -30,7 +30,8 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
     }
 
     const { lat, lon, city, name: cityName, country: cityCountry } = event.queryStringParameters;
-    const authErrorMessage = "Erro de autenticação. Verifique se a sua chave CLIMA_API é válida e está configurada no Netlify. Lembre-se que a API utilizada (One Call 3.0) requer uma assinatura ativa no site do OpenWeatherMap, mesmo para o plano gratuito.";
+    // Updated error message to be more generic as the 3.0 subscription is no longer a factor.
+    const authErrorMessage = "Erro de autenticação. Verifique se a sua chave CLIMA_API é válida e está configurada corretamente no Netlify.";
 
     try {
         if (city) {
@@ -127,7 +128,11 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
             const dailyForecast = oneCallData.daily.slice(1, 6).map((item: any) => {
                 const date = new Date(item.dt * 1000);
                 const today = new Date();
-                const isToday = date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
+                today.setHours(0, 0, 0, 0); // Normalize today's date
+                const itemDate = new Date(date);
+                itemDate.setHours(0, 0, 0, 0); // Normalize item date
+                
+                const isToday = itemDate.getTime() === today.getTime();
                 
                 let dayLabel = date.toLocaleDateString('pt-BR', { weekday: 'short' });
                 if (isToday) {
