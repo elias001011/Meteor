@@ -1,4 +1,3 @@
-
 import React from 'react';
 import type { DailyForecast } from '../../types';
 
@@ -17,13 +16,13 @@ const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data }) => {
     }
     
     // Otherwise, return abbreviated day name
-    let dayName = date.toLocaleDateString('pt-BR', { weekday: 'short' });
+    let dayName = date.toLocaleString('pt-BR', { weekday: 'short' });
     return dayName.charAt(0).toUpperCase() + dayName.slice(1, -1); // Capitalize and remove dot (e.g., "sáb.")
   };
 
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm rounded-3xl p-4">
-      <h3 className="text-sm text-gray-400 mb-2 px-2">Previsão para 5 dias</h3>
+      <h3 className="text-sm text-gray-400 mb-2 px-2">Próximos Dias</h3>
       <div className="space-y-2">
         {data.map((item, index) => (
           <div key={index} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-700/50">
