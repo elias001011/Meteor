@@ -1,8 +1,12 @@
 import type { Handler, HandlerEvent, HandlerContext } from "@netlify/functions";
 import { Buffer } from "buffer";
+import { getStore } from "@netlify/functions";
 
 const API_KEY = process.env.CLIMA_API;
 const UNSPLASH_KEY = process.env.UNSPLASH_ACESS_KEY;
+
+// Daily request limit for One Call API 3.0
+const ONE_CALL_DAILY_LIMIT = 950;
 
 const mapOwmIconToEmoji = (icon: string): string => {
     const iconMap: { [key: string]: string } = {
@@ -160,14 +164,30 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
 
                 if (!lat || !lon) return { statusCode: 400, body: JSON.stringify({ message: "Latitude e longitude são obrigatórias." }) };
                 
-                let weatherBundle;
-                try {
-                    weatherBundle = await fetchWithOneCall(lat, lon);
-                } catch (error) {
-                    console.warn(`One Call API failed: ${error.message}. Falling back to developer tier APIs.`);
-                    weatherBundle = await fetchWithFreeTier(lat, lon);
-                }
+                // --- Rate Limiting Logic ---
+                const store = getStore("onecall-rate-limit");
+                const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+                const counterKey = `onecall_requests_${today}`;
+                
+                let currentCount = await store.get(counterKey) as number | null;
+                console.log(`Checking rate limit for ${counterKey}. Current count: ${currentCount || 0}`);
 
+                let weatherBundle;
+                if (currentCount && currentCount >= ONE_CALL_DAILY_LIMIT) {
+                    console.warn(`One Call API daily limit (${ONE_CALL_DAILY_LIMIT}) reached. Using fallback.`);
+                    weatherBundle = await fetchWithFreeTier(lat, lon);
+                } else {
+                    try {
+                        weatherBundle = await fetchWithOneCall(lat, lon);
+                        // Increment counter only on successful One Call API fetch
+                        await store.set(counterKey, (currentCount || 0) + 1, { ttl: 86400 }); // TTL of 24 hours
+                        console.log(`Incremented count for ${counterKey}. New count: ${(currentCount || 0) + 1}`);
+                    } catch (error) {
+                        console.warn(`One Call API failed: ${error.message}. Falling back to developer tier APIs.`);
+                        weatherBundle = await fetchWithFreeTier(lat, lon);
+                    }
+                }
+                
                 let resolvedCityName: string;
                 if (q) {
                     resolvedCityName = q;
