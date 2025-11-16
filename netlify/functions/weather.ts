@@ -174,15 +174,16 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
                     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
                     const counterKey = `onecall_requests_${today}`;
                     
-                    const currentCount = await store.get(counterKey) as number | null;
-                    console.log(`Checking rate limit for ${counterKey}. Current count: ${currentCount || 0}`);
+                    const currentCount = (await store.get(counterKey)) as number | null;
+                    
+                    console.log(`[Rate Limit Check] Key: ${counterKey}. Current count: ${currentCount || 0}/${ONE_CALL_DAILY_LIMIT}.`);
 
                     if (currentCount && currentCount >= ONE_CALL_DAILY_LIMIT) {
-                        console.warn(`One Call API daily limit (${ONE_CALL_DAILY_LIMIT}) reached. Using fallback.`);
+                        console.warn(`[Rate Limit Action] One Call API daily limit reached. Forcing fallback.`);
                         useFallbackDirectly = true;
                     }
                 } catch (blobError) {
-                    console.warn(`Netlify Blobs (KV Store) could not be accessed, rate limiting is disabled. This is expected in unlinked local development. Error: ${blobError.message}`);
+                    console.warn(`[Rate Limit Info] Netlify Blobs (KV Store) could not be accessed, rate limiting is disabled for this execution. This is expected in unlinked local development. Error: ${blobError.message}`);
                     // Proceed without rate limiting, will fallback if API itself fails
                 }
 
@@ -196,11 +197,12 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
                             const store = getStore("onecall-rate-limit");
                             const today = new Date().toISOString().split('T')[0];
                             const counterKey = `onecall_requests_${today}`;
-                            const currentCount = await store.get(counterKey) as number | null;
-                            await store.set(counterKey, (currentCount || 0) + 1, { ttl: 86400 }); // TTL of 24 hours
-                            console.log(`Incremented count for ${counterKey}. New count: ${(currentCount || 0) + 1}`);
+                            const currentCount = (await store.get(counterKey)) as number | null;
+                            const newCount = (currentCount || 0) + 1;
+                            await store.set(counterKey, newCount, { ttl: 86400 }); // TTL of 24 hours
+                            console.log(`[Rate Limit Action] Incremented count for ${counterKey}. New count: ${newCount}.`);
                         } catch (blobError) {
-                             console.warn(`Failed to increment rate limit counter. Error: ${blobError.message}`);
+                             console.warn(`[Rate Limit Info] Failed to increment rate limit counter. Error: ${blobError.message}`);
                         }
                     } catch (error) {
                         console.warn(`One Call API failed: ${error.message}. Falling back to developer tier APIs.`);
