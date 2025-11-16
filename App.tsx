@@ -18,7 +18,7 @@ import DataSourceModal from './components/common/DataSourceModal';
 
 // Rain animation component defined locally to avoid creating a new file
 const RainAnimation: React.FC = () => {
-    const numberOfDrops = 100;
+    const numberOfDrops = 50;
     return (
         <div className="fixed top-0 left-0 w-full h-full z-0 pointer-events-none overflow-hidden">
             {Array.from({ length: numberOfDrops }).map((_, i) => (
@@ -281,7 +281,7 @@ const App: React.FC = () => {
         onSourceChange={handleDataSourceChange}
       />
 
-      <main className="flex-1 pt-16 overflow-hidden">
+      <main className="relative z-10 flex-1 pt-16 overflow-hidden">
         {/* --- DESKTOP VIEW --- */}
         <div className="hidden lg:block h-full">
           {view === 'weather' && (
