@@ -38,15 +38,14 @@ const SearchBar: React.FC<SearchBarProps> = ({ onCitySelect, onGeolocate }) => {
     }
 
     setIsLoading(true);
+    setIsDropdownOpen(true);
     const timerId = setTimeout(async () => {
       try {
         const cities = await searchCities(query);
         setResults(cities);
-        setIsDropdownOpen(true);
       } catch (error) {
         console.error("Search failed:", error);
         setResults([]);
-        setIsDropdownOpen(false);
       } finally {
         setIsLoading(false);
       }
@@ -67,12 +66,13 @@ const SearchBar: React.FC<SearchBarProps> = ({ onCitySelect, onGeolocate }) => {
   }, []);
 
   return (
-    <div className="flex flex-col gap-2" ref={searchContainerRef}>
-      <div className="relative">
+    <div className="flex flex-col gap-2">
+      <div className="relative" ref={searchContainerRef}>
         <form onSubmit={(e) => e.preventDefault()} className="relative">
           <input
             type="text"
             value={query}
+            onFocus={() => { if(results.length > 0) setIsDropdownOpen(true)}}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Pesquisar cidades..."
             className="w-full bg-gray-800 border border-gray-700 rounded-full py-3 px-5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
@@ -85,7 +85,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onCitySelect, onGeolocate }) => {
         </form>
 
         {isDropdownOpen && (
-          <div className="absolute top-full mt-2 w-full bg-gray-800 border border-gray-700 rounded-2xl shadow-lg z-10 max-h-60 overflow-y-auto">
+          <div className="absolute top-full mt-2 w-full bg-gray-800/90 backdrop-blur-md border border-gray-700 rounded-2xl shadow-lg z-50 max-h-60 overflow-y-auto">
             {isLoading ? (
               <p className="p-4 text-center text-gray-400">Buscando...</p>
             ) : results.length > 0 ? (
@@ -100,7 +100,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onCitySelect, onGeolocate }) => {
                 ))}
               </ul>
             ) : (
-              <p className="p-4 text-center text-gray-400">Nenhuma cidade encontrada.</p>
+                query.trim().length >= 3 && <p className="p-4 text-center text-gray-400">Nenhuma cidade encontrada.</p>
             )}
           </div>
         )}

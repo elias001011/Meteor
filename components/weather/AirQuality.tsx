@@ -1,4 +1,3 @@
-
 import React from 'react';
 import type { AirQualityData } from '../../types';
 
@@ -14,35 +13,52 @@ interface AqiInfo {
 }
 
 const getAqiInfo = (aqi: number): AqiInfo => {
-    const percentage = Math.min((aqi / 200) * 100, 100); // Cap at 200 for simplicity in the progress bar
-    if (aqi <= 50) {
-        return { level: 'Boa', colorClass: 'bg-green-500', textColorClass: 'text-green-400', percentage };
-    }
-    if (aqi <= 100) {
-        return { level: 'Moderada', colorClass: 'bg-yellow-500', textColorClass: 'text-yellow-400', percentage };
-    }
-    if (aqi <= 150) {
-        return { level: 'Ruim', colorClass: 'bg-orange-500', textColorClass: 'text-orange-400', percentage };
-    }
-    if (aqi <= 200) {
-        return { level: 'Insalubre', colorClass: 'bg-red-500', textColorClass: 'text-red-400', percentage };
-    }
-    return { level: 'Perigosa', colorClass: 'bg-purple-500', textColorClass: 'text-purple-400', percentage };
+    const levels = ['Boa', 'Razoável', 'Moderada', 'Ruim', 'Muito Ruim'];
+    const colors = ['bg-green-500', 'bg-yellow-500', 'bg-orange-500', 'bg-red-500', 'bg-purple-500'];
+    const textColors = ['text-green-400', 'text-yellow-400', 'text-orange-400', 'text-red-400', 'text-purple-400'];
+    const index = Math.max(0, aqi - 1);
+    const percentage = (aqi / 5) * 100;
+    
+    return {
+        level: levels[index] || 'Desconhecido',
+        colorClass: colors[index] || 'bg-gray-500',
+        textColorClass: textColors[index] || 'text-gray-400',
+        percentage,
+    };
 };
+
+const Pollutant: React.FC<{ name: string; value: number; unit: string }> = ({ name, value, unit }) => (
+    <div className="text-center bg-gray-700/40 rounded-lg p-2">
+        <p className="text-xs text-gray-400">{name}</p>
+        <p className="font-semibold">{value.toFixed(1)}</p>
+        <p className="text-xs text-gray-500">{unit}</p>
+    </div>
+);
 
 
 const AirQuality: React.FC<AirQualityProps> = ({ data }) => {
     const aqiInfo = getAqiInfo(data.aqi);
 
     return (
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-3xl p-4">
-            <h3 className="text-sm text-gray-400 mb-2 px-2">Qualidade do Ar</h3>
-            <div className="flex items-center justify-between px-2">
-                <span className={`font-bold text-lg ${aqiInfo.textColorClass}`}>{aqiInfo.level}</span>
-                <span className="font-bold text-lg bg-gray-700/60 px-2 py-1 rounded-md">{data.aqi} AQI</span>
+        <div className="bg-gray-800/50 backdrop-blur-sm rounded-3xl p-4 space-y-3">
+            <div>
+                <h3 className="text-sm text-gray-400 mb-2 px-2">Qualidade do Ar</h3>
+                <div className="flex items-center justify-between px-2">
+                    <span className={`font-bold text-lg ${aqiInfo.textColorClass}`}>{aqiInfo.level}</span>
+                    <span className="font-bold text-lg bg-gray-700/60 px-2 py-1 rounded-md">{data.aqi} AQI</span>
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-2 mt-3 mx-auto">
+                    <div className={`${aqiInfo.colorClass} h-2 rounded-full`} style={{ width: `${aqiInfo.percentage}%` }}></div>
+                </div>
             </div>
-            <div className="w-full bg-gray-700 rounded-full h-2 mt-3 mx-auto">
-                <div className={`${aqiInfo.colorClass} h-2 rounded-full`} style={{ width: `${aqiInfo.percentage}%` }}></div>
+            <div>
+                <h4 className="text-xs text-gray-400 mb-2 px-2">Componentes (μg/m³)</h4>
+                <div className="grid grid-cols-4 gap-2">
+                    <Pollutant name="PM2.5" value={data.components.pm2_5} unit="fino" />
+                    <Pollutant name="O₃" value={data.components.o3} unit="ozônio" />
+                    <Pollutant name="NO₂" value={data.components.no2} unit="nitro." />
+                    <Pollutant name="SO₂" value={data.components.so2} unit="enxof." />
+                </div>
             </div>
         </div>
     );
