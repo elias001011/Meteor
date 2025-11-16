@@ -13,7 +13,17 @@ export interface WeatherData {
 }
 
 export interface AirQualityData {
-    aqi: number;
+    aqi: number; // Index 1-5
+    components: {
+        co: number; // Carbon monoxide
+        no: number; // Nitrogen monoxide
+        no2: number; // Nitrogen dioxide
+        o3: number; // Ozone
+        so2: number; // Sulphur dioxide
+        pm2_5: number; // Fine particles matter
+        pm10: number; // Coarse particulate matter
+        nh3: number; // Ammonia
+    };
 }
 
 export interface HourlyForecast {

@@ -12,7 +12,8 @@
     "react-dom": "^19.2.0",
     "react": "^19.2.0",
     "@google/genai": "^1.29.1",
-    "@netlify/functions": "^5.1.0"
+    "@netlify/functions": "^5.1.0",
+    "buffer": "^6.0.3"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
