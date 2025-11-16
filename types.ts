@@ -10,6 +10,7 @@ export interface WeatherData {
   windSpeed: number;
   humidity: number;
   pressure: number;
+  dataSource: 'onecall' | 'fallback';
 }
 
 export interface AirQualityData {
