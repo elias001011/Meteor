@@ -68,30 +68,16 @@ const handler: Handler = async (event: HandlerEvent) => {
         const contextualContent = buildContextualContent(weatherContext, searchResults);
         const contents = [...contextualContent, ...history, { role: 'user', parts: [{ text: prompt }] }];
         
-        const stream = await ai.models.generateContentStream({ model, contents });
+        // Use generateContent for a single, non-streaming response
+        const result = await ai.models.generateContent({ model, contents });
+        const text = result.text;
 
-        const readable = new ReadableStream({
-            async start(controller) {
-                const encoder = new TextEncoder();
-                for await (const chunk of stream) {
-                    const text = chunk.text;
-                    if (text !== undefined && text !== null) {
-                        const sseChunk = `data: ${JSON.stringify({ text })}\n\n`;
-                        controller.enqueue(encoder.encode(sseChunk));
-                    }
-                }
-                controller.close();
-            },
-        });
-        
         return {
             statusCode: 200,
             headers: {
-                'Content-Type': 'text/event-stream',
-                'Cache-Control': 'no-cache',
-                'Connection': 'keep-alive',
+                'Content-Type': 'application/json',
             },
-            body: readable,
+            body: JSON.stringify({ text }),
         };
 
     } catch (error) {

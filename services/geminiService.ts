@@ -2,8 +2,9 @@ import type { AllWeatherData, SearchResultItem } from '../types';
 import type { Content } from '@google/genai';
 
 /**
- * Gets a streaming chat response by calling our secure Netlify function, 
- * which proxies the Gemini API.
+ * Gets a chat response by calling our secure Netlify function.
+ * This function is an async generator to maintain compatibility with the UI,
+ * but it will only yield one value with the full response text.
  */
 export async function* streamChatResponse(
     prompt: string, 
@@ -26,42 +27,19 @@ export async function* streamChatResponse(
         }),
     });
 
-    if (!response.ok || !response.body) {
+    if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'A comunicação com a IA falhou.' }));
         throw new Error(errorData.message || 'A comunicação com a IA falhou.');
     }
     
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-
-    while (true) {
-        const { done, value } = await reader.read();
-        if (done) {
-            break;
-        }
-
-        buffer += decoder.decode(value, { stream: true });
-        
-        const lines = buffer.split('\n\n');
-        buffer = lines.pop() || ''; // Keep the last, possibly incomplete line
-
-        for (const line of lines) {
-            if (line.startsWith('data: ')) {
-                try {
-                    const json = JSON.parse(line.substring(6));
-                    if (json.text) {
-                       yield json;
-                    }
-                } catch (e) {
-                    console.error('Failed to parse SSE chunk:', line);
-                }
-            }
-        }
+    // The server now sends the full response as a single JSON object.
+    const data = await response.json();
+    if (data.text) {
+        yield { text: data.text };
     }
 
   } catch (error) {
-    console.error("Error fetching Gemini stream:", error);
+    console.error("Error fetching Gemini response:", error);
     const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
     const mockErrorResponse = {
       text: `Desculpe, ocorreu um erro ao me comunicar. (${errorMessage})`,
