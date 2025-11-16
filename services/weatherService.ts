@@ -35,7 +35,6 @@ export const fetchAllWeatherData = async (
         if (cachedItem) {
             const { timestamp, data } = JSON.parse(cachedItem);
             if (Date.now() - timestamp < CACHE_DURATION_MS) {
-                console.log(`Returning cached weather data for ${data.weatherData.city || cacheKey}`);
                 return data as AllWeatherData; // Return fresh cached data
             }
         }
@@ -43,8 +42,6 @@ export const fetchAllWeatherData = async (
         console.warn("Could not read from cache. Fetching new data.", error);
     }
     
-    console.log(`Fetching new weather data for lat:${lat}, lon:${lon} from source: ${effectiveSource}`);
-
     // 2. If no cache or cache is stale, fetch from the network
     const params = new URLSearchParams({ 
         endpoint: 'all', 

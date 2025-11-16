@@ -21,7 +21,7 @@ const AiView: React.FC<AiViewProps> = (props) => {
   
   return (
     <div className="flex flex-col h-full bg-gray-900">
-        <div className="flex-1 overflow-y-auto lg:pb-24 pb-24">
+        <div className="flex-1 overflow-y-auto lg:pb-24 pb-40">
           <ChatHistory messages={messages} />
         </div>
         <div className="hidden lg:block fixed bottom-4 left-1/2 -translate-x-1/2 w-full max-w-3xl px-4 z-10">
