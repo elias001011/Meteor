@@ -1,5 +1,6 @@
 import React from 'react';
 import type { View } from '../../types';
+import Clock from '../common/Clock';
 
 interface DesktopNavProps {
     activeView: View;
@@ -15,6 +16,9 @@ const NavItem: React.FC<{ label: string; isActive: boolean; onClick: () => void;
 const DesktopNav: React.FC<DesktopNavProps> = ({ activeView, setView }) => {
     return (
         <nav className="hidden lg:flex items-center space-x-4">
+            <div className="px-3 py-2 rounded-md text-sm font-medium text-white bg-gray-700/80 border border-gray-600/50">
+                <Clock />
+            </div>
             <NavItem label="Clima" isActive={activeView === 'weather'} onClick={() => setView('weather')} />
             <NavItem label="Mapa" isActive={activeView === 'map'} onClick={() => setView('map')} />
             <NavItem label="IA" isActive={activeView === 'ai'} onClick={() => setView('ai')} />
