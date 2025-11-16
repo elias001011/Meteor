@@ -17,18 +17,25 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
     try {
         if (city) {
             // Geocoding request
-            const response = await fetch(`${GEO_URL}/direct?q=${city}&limit=1&appid=${API_KEY}`);
+            const response = await fetch(`${GEO_URL}/direct?q=${encodeURIComponent(city)}&limit=5&appid=${API_KEY}`);
             if (!response.ok) {
                  return { statusCode: response.status, body: JSON.stringify({ error: 'Cidade não encontrada.' }) };
             }
             const data = await response.json();
-            if (data.length === 0) {
-                 return { statusCode: 404, body: JSON.stringify({ error: 'Cidade não encontrada.' }) };
-            }
+            
+            const results = data.map((item: any) => ({
+                name: item.name,
+                country: item.country,
+                state: item.state,
+                lat: item.lat,
+                lon: item.lon,
+            }));
+
             return {
                 statusCode: 200,
-                body: JSON.stringify({ lat: data[0].lat, lon: data[0].lon }),
+                body: JSON.stringify(results),
             };
+
         } else if (lat && lon) {
             // Weather data request
             const [forecastResponse, airQualityResponse] = await Promise.all([
