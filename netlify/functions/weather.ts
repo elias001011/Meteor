@@ -30,7 +30,7 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
     }
 
     const { lat, lon, city, name: cityName, country: cityCountry } = event.queryStringParameters;
-    const authErrorMessage = "Erro de autenticação. Verifique se a sua chave CLIMA_API é válida e está configurada corretamente no Netlify.";
+    const authErrorMessage = "Erro de autenticação. Verifique se a sua chave CLIMA_API é válida e está configurada no Netlify. Lembre-se que a API utilizada (One Call 3.0) requer uma assinatura ativa no site do OpenWeatherMap, mesmo para o plano gratuito.";
 
     try {
         if (city) {
