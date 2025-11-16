@@ -193,6 +193,21 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
                 };
             }
 
+            case 'relief': {
+                const { z, x, y } = params;
+                if (!z || !x || !y) return { statusCode: 400, body: JSON.stringify({ message: "Parâmetros de tile de relevo ausentes." }) };
+                const tileUrl = `https://maps.openweathermap.org/maps/2.0/relief/${z}/${x}/${y}?appid=${API_KEY}`;
+                 const response = await fetch(tileUrl);
+                if (!response.ok) throw new Error(`Erro ao buscar tile de relevo: ${response.statusText}`);
+                const buffer = await response.arrayBuffer();
+                return {
+                    statusCode: 200,
+                    headers: { 'Content-Type': 'image/png' },
+                    body: Buffer.from(buffer).toString('base64'),
+                    isBase64Encoded: true,
+                };
+            }
+
             default:
                 return { statusCode: 400, body: JSON.stringify({ message: 'Endpoint da API inválido.' }) };
         }
