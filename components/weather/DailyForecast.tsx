@@ -12,13 +12,17 @@ const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data }) => {
     const date = new Date(dt * 1000);
     const today = new Date();
     
-    // Check if the date is today
-    if (date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear()) {
+    // Compare dates in UTC to avoid timezone shift issues
+    const isToday = date.getUTCFullYear() === today.getUTCFullYear() &&
+                    date.getUTCMonth() === today.getUTCMonth() &&
+                    date.getUTCDate() === today.getUTCDate();
+
+    if (isToday) {
       return 'Hoje';
     }
     
-    // Otherwise, return abbreviated day name
-    let dayName = date.toLocaleString('pt-BR', { weekday: 'short' });
+    // Render the day name also based on UTC to be consistent
+    let dayName = date.toLocaleString('pt-BR', { weekday: 'short', timeZone: 'UTC' });
     return dayName.charAt(0).toUpperCase() + dayName.slice(1, -1); // Capitalize and remove dot (e.g., "sáb.")
   };
 
