@@ -34,6 +34,7 @@ const fetchWithFallback = async (lat: string, lon: string) => {
             windSpeed: Math.round(oneCallData.current.wind_speed * 3.6),
             humidity: oneCallData.current.humidity,
             pressure: oneCallData.current.pressure,
+            dataSource: 'onecall' as const,
         };
         
         const hourlyForecast = oneCallData.hourly.slice(1, 9).map((item: any) => ({
@@ -86,6 +87,7 @@ const fetchWithFallback = async (lat: string, lon: string) => {
         windSpeed: Math.round(weatherApiData.wind.speed * 3.6),
         humidity: weatherApiData.main.humidity,
         pressure: weatherApiData.main.pressure,
+        dataSource: 'fallback' as const,
     };
     
     // Process forecast data from the fallback API
