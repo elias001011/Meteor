@@ -1,17 +1,31 @@
-import React, { useState } from 'react';
-import { SendIcon, MicIcon } from '../icons';
+import React from 'react';
+import { SendIcon, MicIcon, SearchIcon } from '../icons';
 
 interface ChatInputProps {
   onSendMessage: (text: string) => void;
   isSending: boolean;
+  isListening: boolean;
+  onToggleListening: () => void;
+  isSearchEnabled: boolean;
+  onToggleSearch: () => void;
+  text: string;
+  setText: (text: string) => void;
 }
 
-const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isSending }) => {
-  const [text, setText] = useState('');
+const ChatInput: React.FC<ChatInputProps> = ({ 
+    onSendMessage, 
+    isSending, 
+    isListening, 
+    onToggleListening,
+    isSearchEnabled,
+    onToggleSearch,
+    text,
+    setText
+}) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (text.trim() && !isSending) {
+    if (text.trim() && !isSending && !isListening) {
       onSendMessage(text);
       setText('');
     }
@@ -19,7 +33,12 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isSending }) => {
 
   return (
     <form onSubmit={handleSubmit} className="flex items-center gap-2 w-full">
-      <button type="button" className="p-2 text-gray-400 hover:text-white transition-colors">
+      <button 
+        type="button" 
+        onClick={onToggleListening}
+        className={`p-2 transition-colors rounded-full ${isListening ? 'text-red-500 bg-red-500/20 animate-pulse' : 'text-gray-400 hover:text-white'}`}
+        aria-label={isListening ? "Parar gravação" : "Iniciar gravação"}
+      >
           <MicIcon className="w-6 h-6" />
       </button>
       <textarea
@@ -31,13 +50,22 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isSending }) => {
                 handleSubmit(e);
             }
         }}
-        placeholder="Pergunte algo..."
+        placeholder={isListening ? "Ouvindo..." : "Pergunte algo..."}
         rows={1}
-        className="flex-1 bg-gray-700/50 border border-gray-600/50 rounded-full py-2 px-4 text-white placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500 max-h-14"
+        disabled={isListening}
+        className="flex-1 bg-gray-700/50 border border-gray-600/50 rounded-full py-2 px-4 text-white placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500 max-h-14 disabled:bg-gray-800 disabled:cursor-not-allowed"
       />
+       <button 
+        type="button" 
+        onClick={onToggleSearch}
+        className={`p-2 transition-colors rounded-full ${isSearchEnabled ? 'text-cyan-400 bg-cyan-500/20' : 'text-gray-400 hover:text-white'}`}
+        aria-label={isSearchEnabled ? "Desativar pesquisa na web" : "Ativar pesquisa na web"}
+      >
+          <SearchIcon className="w-6 h-6" />
+      </button>
       <button
         type="submit"
-        disabled={isSending || !text.trim()}
+        disabled={isSending || !text.trim() || isListening}
         className="bg-cyan-500 text-white rounded-full p-3 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed hover:bg-cyan-400"
       >
         <SendIcon className="w-5 h-5" />
