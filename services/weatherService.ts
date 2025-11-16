@@ -1,4 +1,4 @@
-import type { WeatherData, AirQualityData, HourlyForecast, DailyForecast, WeatherAlert } from '../types';
+import type { WeatherData, AirQualityData, HourlyForecast, DailyForecast, WeatherAlert, CitySearchResult } from '../types';
 
 // Helper to map OWM icon codes to emojis
 const mapOwmIconToEmoji = (icon: string): string => {
@@ -16,13 +16,8 @@ const mapOwmIconToEmoji = (icon: string): string => {
     return iconMap[icon] || '-';
 };
 
-interface OwmCoord {
-    lat: number;
-    lon: number;
-}
-
-// Fetches coordinates for a given city name via our secure Netlify function
-export const getCoordsForCity = async (city: string): Promise<OwmCoord> => {
+// Fetches a list of cities matching the query from our secure Netlify function
+export const searchCities = async (city: string): Promise<CitySearchResult[]> => {
     const response = await fetch(`/.netlify/functions/weather?city=${encodeURIComponent(city)}`);
     if (!response.ok) {
         throw new Error('Cidade não encontrada.');

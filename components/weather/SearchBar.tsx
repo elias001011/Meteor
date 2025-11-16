@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 
 interface SearchBarProps {
@@ -13,6 +12,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onGeolocate }) => {
       e.preventDefault();
       if (city.trim()) {
           onSearch(city);
+          setCity('');
       }
   };
 
@@ -32,12 +32,24 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onGeolocate }) => {
             </button>
         </div>
       </form>
-      <div className="flex gap-2">
-        <button onClick={() => onSearch('Porto Alegre')} className="bg-gray-700/50 text-gray-300 text-sm px-4 py-1 rounded-full hover:bg-gray-700">
-            Porto Alegre (POA)
-        </button>
-         <button onClick={onGeolocate} className="bg-gray-700/50 text-gray-300 text-sm px-4 py-1 rounded-full hover:bg-gray-700">
+      <div className="flex gap-2 flex-wrap">
+        <button onClick={onGeolocate} className="bg-gray-700/50 text-gray-300 text-sm px-3 py-1 rounded-full hover:bg-gray-700 transition-colors">
             Minha Localização
+        </button>
+        <button onClick={() => onSearch('Porto Alegre')} className="bg-gray-700/50 text-gray-300 text-sm px-3 py-1 rounded-full hover:bg-gray-700 transition-colors">
+            Porto Alegre
+        </button>
+         <button onClick={() => onSearch('Caxias do Sul')} className="bg-gray-700/50 text-gray-300 text-sm px-3 py-1 rounded-full hover:bg-gray-700 transition-colors">
+            Caxias do Sul
+        </button>
+        <button onClick={() => onSearch('Pelotas')} className="bg-gray-700/50 text-gray-300 text-sm px-3 py-1 rounded-full hover:bg-gray-700 transition-colors">
+            Pelotas
+        </button>
+        <button onClick={() => onSearch('Santa Maria')} className="bg-gray-700/50 text-gray-300 text-sm px-3 py-1 rounded-full hover:bg-gray-700 transition-colors">
+            Santa Maria
+        </button>
+        <button onClick={() => onSearch('Sarandi')} className="bg-gray-700/50 text-gray-300 text-sm px-3 py-1 rounded-full hover:bg-gray-700 transition-colors">
+            Sarandi
         </button>
       </div>
     </div>

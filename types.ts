@@ -1,4 +1,3 @@
-
 export type View = 'weather' | 'ai' | 'map' | 'news' | 'settings' | 'tips' | 'info';
 
 export interface WeatherData {
@@ -39,4 +38,12 @@ export interface WeatherAlert {
     event: string;
     description: string;
     sender_name: string;
+}
+
+export interface CitySearchResult {
+    name: string;
+    country: string;
+    state?: string;
+    lat: number;
+    lon: number;
 }

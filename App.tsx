@@ -4,12 +4,13 @@ import AiView from './components/ai/AiView';
 import MapView from './components/map/MapView';
 import BottomNav from './components/layout/BottomNav';
 import Header from './components/layout/Header';
-import type { ChatMessage, View, WeatherData, AirQualityData, HourlyForecast, DailyForecast, WeatherAlert } from './types';
+import type { ChatMessage, View, WeatherData, AirQualityData, HourlyForecast, DailyForecast, WeatherAlert, CitySearchResult } from './types';
 import { streamChatResponse } from './services/geminiService';
-import { fetchAllWeatherData, getCoordsForCity } from './services/weatherService';
+import { fetchAllWeatherData, searchCities } from './services/weatherService';
 import DesktopWeather from './components/weather/DesktopWeather';
 import PlaceholderView from './components/common/PlaceholderView';
 import MobileAiControls from './components/ai/MobileAiControls';
+import CitySelectionModal from './components/common/CitySelectionModal';
 
 const App: React.FC = () => {
   const [view, setView] = useState<View>('weather');
@@ -31,6 +32,10 @@ const App: React.FC = () => {
   const [weatherStatus, setWeatherStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [weatherError, setWeatherError] = useState<string | null>(null);
 
+  // City search state
+  const [citySearchResults, setCitySearchResults] = useState<CitySearchResult[]>([]);
+  const [isCitySelectionOpen, setIsCitySelectionOpen] = useState(false);
+
   const handleFetchWeather = useCallback(async (coords: { lat: number; lon: number }) => {
     setWeatherStatus('loading');
     setWeatherError(null);
@@ -49,18 +54,34 @@ const App: React.FC = () => {
     }
   }, []);
   
-  const searchCity = useCallback(async (city: string) => {
+  const handleCitySearch = useCallback(async (city: string) => {
       setWeatherStatus('loading');
       setWeatherError(null);
+      setIsCitySelectionOpen(false);
       try {
-          const coords = await getCoordsForCity(city);
-          await handleFetchWeather(coords);
+          const results = await searchCities(city);
+          if (results.length === 0) {
+              throw new Error("Nenhuma cidade encontrada com esse nome.");
+          }
+          if (results.length === 1) {
+              await handleFetchWeather({ lat: results[0].lat, lon: results[0].lon });
+          } else {
+              setCitySearchResults(results);
+              setIsCitySelectionOpen(true);
+              // Restore previous status to keep UI stable behind the modal
+              setWeatherStatus(weatherData ? 'success' : 'error');
+          }
       } catch (error) {
           console.error("Failed to search city:", error);
           setWeatherError(error instanceof Error ? error.message : "Não foi possível encontrar a cidade.");
           setWeatherStatus('error');
       }
-  }, [handleFetchWeather]);
+  }, [handleFetchWeather, weatherData]);
+
+  const handleCitySelect = (city: CitySearchResult) => {
+    setIsCitySelectionOpen(false);
+    handleFetchWeather({ lat: city.lat, lon: city.lon });
+  };
 
   const fetchUserLocationWeather = useCallback(() => {
     if (navigator.geolocation) {
@@ -70,15 +91,14 @@ const App: React.FC = () => {
         },
         (error) => {
           console.warn(`Geolocation error: ${error.message}. Defaulting to Porto Alegre.`);
-          // Default to Porto Alegre if permission is denied
-          searchCity('Porto Alegre');
+          handleCitySearch('Porto Alegre');
         }
       );
     } else {
       console.warn("Geolocation is not supported by this browser. Defaulting to Porto Alegre.");
-      searchCity('Porto Alegre');
+      handleCitySearch('Porto Alegre');
     }
-  }, [handleFetchWeather, searchCity]);
+  }, [handleFetchWeather, handleCitySearch]);
 
   useEffect(() => {
     fetchUserLocationWeather();
@@ -127,7 +147,7 @@ const App: React.FC = () => {
     hourlyForecast,
     dailyForecast,
     alerts,
-    onSearch: searchCity,
+    onSearch: handleCitySearch,
     onRetry: fetchUserLocationWeather,
   };
 
@@ -180,9 +200,16 @@ const App: React.FC = () => {
             <PlaceholderView title="Informações" />
           </div>
         </div>
-
       </main>
       
+      {isCitySelectionOpen && (
+        <CitySelectionModal 
+          results={citySearchResults}
+          onSelect={handleCitySelect}
+          onClose={() => setIsCitySelectionOpen(false)}
+        />
+      )}
+
       <div className="lg:hidden">
         <BottomNav activeView={view} setView={setView} />
         <MobileAiControls 
