@@ -1,7 +1,7 @@
 
 import React from 'react';
 import type { WeatherData } from '../../types';
-import { WindIcon, DropletsIcon, GaugeIcon, SunIcon, EyeIcon, CloudIcon, ThermometerIcon, CloudRainIcon, CloudSnowIcon } from '../icons';
+import { WindIcon, DropletsIcon, GaugeIcon, SunIcon, EyeIcon, CloudIcon, ThermometerIcon, CloudRainIcon, CloudSnowIcon, SunriseIcon, SunsetIcon } from '../icons';
 
 interface AdditionalInfoProps {
   data: WeatherData;
@@ -33,6 +33,8 @@ const AdditionalInfo: React.FC<AdditionalInfoProps> = ({ data }) => {
     if (uviValue <= 10) return { level: 'Muito Alto', value: `${uviValue} de 11+` };
     return { level: 'Extremo', value: `${uviValue} de 11+` };
   };
+  
+  const formatTime = (timestamp: number) => new Date(timestamp * 1000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
   const uviInfo = typeof data.uvi === 'number' && !isNaN(data.uvi) ? getUviInfo(data.uvi) : null;
   const windDirection = typeof data.wind_deg === 'number' ? ` ${degreesToCardinal(data.wind_deg)}` : '';
@@ -40,6 +42,8 @@ const AdditionalInfo: React.FC<AdditionalInfoProps> = ({ data }) => {
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm rounded-3xl p-4">
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <InfoItem icon={<SunriseIcon className="w-5 h-5 text-cyan-400" />} label="Nascer do Sol" value={formatTime(data.sunrise)} />
+            <InfoItem icon={<SunsetIcon className="w-5 h-5 text-cyan-400" />} label="Pôr do Sol" value={formatTime(data.sunset)} />
             <InfoItem icon={<WindIcon className="w-5 h-5 text-cyan-400" />} label="Vento" value={`${data.windSpeed} km/h${windDirection}`} />
             {typeof data.wind_gust === 'number' && <InfoItem icon={<WindIcon className="w-5 h-5 text-cyan-400" />} label="Rajadas" value={`${Math.round(data.wind_gust)} km/h`} />}
             <InfoItem icon={<DropletsIcon className="w-5 h-5 text-cyan-400" />} label="Umidade" value={`${data.humidity}%`} />

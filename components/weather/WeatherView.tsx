@@ -10,7 +10,6 @@ import LoadingSpinner from '../common/LoadingSpinner';
 import ErrorDisplay from '../common/ErrorDisplay';
 import Alerts from './Alerts';
 import DataSourceInfo from './DataSourceInfo';
-import SunriseSunset from './SunriseSunset';
 
 interface WeatherViewProps {
     weatherData: WeatherData | null;
@@ -68,7 +67,6 @@ const WeatherView: React.FC<WeatherViewProps> = ({
                 <SearchBar onCitySelect={onCitySelect} onGeolocate={onGeolocate} />
                 <CurrentWeather data={weatherData} />
                 {dataSource !== 'open-meteo' && <Alerts alerts={alerts} />}
-                <SunriseSunset sunrise={weatherData.sunrise} sunset={weatherData.sunset} />
                 <AdditionalInfo data={weatherData} />
                 {airQualityData && <AirQuality data={airQualityData} />}
                 <HourlyForecastComponent data={hourlyForecast} />

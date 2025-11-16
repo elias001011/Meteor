@@ -52,8 +52,8 @@ const fetchWithOpenMeteo = async (lat: string, lon: string) => {
     const forecastParams = new URLSearchParams({
         latitude: lat,
         longitude: lon,
-        current: 'temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,cloud_cover,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m',
-        hourly: 'temperature_2m,weather_code,precipitation_probability',
+        current: 'temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,cloud_cover,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m',
+        hourly: 'temperature_2m,weather_code,precipitation_probability,is_day',
         daily: 'weather_code,temperature_2m_max,sunrise,sunset,precipitation_probability_max',
         timezone: 'auto',
         forecast_days: '7',
@@ -97,7 +97,7 @@ const fetchWithOpenMeteo = async (lat: string, lon: string) => {
         temperature: current.temperature_2m,
         feels_like: current.apparent_temperature,
         condition: mapWmoCodeToDescription(current.weather_code),
-        conditionIcon: mapOpenMeteoCodeToEmoji(current.weather_code, current.is_day),
+        conditionIcon: mapOpenMeteoCodeToEmoji(current.weather_code, current.is_day === 1),
         windSpeed: Math.round(current.wind_speed_10m),
         wind_gust: Math.round(current.wind_gusts_10m),
         wind_deg: current.wind_direction_10m,
@@ -112,7 +112,7 @@ const fetchWithOpenMeteo = async (lat: string, lon: string) => {
     const hourlyForecast = forecastApiData.hourly.time.slice(0, 8).map((time: string, index: number) => ({
         dt: new Date(time).getTime() / 1000,
         temperature: forecastApiData.hourly.temperature_2m[index],
-        conditionIcon: mapOpenMeteoCodeToEmoji(forecastApiData.hourly.weather_code[index]),
+        conditionIcon: mapOpenMeteoCodeToEmoji(forecastApiData.hourly.weather_code[index], forecastApiData.hourly.is_day[index] === 1),
         pop: forecastApiData.hourly.precipitation_probability[index] / 100,
     }));
     
