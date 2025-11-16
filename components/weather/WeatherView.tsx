@@ -19,6 +19,7 @@ interface WeatherViewProps {
     status: 'loading' | 'success' | 'error';
     error: string | null;
     onSearch: (city: string) => void;
+    onGeolocate: () => void;
     onRetry: () => void;
 }
 
@@ -31,6 +32,7 @@ const WeatherView: React.FC<WeatherViewProps> = ({
     status,
     error,
     onSearch,
+    onGeolocate,
     onRetry
 }) => {
     if (status === 'loading') {
@@ -44,7 +46,7 @@ const WeatherView: React.FC<WeatherViewProps> = ({
     if (status === 'error') {
         return (
             <div className="p-4 sm:p-6">
-                <SearchBar onSearch={onSearch} onGeolocate={onRetry} />
+                <SearchBar onSearch={onSearch} onGeolocate={onGeolocate} />
                 <div className="mt-6">
                     <ErrorDisplay message={error || "Não foi possível buscar os dados."} onRetry={onRetry} />
                 </div>
@@ -55,7 +57,7 @@ const WeatherView: React.FC<WeatherViewProps> = ({
     if (status === 'success' && weatherData && airQualityData) {
         return (
             <div className="p-4 sm:p-6 space-y-6">
-                <SearchBar onSearch={onSearch} onGeolocate={onRetry} />
+                <SearchBar onSearch={onSearch} onGeolocate={onGeolocate} />
                 <Alerts data={alerts} />
                 <CurrentWeather data={weatherData} />
                 <AdditionalInfo data={weatherData} />

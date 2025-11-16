@@ -8,16 +8,21 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
     if (!API_KEY) {
         return {
             statusCode: 500,
-            body: JSON.stringify({ error: "API key para clima não configurada." }),
+            body: JSON.stringify({ error: "API key para clima não configurada no servidor." }),
         };
     }
 
     const { lat, lon, city } = event.queryStringParameters;
+    const authErrorMessage = "Erro de autenticação. Verifique se a sua chave CLIMA_API é válida e está configurada corretamente no Netlify.";
 
     try {
         if (city) {
             // Geocoding request
             const response = await fetch(`${GEO_URL}/direct?q=${encodeURIComponent(city)}&limit=5&appid=${API_KEY}`);
+            
+            if (response.status === 401) {
+                return { statusCode: 401, body: JSON.stringify({ error: authErrorMessage }) };
+            }
             if (!response.ok) {
                  return { statusCode: response.status, body: JSON.stringify({ error: 'Cidade não encontrada.' }) };
             }
@@ -42,6 +47,10 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
                 fetch(`${BASE_URL}/forecast?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric&lang=pt_br`),
                 fetch(`${BASE_URL}/air_pollution?lat=${lat}&lon=${lon}&appid=${API_KEY}`)
             ]);
+            
+            if (forecastResponse.status === 401 || airQualityResponse.status === 401) {
+                return { statusCode: 401, body: JSON.stringify({ error: authErrorMessage }) };
+            }
 
             if (!forecastResponse.ok) {
                 return { statusCode: forecastResponse.status, body: JSON.stringify({ error: 'Falha ao buscar previsão do tempo.' }) };

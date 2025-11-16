@@ -91,18 +91,27 @@ const App: React.FC = () => {
         },
         (error) => {
           console.warn(`Geolocation error: ${error.message}. Defaulting to Porto Alegre.`);
-          handleCitySearch('Porto Alegre');
+          // Inform user about geolocation failure before falling back
+          setWeatherError("Não foi possível obter sua localização. Mostrando o clima de Porto Alegre.");
+          setWeatherStatus('error');
+          // Give user a chance to see the error before fetching default
+          setTimeout(() => handleCitySearch('Porto Alegre'), 500);
         }
       );
     } else {
       console.warn("Geolocation is not supported by this browser. Defaulting to Porto Alegre.");
-      handleCitySearch('Porto Alegre');
+      setWeatherError("Geolocalização não é suportada neste navegador. Mostrando o clima de Porto Alegre.");
+      setWeatherStatus('error');
+      setTimeout(() => handleCitySearch('Porto Alegre'), 500);
     }
   }, [handleFetchWeather, handleCitySearch]);
 
   useEffect(() => {
-    fetchUserLocationWeather();
-  }, [fetchUserLocationWeather]);
+    // Load default city on initial render instead of asking for location
+    handleCitySearch('Porto Alegre');
+    // We only want this to run once on initial load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSendMessage = useCallback(async (text: string) => {
     if (!text.trim()) return;
@@ -148,7 +157,8 @@ const App: React.FC = () => {
     dailyForecast,
     alerts,
     onSearch: handleCitySearch,
-    onRetry: fetchUserLocationWeather,
+    onGeolocate: fetchUserLocationWeather,
+    onRetry: () => handleCitySearch('Porto Alegre'),
   };
 
   return (
