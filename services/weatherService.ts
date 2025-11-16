@@ -20,7 +20,8 @@ const mapOwmIconToEmoji = (icon: string): string => {
 export const searchCities = async (city: string): Promise<CitySearchResult[]> => {
     const response = await fetch(`/.netlify/functions/weather?city=${encodeURIComponent(city)}`);
     if (!response.ok) {
-        throw new Error('Cidade não encontrada.');
+        const errorData = await response.json().catch(() => ({ error: 'Cidade não encontrada.' }));
+        throw new Error(errorData.error || 'Cidade não encontrada.');
     }
     return await response.json();
 };

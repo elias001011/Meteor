@@ -19,6 +19,7 @@ interface DesktopWeatherProps {
     status: 'loading' | 'success' | 'error';
     error: string | null;
     onSearch: (city: string) => void;
+    onGeolocate: () => void;
     onRetry: () => void;
 }
 
@@ -31,6 +32,7 @@ const DesktopWeather: React.FC<DesktopWeatherProps> = ({
     status,
     error,
     onSearch,
+    onGeolocate,
     onRetry
 }) => {
 
@@ -45,7 +47,7 @@ const DesktopWeather: React.FC<DesktopWeatherProps> = ({
     if (status === 'error') {
         return (
             <div className="space-y-6">
-                 <SearchBar onSearch={onSearch} onGeolocate={onRetry} />
+                 <SearchBar onSearch={onSearch} onGeolocate={onGeolocate} />
                  <ErrorDisplay message={error || "Não foi possível buscar os dados."} onRetry={onRetry} />
             </div>
         );
@@ -54,7 +56,7 @@ const DesktopWeather: React.FC<DesktopWeatherProps> = ({
     if (status === 'success' && weatherData && airQualityData) {
         return (
             <div className="space-y-6">
-                <SearchBar onSearch={onSearch} onGeolocate={onRetry} />
+                <SearchBar onSearch={onSearch} onGeolocate={onGeolocate} />
                 <Alerts data={alerts} />
                 <CurrentWeather data={weatherData} />
                 <AdditionalInfo data={weatherData} />
