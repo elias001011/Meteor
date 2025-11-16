@@ -2,6 +2,7 @@ import type { Handler, HandlerEvent, HandlerContext } from "@netlify/functions";
 import { Buffer } from "buffer";
 
 const API_KEY = process.env.CLIMA_API;
+const UNSPLASH_KEY = process.env.UNSPLASH_ACESS_KEY;
 
 const mapOwmIconToEmoji = (icon: string): string => {
     const iconMap: { [key: string]: string } = {
@@ -154,16 +155,75 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
             case 'all': {
                 const lat = params.lat;
                 const lon = params.lon;
+                const q = params.q; // City name from search
+                const country = params.country;
+
                 if (!lat || !lon) return { statusCode: 400, body: JSON.stringify({ message: "Latitude e longitude são obrigatórias." }) };
                 
+                let weatherBundle;
                 try {
-                    const data = await fetchWithOneCall(lat, lon);
-                    return { statusCode: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) };
+                    weatherBundle = await fetchWithOneCall(lat, lon);
                 } catch (error) {
                     console.warn(`One Call API failed: ${error.message}. Falling back to developer tier APIs.`);
-                    const data = await fetchWithFreeTier(lat, lon);
-                    return { statusCode: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) };
+                    weatherBundle = await fetchWithFreeTier(lat, lon);
                 }
+
+                let resolvedCityName: string;
+                if (q) {
+                    resolvedCityName = q;
+                    weatherBundle.weatherData.city = q;
+                    weatherBundle.weatherData.country = country || '';
+                } else {
+                    const geoResponse = await fetch(`https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${API_KEY}`);
+                    if (geoResponse.ok) {
+                        const geoData = await geoResponse.json();
+                        if (geoData && geoData.length > 0) {
+                            resolvedCityName = geoData[0].name;
+                            weatherBundle.weatherData.city = geoData[0].name;
+                            weatherBundle.weatherData.country = geoData[0].country;
+                        } else {
+                            resolvedCityName = "Localização Atual";
+                            weatherBundle.weatherData.city = "Localização Atual";
+                            weatherBundle.weatherData.country = "";
+                        }
+                    } else {
+                         resolvedCityName = "Localização Atual";
+                         weatherBundle.weatherData.city = "Localização Atual";
+                         weatherBundle.weatherData.country = "";
+                    }
+                }
+                
+                let imageUrl = `https://picsum.photos/seed/${encodeURIComponent(resolvedCityName)}/600/400`;
+
+                if (UNSPLASH_KEY) {
+                    try {
+                        console.log(`Fetching Unsplash image for query: ${resolvedCityName}`);
+                        const unsplashUrl = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(resolvedCityName)} city&per_page=1&orientation=landscape`;
+                        const unsplashRes = await fetch(unsplashUrl, {
+                            headers: { 'Authorization': `Client-ID ${UNSPLASH_KEY}` }
+                        });
+
+                        if (unsplashRes.ok) {
+                            const unsplashData = await unsplashRes.json();
+                            if (unsplashData.results && unsplashData.results.length > 0) {
+                                imageUrl = unsplashData.results[0].urls.regular;
+                                console.log(`Unsplash image found: ${imageUrl}`);
+                            } else {
+                                console.warn(`No Unsplash results for ${resolvedCityName}. Using fallback.`);
+                            }
+                        } else {
+                            console.warn(`Unsplash API failed with status: ${unsplashRes.status}. Using fallback image.`);
+                        }
+                    } catch (e) {
+                        console.error('Error fetching from Unsplash:', e);
+                    }
+                } else {
+                    console.log("UNSPLASH_ACESS_KEY not configured. Using fallback image.");
+                }
+                
+                weatherBundle.weatherData.imageUrl = imageUrl;
+
+                return { statusCode: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(weatherBundle) };
             }
 
             case 'direct':

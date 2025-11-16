@@ -10,6 +10,7 @@ export interface WeatherData {
   windSpeed: number;
   humidity: number;
   pressure: number;
+  imageUrl: string;
 }
 
 export interface AirQualityData {

@@ -46,6 +46,11 @@ export const fetchAllWeatherData = async (lat: number, lon: number, cityInfo?: {
         lon: lon.toString() 
     });
 
+    if (cityInfo) {
+        params.set('q', cityInfo.name);
+        params.set('country', cityInfo.country);
+    }
+
     const response = await fetch(`/.netlify/functions/weather?${params.toString()}`);
     
     if (!response.ok) {
@@ -54,36 +59,6 @@ export const fetchAllWeatherData = async (lat: number, lon: number, cityInfo?: {
     }
     
     const data: AllWeatherData = await response.json();
-
-    const locationName = cityInfo?.name || 'Localização Atual';
-    const countryName = cityInfo?.country || '';
-
-    // If cityInfo is not provided by the search, perform a reverse lookup for geolocation
-    if (!cityInfo) {
-        try {
-            const geoResponse = await fetch(`/.netlify/functions/weather?endpoint=reverse&lat=${lat}&lon=${lon}`);
-            if (geoResponse.ok) {
-                const geoData = await geoResponse.json();
-                if(geoData.length > 0) {
-                    data.weatherData.city = geoData[0].name;
-                    data.weatherData.country = geoData[0].country;
-                } else {
-                    data.weatherData.city = locationName;
-                    data.weatherData.country = countryName;
-                }
-            } else {
-                 data.weatherData.city = locationName;
-                 data.weatherData.country = countryName;
-            }
-        } catch (e) {
-            console.warn("Reverse geocoding failed, using default name.", e);
-            data.weatherData.city = locationName;
-            data.weatherData.country = countryName;
-        }
-    } else {
-        data.weatherData.city = locationName;
-        data.weatherData.country = countryName;
-    }
 
     const finalData = {
         weatherData: data.weatherData,
