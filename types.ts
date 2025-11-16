@@ -14,6 +14,14 @@ export interface WeatherData {
   uvi?: number;
   sunrise: number;
   sunset: number;
+  feels_like?: number;
+  visibility?: number;
+  clouds?: number;
+  wind_deg?: number;
+  wind_gust?: number;
+  rain_1h?: number;
+  snow_1h?: number;
+  dew_point?: number;
 }
 
 export interface AirQualityData {
@@ -34,12 +42,14 @@ export interface HourlyForecast {
   dt: number;
   temperature: number;
   conditionIcon: string;
+  pop?: number;
 }
 
 export interface DailyForecast {
   dt: number;
   temperature: number;
   conditionIcon: string;
+  pop?: number;
 }
 
 export interface GroundingSource {

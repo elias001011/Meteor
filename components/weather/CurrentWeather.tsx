@@ -28,8 +28,11 @@ const CurrentWeather: React.FC<CurrentWeatherProps> = ({ data }) => {
                 </div>
             </div>
             <div className="text-right mt-8">
-                <p className="text-7xl font-bold">{data.temperature}°C</p>
-                <p className="text-lg -mt-2">{data.condition}</p>
+                <p className="text-7xl font-bold">{Math.round(data.temperature)}°C</p>
+                {typeof data.feels_like === 'number' && (
+                    <p className="text-md -mt-1 text-gray-300">Sensação {Math.round(data.feels_like)}°C</p>
+                )}
+                <p className="text-lg capitalize">{data.condition}</p>
             </div>
         </div>
     </div>

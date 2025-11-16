@@ -47,7 +47,15 @@ const fetchWithOneCall = async (lat: string, lon: string) => {
     
     const weatherData = {
         dt: onecallApiData.current.dt,
-        temperature: Math.round(onecallApiData.current.temp),
+        temperature: onecallApiData.current.temp,
+        feels_like: onecallApiData.current.feels_like,
+        visibility: onecallApiData.current.visibility,
+        clouds: onecallApiData.current.clouds,
+        wind_deg: onecallApiData.current.wind_deg,
+        wind_gust: onecallApiData.current.wind_gust ? (onecallApiData.current.wind_gust * 3.6) : undefined,
+        rain_1h: onecallApiData.current.rain?.['1h'],
+        snow_1h: onecallApiData.current.snow?.['1h'],
+        dew_point: onecallApiData.current.dew_point,
         condition: onecallApiData.current.weather[0].description.charAt(0).toUpperCase() + onecallApiData.current.weather[0].description.slice(1),
         conditionIcon: mapOwmIconToEmoji(onecallApiData.current.weather[0].icon),
         windSpeed: Math.round(onecallApiData.current.wind_speed * 3.6),
@@ -60,14 +68,16 @@ const fetchWithOneCall = async (lat: string, lon: string) => {
 
     const hourlyForecast = onecallApiData.hourly.slice(0, 8).map((item: any) => ({
         dt: item.dt,
-        temperature: Math.round(item.temp),
+        temperature: item.temp,
         conditionIcon: mapOwmIconToEmoji(item.weather[0].icon),
+        pop: item.pop,
     }));
 
     const dailyForecast = onecallApiData.daily.slice(0, 7).map((item: any) => ({
         dt: item.dt,
-        temperature: Math.round(item.temp.max),
+        temperature: item.temp.max,
         conditionIcon: mapOwmIconToEmoji(item.weather[0].icon),
+        pop: item.pop,
     }));
 
     const airQualityData = airPollutionApiData && airPollutionApiData.list?.[0]
@@ -116,7 +126,14 @@ const fetchWithFreeTier = async (lat: string, lon: string) => {
 
     const weatherData = {
         dt: weatherApiData.dt,
-        temperature: Math.round(weatherApiData.main.temp),
+        temperature: weatherApiData.main.temp,
+        feels_like: weatherApiData.main.feels_like,
+        visibility: weatherApiData.visibility,
+        clouds: weatherApiData.clouds?.all,
+        wind_deg: weatherApiData.wind?.deg,
+        wind_gust: weatherApiData.wind?.gust ? (weatherApiData.wind.gust * 3.6) : undefined,
+        rain_1h: weatherApiData.rain?.['1h'],
+        snow_1h: weatherApiData.snow?.['1h'],
         condition: weatherApiData.weather[0].description.charAt(0).toUpperCase() + weatherApiData.weather[0].description.slice(1),
         conditionIcon: mapOwmIconToEmoji(weatherApiData.weather[0].icon),
         windSpeed: Math.round(weatherApiData.wind.speed * 3.6),
@@ -128,14 +145,16 @@ const fetchWithFreeTier = async (lat: string, lon: string) => {
     
     const hourlyForecast = hourlyApiData.list.slice(0, 8).map((item: any) => ({
         dt: item.dt,
-        temperature: Math.round(item.main.temp),
+        temperature: item.main.temp,
         conditionIcon: mapOwmIconToEmoji(item.weather[0].icon),
+        pop: item.pop,
     }));
     
     const dailyForecast = dailyApiData.list.map((item: any) => ({
         dt: item.dt,
-        temperature: Math.round(item.temp.max),
+        temperature: item.temp.max,
         conditionIcon: mapOwmIconToEmoji(item.weather[0].icon),
+        pop: item.pop,
     }));
 
     const airQualityData = airPollutionApiData && airPollutionApiData.list?.[0]
