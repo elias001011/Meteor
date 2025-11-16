@@ -53,14 +53,14 @@ const DesktopWeather: React.FC<DesktopWeatherProps> = ({
         );
     }
     
-    if (status === 'success' && weatherData && airQualityData) {
+    if (status === 'success' && weatherData) {
         return (
             <div className="space-y-6">
                 <SearchBar onCitySelect={onCitySelect} onGeolocate={onGeolocate} />
                 <CurrentWeather data={weatherData} />
                 {alerts && alerts.length > 0 && <Alerts alerts={alerts} />}
                 <AdditionalInfo data={weatherData} />
-                <AirQuality data={airQualityData} />
+                {airQualityData && <AirQuality data={airQualityData} />}
                 <HourlyForecastComponent data={hourlyForecast} />
                 <DailyForecastComponent data={dailyForecast} />
             </div>
