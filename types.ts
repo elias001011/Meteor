@@ -39,10 +39,16 @@ export interface DailyForecast {
   conditionIcon: string;
 }
 
+export interface GroundingSource {
+    uri: string;
+    title: string;
+}
+
 export interface ChatMessage {
     id: string;
     role: 'user' | 'model';
     text: string;
+    sources?: GroundingSource[];
 }
 
 export interface CitySearchResult {
@@ -69,4 +75,10 @@ export interface AllWeatherData {
     dailyForecast: DailyForecast[];
     alerts: WeatherAlert[];
     dataSource: 'onecall' | 'free';
+}
+
+export interface SearchResultItem {
+    title: string;
+    link: string;
+    snippet: string;
 }
