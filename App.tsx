@@ -69,10 +69,10 @@ const App: React.FC = () => {
       )}
 
       <main className="flex-1 pt-16 overflow-hidden">
-        {/* --- DESKTOP VIEW --- */}
+        {/* --- DESKTOP VIEW (visible on lg screens and up) --- */}
         <div className="hidden lg:block h-full">
-          {view === 'weather' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 h-full">
+          {(view === 'weather' || view === 'map') && (
+            <div className="grid grid-cols-2 gap-6 p-6 h-full">
               <div className="overflow-y-auto pr-2 space-y-6">
                 <DesktopWeather />
               </div>
@@ -82,40 +82,41 @@ const App: React.FC = () => {
             </div>
           )}
           {view === 'ai' && <AiView messages={messages} onSendMessage={handleSendMessage} isSending={isSending} />}
-          {view === 'map' && <MapView />}
           {view === 'news' && <PlaceholderView title="Notícias" />}
           {view === 'settings' && <PlaceholderView title="Ajustes" />}
           {view === 'tips' && <PlaceholderView title="Dicas" />}
           {view === 'info' && <PlaceholderView title="Informações" />}
         </div>
         
-        {/* --- MOBILE VIEW --- */}
-        <div className="lg:hidden h-full">
-          <div className={`${view === 'weather' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24`}>
+        {/* --- MOBILE VIEW (hidden on lg screens and up) --- */}
+        <div className="lg:hidden h-full relative">
+          <div className={`${view === 'weather' ? 'block' : 'hidden'} absolute inset-0 overflow-y-auto pb-24`}>
             <WeatherView />
           </div>
+          {/* AI view is handled separately to accommodate its custom input controls */}
           <div className={`${view === 'ai' ? 'block' : 'hidden'} h-full`}>
             <AiView messages={messages} onSendMessage={handleSendMessage} isSending={isSending} />
           </div>
-          <div className={`${view === 'map' ? 'block' : 'hidden'} h-full pb-24`}>
+          <div className={`${view === 'map' ? 'block' : 'hidden'} absolute inset-0 pb-24`}>
             <MapView />
           </div>
-          <div className={`${view === 'news' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24`}>
+          <div className={`${view === 'news' ? 'block' : 'hidden'} absolute inset-0 overflow-y-auto pb-24`}>
             <PlaceholderView title="Notícias" />
           </div>
-           <div className={`${view === 'settings' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24`}>
+           <div className={`${view === 'settings' ? 'block' : 'hidden'} absolute inset-0 overflow-y-auto pb-24`}>
             <PlaceholderView title="Ajustes" />
           </div>
-           <div className={`${view === 'tips' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24`}>
+           <div className={`${view === 'tips' ? 'block' : 'hidden'} absolute inset-0 overflow-y-auto pb-24`}>
             <PlaceholderView title="Dicas" />
           </div>
-           <div className={`${view === 'info' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24`}>
+           <div className={`${view === 'info' ? 'block' : 'hidden'} absolute inset-0 overflow-y-auto pb-24`}>
             <PlaceholderView title="Informações" />
           </div>
         </div>
 
       </main>
       
+      {/* --- MOBILE NAVIGATION (hidden on lg screens and up) --- */}
       <div className="lg:hidden">
         <BottomNav activeView={view} setView={setView} />
         <MobileAiControls 
