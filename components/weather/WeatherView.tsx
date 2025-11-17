@@ -69,9 +69,9 @@ const WeatherView: React.FC<WeatherViewProps> = ({
                 <CurrentWeather data={weatherData} />
                 {dataSource !== 'open-meteo' && <Alerts alerts={alerts} />}
                 <AdditionalInfo data={weatherData} />
-                <SunriseSunset sunrise={weatherData.sunrise} sunset={weatherData.sunset} />
                 {airQualityData && <AirQuality data={airQualityData} />}
                 <HourlyForecastComponent data={hourlyForecast} />
+                <SunriseSunset sunrise={weatherData.sunrise} sunset={weatherData.sunset} />
                 <DailyForecastComponent data={dailyForecast} />
                 <DataSourceInfo source={dataSource} lastUpdated={lastUpdated} onClick={onDataSourceInfoClick} />
             </div>
