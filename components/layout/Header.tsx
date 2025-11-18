@@ -13,7 +13,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ activeView, setView, showClock }) => {
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 bg-gray-900/80 backdrop-blur-lg border-b border-gray-800 transition-colors duration-300">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-gray-900/80 backdrop-blur-lg border-b border-gray-800 transition-colors duration-300">
       <div className="w-full px-4 sm:px-6 h-16 flex items-center justify-between">
         <div className="flex items-center gap-2">
             <SparklesIcon className="w-6 h-6 text-cyan-400" />
