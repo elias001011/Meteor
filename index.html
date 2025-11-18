@@ -25,19 +25,34 @@
       .leaflet-popup-content-wrapper, .leaflet-popup-tip {
         box-sizing: content-box !important;
       }
-      /* Custom scrollbar for a more modern look */
-      ::-webkit-scrollbar {
-        width: 8px;
+      /* Hide scrollbars by default for a cleaner, mobile-first look */
+      html {
+          scrollbar-width: none; /* Firefox */
+          -ms-overflow-style: none;  /* IE 10+ */
       }
-      ::-webkit-scrollbar-track {
-        background: transparent;
+      html::-webkit-scrollbar {
+          display: none; /* Safari and Chrome */
       }
-      ::-webkit-scrollbar-thumb {
-        background-color: rgba(107, 114, 128, 0.5);
-        border-radius: 4px;
+
+      /* Show scrollbars only when the 'show-scrollbars' class is applied */
+      html.show-scrollbars {
+          scrollbar-width: auto; /* Firefox */
+          -ms-overflow-style: auto; /* IE 10+ */
       }
-      ::-webkit-scrollbar-thumb:hover {
-        background-color: rgba(156, 163, 175, 0.5);
+      html.show-scrollbars ::-webkit-scrollbar {
+          display: block;
+          width: 8px;
+          height: 8px;
+      }
+      html.show-scrollbars ::-webkit-scrollbar-track {
+          background: transparent;
+      }
+      html.show-scrollbars ::-webkit-scrollbar-thumb {
+          background-color: rgba(107, 114, 128, 0.5);
+          border-radius: 4px;
+      }
+      html.show-scrollbars ::-webkit-scrollbar-thumb:hover {
+          background-color: rgba(156, 163, 175, 0.5);
       }
        /* Rain Animation */
       .raindrop {

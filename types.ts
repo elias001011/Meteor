@@ -119,6 +119,7 @@ export interface AppSettings {
     themeColor: AppTheme;
     dynamicTheme: boolean; 
     glassEffectEnabled: boolean; // Simplified from transparencyLevel
+    showScrollbars: boolean;
     rainAnimation: {
         enabled: boolean;
         intensity: 'low' | 'high';

@@ -1,4 +1,5 @@
 
+
 import type { AppSettings, ExportData } from '../types';
 
 const SETTINGS_KEY = 'meteor_settings';
@@ -12,9 +13,10 @@ const DEFAULT_SETTINGS: AppSettings = {
     startupBehavior: 'idle',
     aiCustomInstructions: '',
     startupSection: 'weather',
-    themeColor: 'cyan',
+    themeColor: 'purple',
     dynamicTheme: false,
     glassEffectEnabled: true, // Default to ON for the modern look
+    showScrollbars: false, // Default to OFF for a cleaner, mobile-first UI
     rainAnimation: {
         enabled: true,
         intensity: 'low'

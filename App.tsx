@@ -80,6 +80,14 @@ const App: React.FC = () => {
 
   const { weatherData, airQualityData, hourlyForecast, dailyForecast, alerts, dataSource, lastUpdated } = weatherInfo;
 
+  useEffect(() => {
+    if (settings.showScrollbars) {
+        document.documentElement.classList.add('show-scrollbars');
+    } else {
+        document.documentElement.classList.remove('show-scrollbars');
+    }
+  }, [settings.showScrollbars]);
+
   const handleSettingsChange = (newSettings: AppSettings) => {
     saveSettings(newSettings); // Persist to localStorage
     setSettings(newSettings); // Update state
