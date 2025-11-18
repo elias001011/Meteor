@@ -1,7 +1,6 @@
 import { GoogleGenAI, Content } from "@google/genai";
 import { type Handler, type HandlerEvent } from "@netlify/functions";
 
-// Using 'any' for incoming data types to simplify as they are not shared types.
 const buildContextualContent = (
     weatherInfo: any | null, 
     searchResults: any[] | null
@@ -47,12 +46,15 @@ const buildContextualContent = (
 
 
 const handler: Handler = async (event: HandlerEvent) => {
-    // Validando explicitamente a variável configurada no Netlify: GEMINI_API
+    // SEGURANÇA: Esta chave é acessada apenas no servidor (Netlify Functions).
+    // Ela NUNCA é enviada para o navegador do usuário.
     const apiKey = process.env.GEMINI_API;
 
     if (!apiKey) {
-        return { statusCode: 500, body: JSON.stringify({ message: "Chave GEMINI_API não configurada no servidor." }) };
+        console.error("Erro Crítico: A variável de ambiente GEMINI_API não está configurada no painel do Netlify.");
+        return { statusCode: 500, body: JSON.stringify({ message: "Erro de configuração no servidor (Chave de IA ausente)." }) };
     }
+
     if (event.httpMethod !== 'POST') {
         return { statusCode: 405, body: 'Method Not Allowed' };
     }
@@ -65,12 +67,18 @@ const handler: Handler = async (event: HandlerEvent) => {
         }
 
         const ai = new GoogleGenAI({ apiKey });
+        // Usando o modelo Flash Lite para respostas rápidas e eficientes
         const model = 'gemini-2.5-flash-lite';
         
         const contextualContent = buildContextualContent(weatherContext, searchResults);
-        const contents = [...contextualContent, ...history, { role: 'user', parts: [{ text: prompt }] }];
         
-        // Use generateContent for a single, non-streaming response
+        // Construção segura do histórico
+        const contents = [
+            ...contextualContent, 
+            ...(Array.isArray(history) ? history : []), 
+            { role: 'user', parts: [{ text: prompt }] }
+        ];
+        
         const result = await ai.models.generateContent({ model, contents });
         const text = result.text;
 
@@ -86,7 +94,7 @@ const handler: Handler = async (event: HandlerEvent) => {
         console.error("Erro na função Gemini:", error);
         return {
             statusCode: 500,
-            body: JSON.stringify({ message: error instanceof Error ? error.message : "Ocorreu um erro interno." }),
+            body: JSON.stringify({ message: "Ocorreu um erro ao processar sua solicitação na IA." }),
         };
     }
 };
