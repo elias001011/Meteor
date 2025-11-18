@@ -114,6 +114,12 @@ export interface AppSettings {
     specificLocation?: CitySearchResult; // Used if startupBehavior is 'specific_location'
     startupSection?: View; // Used if startupBehavior is 'custom_section'
     aiCustomInstructions: string;
+    
+    // Appearance Settings
+    accentColor: string; // Hex code
+    rainIntensity: 'off' | 'low' | 'high';
+    reduceTransparency: boolean;
+    headerBehavior: 'fixed' | 'scroll';
 }
 
 export interface ExportData {

@@ -11,7 +11,12 @@ const DEFAULT_SETTINGS: AppSettings = {
     weatherSource: 'auto',
     startupBehavior: 'idle',
     aiCustomInstructions: '',
-    startupSection: 'weather'
+    startupSection: 'weather',
+    // New Defaults
+    accentColor: '#06b6d4', // Default Cyan-500
+    rainIntensity: 'low',
+    reduceTransparency: false,
+    headerBehavior: 'fixed'
 };
 
 export const getSettings = (): AppSettings => {
