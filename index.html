@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en" class="bg-gray-900 text-white">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- Viewport updated to disable zoom and lock scale -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    
+    <!-- PWA Tags -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#06b6d4" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+
+    <title>Meteor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <style>
+      /* Leaflet CSS Reset to fix conflicts with Tailwind's preflight styles */
+      .leaflet-popup-content-wrapper, .leaflet-popup-tip {
+        box-sizing: content-box !important;
+      }
+      /* Custom scrollbar for a more modern look */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background-color: rgba(107, 114, 128, 0.5);
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(156, 163, 175, 0.5);
+      }
+       /* Rain Animation */
+      .raindrop {
+          position: absolute;
+          bottom: 100%;
+          width: 1px;
+          height: 60px;
+          background: linear-gradient(to top, rgba(107, 114, 128, 0) 0%, rgba(107, 114, 128, 0.25) 100%);
+          animation: fall linear infinite;
+      }
+
+      @keyframes fall {
+          from {
+              transform: translateY(0vh);
+          }
+          to {
+              transform: translateY(110vh);
+          }
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.29.1",
+    "@netlify/functions": "https://aistudiocdn.com/@netlify/functions@^5.1.0",
+    "buffer": "https://aistudiocdn.com/buffer@^6.0.3",
+    "@netlify/blobs": "https://aistudiocdn.com/@netlify/blobs@^10.3.3",
+    "path": "https://aistudiocdn.com/path@^0.12.7",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
+    "vite": "https://aistudiocdn.com/vite@^7.2.2"
+  }
+}
+</script>
+</head>
+  <body class="bg-gray-900">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
