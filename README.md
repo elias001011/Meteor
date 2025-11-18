@@ -69,12 +69,12 @@ Clone o repositório e instale as dependências:
 
 ```bash
 git clone https://github.com/elias001011/Meteor.git
-cd meteor
+cd Meteor
 npm install
 ```
 
 ### 3. Configuração de Ambiente (.env)
-Crie um arquivo `.env` na raiz do projeto. Você precisará das seguintes chaves (obtenha-as nos respectivos portais de desenvolvedor):
+Crie um arquivo `.env` na raiz do projeto e **adicione-o ao seu .gitignore**. Você precisará das seguintes chaves:
 
 ```env
 # Obrigatório: API do OpenWeatherMap
