@@ -1,18 +1,30 @@
+
 import { GoogleGenAI, Content } from "@google/genai";
 import { type Handler, type HandlerEvent } from "@netlify/functions";
 
 const buildContextualContent = (
     weatherInfo: any | null, 
-    searchResults: any[] | null
+    searchResults: any[] | null,
+    userName?: string,
+    userInstructions?: string
 ): Content[] => {
-    const systemInstruction = `Você é a IA do Meteor, a ferramenta sucessora do RS Alerta. Responda da forma mais curta possível e em texto corrido.`;
+    
+    let systemInstruction = `Você é a IA do Meteor, a ferramenta sucessora do RS Alerta. Responda da forma mais curta possível e em texto corrido.`;
+    
+    if (userName) {
+        systemInstruction += ` O nome do usuário é ${userName}. Trate-o pelo nome quando apropriado.`;
+    }
+    
+    if (userInstructions && userInstructions.trim() !== "") {
+        systemInstruction += `\n\nINSTRUÇÕES PERSONALIZADAS DO USUÁRIO (IMPORTANTE - SIGA ISSO): ${userInstructions}`;
+    }
 
     const content: Content[] = [{
         role: 'user',
         parts: [{ text: systemInstruction }]
     }, {
         role: 'model',
-        parts: [{ text: "Entendido. Serei a IA do Meteor, sucessora do RS Alerta, e responderei de forma breve e direta." }]
+        parts: [{ text: `Entendido. ${userName ? `Falarei com ${userName}.` : ''} Seguirei as instruções.` }]
     }];
 
     if (weatherInfo && weatherInfo.weatherData) {
@@ -38,7 +50,7 @@ const buildContextualContent = (
         content.push({ role: 'model', parts: [{ text: "Ok, tenho os resultados da busca." }]});
     } else {
          content.push({ role: 'user', parts: [{ text: "INSTRUÇÃO: Se você não souber a resposta com base no seu conhecimento e no contexto climático fornecido, instrua o usuário a ativar a pesquisa na web para obter informações em tempo real." }]});
-         content.push({ role: 'model', parts: [{ text: "Entendido. Se eu não souber, pedirei para o usuário ativar a pesquisa." }]});
+         content.push({ role: 'model', parts: [{ text: "Entendido." }]});
     }
 
     return content;
@@ -46,8 +58,6 @@ const buildContextualContent = (
 
 
 const handler: Handler = async (event: HandlerEvent) => {
-    // SEGURANÇA: Esta chave é acessada apenas no servidor (Netlify Functions).
-    // Ela NUNCA é enviada para o navegador do usuário.
     const apiKey = process.env.GEMINI_API;
 
     if (!apiKey) {
@@ -60,19 +70,17 @@ const handler: Handler = async (event: HandlerEvent) => {
     }
 
     try {
-        const { prompt, history, weatherContext, searchResults } = JSON.parse(event.body || '{}');
+        const { prompt, history, weatherContext, searchResults, userName, userInstructions } = JSON.parse(event.body || '{}');
 
         if (!prompt) {
             return { statusCode: 400, body: JSON.stringify({ message: "O prompt é obrigatório." }) };
         }
 
         const ai = new GoogleGenAI({ apiKey });
-        // Usando o modelo Flash Lite para respostas rápidas e eficientes
         const model = 'gemini-2.5-flash-lite';
         
-        const contextualContent = buildContextualContent(weatherContext, searchResults);
+        const contextualContent = buildContextualContent(weatherContext, searchResults, userName, userInstructions);
         
-        // Construção segura do histórico
         const contents = [
             ...contextualContent, 
             ...(Array.isArray(history) ? history : []), 

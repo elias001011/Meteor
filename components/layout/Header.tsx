@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { View } from '../../types';
 import { SparklesIcon } from '../icons';
@@ -7,9 +8,10 @@ import Clock from '../common/Clock';
 interface HeaderProps {
     activeView: View;
     setView: (view: View) => void;
+    showClock: boolean;
 }
 
-const Header: React.FC<HeaderProps> = ({ activeView, setView }) => {
+const Header: React.FC<HeaderProps> = ({ activeView, setView, showClock }) => {
   return (
     <header className="fixed top-0 left-0 right-0 z-40 bg-gray-900/80 backdrop-blur-lg border-b border-gray-800">
       <div className="w-full px-4 sm:px-6 h-16 flex items-center justify-between">
@@ -19,12 +21,14 @@ const Header: React.FC<HeaderProps> = ({ activeView, setView }) => {
         </div>
         
         {/* Mobile Clock */}
-        <div className="lg:hidden text-white font-medium text-lg">
-            <Clock />
-        </div>
+        {showClock && (
+             <div className="lg:hidden text-white font-medium text-lg">
+                <Clock />
+            </div>
+        )}
 
-        {/* Desktop Nav (which now includes the clock) */}
-        <DesktopNav activeView={activeView} setView={setView} />
+        {/* Desktop Nav */}
+        <DesktopNav activeView={activeView} setView={setView} showClock={showClock} />
       </div>
     </header>
   );

@@ -5,18 +5,20 @@ import AiView from './components/ai/AiView';
 import MapView from './components/map/MapView';
 import BottomNav from './components/layout/BottomNav';
 import Header from './components/layout/Header';
-import type { ChatMessage, View, CitySearchResult, AllWeatherData, GroundingSource, SearchResultItem, DataSource } from './types';
+import type { ChatMessage, View, CitySearchResult, AllWeatherData, GroundingSource, SearchResultItem, DataSource, AppSettings } from './types';
 import { streamChatResponse } from './services/geminiService';
 import { getSearchResults } from './services/searchService';
 import { fetchAllWeatherData } from './services/weatherService';
+import { getSettings } from './services/settingsService';
 import DesktopWeather from './components/weather/DesktopWeather';
 import PlaceholderView from './components/common/PlaceholderView';
 import MobileAiControls from './components/ai/MobileAiControls';
+import SettingsView from './components/settings/SettingsView';
 import { Content } from '@google/genai';
 import ErrorPopup from './components/common/ErrorPopup';
 import DataSourceModal from './components/common/DataSourceModal';
 
-// Rain animation component defined locally to avoid creating a new file
+// Rain animation component defined locally
 const RainAnimation: React.FC = () => {
     const numberOfDrops = 50;
     return (
@@ -43,7 +45,7 @@ const App: React.FC = () => {
     {
       id: '1',
       role: 'model',
-      text: 'Olá! Sou a IA do Meteor, sucessora do RS Alerta. Posso ajudar com informações sobre o clima e buscar na web. O que você gostaria de saber?',
+      text: 'Olá! Sou a IA do Meteor. Posso ajudar com informações sobre o clima e buscar na web. O que você gostaria de saber?',
     },
   ]);
   const [isSending, setIsSending] = useState(false);
@@ -52,12 +54,13 @@ const App: React.FC = () => {
   // Speech Recognition state
   const [isListening, setIsListening] = useState(false);
   const [chatInputText, setChatInputText] = useState('');
-  const recognitionRef = useRef<any>(null); // Using 'any' for SpeechRecognition to support webkitSpeechRecognition
+  const recognitionRef = useRef<any>(null); 
   const [appError, setAppError] = useState<string | null>(null);
 
+  // App Settings
+  const [settings, setSettings] = useState<AppSettings>(getSettings());
 
   // Weather state
-  // Initial state is now 'idle' to prevent automatic API calls
   const [weatherInfo, setWeatherInfo] = useState<Partial<AllWeatherData>>({});
   const [weatherStatus, setWeatherStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [weatherError, setWeatherError] = useState<string | null>(null);
@@ -68,9 +71,41 @@ const App: React.FC = () => {
 
   const { weatherData, airQualityData, hourlyForecast, dailyForecast, alerts, dataSource, lastUpdated } = weatherInfo;
 
+  // Initialization Logic based on Settings
+  useEffect(() => {
+      const initApp = () => {
+          const savedSettings = getSettings();
+          setSettings(savedSettings);
+
+          if (savedSettings.startupBehavior === 'custom_section' && savedSettings.startupSection) {
+              setView(savedSettings.startupSection);
+          } else if (savedSettings.startupBehavior === 'specific_location' && savedSettings.specificLocation) {
+               handleFetchWeather(
+                   { lat: savedSettings.specificLocation.lat, lon: savedSettings.specificLocation.lon },
+                   { name: savedSettings.specificLocation.name, country: savedSettings.specificLocation.country },
+                   'auto'
+               );
+          } else if (savedSettings.startupBehavior === 'last_location') {
+               const lastCoordsStr = localStorage.getItem('last_coords');
+               if (lastCoordsStr) {
+                   try {
+                       const coords = JSON.parse(lastCoordsStr);
+                       handleFetchWeather(coords, undefined, 'auto');
+                   } catch (e) {
+                       console.error("Failed to parse last location", e);
+                   }
+               }
+          }
+          // 'idle' behavior is default
+      };
+      
+      initApp();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+
   // Setup Speech Recognition
   useEffect(() => {
-    // FIX: Cast window to `any` to access non-standard `SpeechRecognition` and `webkitSpeechRecognition` properties, resolving TypeScript errors.
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SpeechRecognition) {
       const recognition = new SpeechRecognition();
@@ -102,8 +137,6 @@ const App: React.FC = () => {
       };
 
       recognitionRef.current = recognition;
-    } else {
-      console.warn("Speech Recognition not supported by this browser.");
     }
   }, []);
 
@@ -112,6 +145,9 @@ const App: React.FC = () => {
     setWeatherError(null);
     setCurrentCoords(coords);
     if(cityInfo) setCurrentCityInfo(cityInfo);
+
+    // Persist last location
+    localStorage.setItem('last_coords', JSON.stringify(coords));
 
     try {
       const data = await fetchAllWeatherData(coords.lat, coords.lon, cityInfo, source);
@@ -146,7 +182,6 @@ const App: React.FC = () => {
         }
       );
     } else {
-      console.warn("Geolocation is not supported by this browser.");
       setWeatherError("Geolocalização não é suportada neste navegador.");
       setWeatherStatus('error');
     }
@@ -166,12 +201,12 @@ const App: React.FC = () => {
     const modelMessage: ChatMessage = { id: (Date.now() + 1).toString(), role: 'model', text: '', sources: [] };
     setMessages(prev => [...prev, modelMessage]);
     
-    const history: Content[] = messages.slice(1).map(msg => ({ // Exclude initial system message
+    const history: Content[] = messages.slice(1).map(msg => ({ 
         role: msg.role,
         parts: [{ text: msg.text }]
     }));
 
-    const stream = streamChatResponse(query, history, weatherInfo, searchResults);
+    const stream = streamChatResponse(query, history, weatherInfo, searchResults, settings);
     let fullText = '';
     const allSources: GroundingSource[] = [];
 
@@ -198,7 +233,7 @@ const App: React.FC = () => {
     }
 
     setIsSending(false);
-  }, [messages, weatherInfo]);
+  }, [messages, weatherInfo, settings]);
   
   const handleSendMessage = useCallback(async (text: string) => {
     if (!text.trim()) return;
@@ -207,7 +242,7 @@ const App: React.FC = () => {
     
     let searchResults: SearchResultItem[] | null = null;
     if (isSearchEnabled) {
-      setIsSending(true); // Show loading while searching
+      setIsSending(true);
       searchResults = await getSearchResults(text);
       setIsSending(false);
     }
@@ -239,7 +274,6 @@ const App: React.FC = () => {
         if (currentCoords) {
             handleFetchWeather(currentCoords, currentCityInfo || undefined, preferredDataSource)
         } else {
-            // If retry is clicked but no coords exist, just clear error to go back to idle
             setWeatherStatus('idle');
             setWeatherError(null);
         }
@@ -260,7 +294,7 @@ const App: React.FC = () => {
   return (
     <div className="relative bg-gray-900 text-white min-h-screen font-sans flex flex-col h-screen overflow-hidden">
       {view === 'weather' && isRaining && <RainAnimation />}
-      <Header activeView={view} setView={setView} />
+      <Header activeView={view} setView={setView} showClock={settings.showClock} />
       {appError && <ErrorPopup message={appError} onClose={() => setAppError(null)} />}
       
       <DataSourceModal 
@@ -280,7 +314,6 @@ const App: React.FC = () => {
                 <DesktopWeather {...weatherProps} />
               </div>
               <div className="h-full rounded-3xl overflow-hidden">
-                {/* Always render MapView, passing undefined coords if not available */}
                 <MapView lat={currentCoords?.lat} lon={currentCoords?.lon} />
               </div>
             </div>
@@ -290,7 +323,7 @@ const App: React.FC = () => {
             <MapView lat={currentCoords?.lat} lon={currentCoords?.lon} />
           )}
           {view === 'news' && <PlaceholderView title="Notícias" />}
-          {view === 'settings' && <PlaceholderView title="Ajustes" />}
+          {view === 'settings' && <SettingsView onSettingsChanged={setSettings} />}
           {view === 'tips' && <PlaceholderView title="Dicas" />}
           {view === 'info' && <PlaceholderView title="Informações" />}
         </div>
@@ -310,7 +343,7 @@ const App: React.FC = () => {
             <PlaceholderView title="Notícias" />
           </div>
            <div className={`${view === 'settings' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24`}>
-            <PlaceholderView title="Ajustes" />
+             <SettingsView onSettingsChanged={setSettings} />
           </div>
            <div className={`${view === 'tips' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24`}>
             <PlaceholderView title="Dicas" />
