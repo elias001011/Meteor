@@ -329,6 +329,15 @@ const fetchWithFreeTier = async (lat: string, lon: string) => {
     };
 };
 
+// Fallback Map Codes for Maps 1.0 (Free Tier)
+const MAP_LAYER_FALLBACKS: Record<string, string> = {
+    'TA2': 'temp_new',
+    'CL': 'clouds_new',
+    'PR0': 'precipitation_new',
+    'APM': 'pressure_new',
+    'WS10': 'wind_new'
+};
+
 const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
     if (!API_KEY) {
         return { statusCode: 500, body: JSON.stringify({ message: "API key para clima não configurada no servidor." }) };
@@ -488,15 +497,32 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
             case 'tile': {
                 const { layer, z, x, y } = params;
                 if (!layer || !z || !x || !y) return { statusCode: 400, body: JSON.stringify({ message: "Parâmetros de tile ausentes." }) };
-                const tileUrl = `https://maps.openweathermap.org/maps/2.0/weather/${layer}/${z}/${x}/${y}?appid=${API_KEY}`;
+                
+                // Try Maps 2.0 (Paid/Developer)
+                const tileUrl2 = `https://maps.openweathermap.org/maps/2.0/weather/${layer}/${z}/${x}/${y}?appid=${API_KEY}`;
                 
                 try {
-                    const response = await fetch(tileUrl);
-                    // Explicitly handle 401/403/404 for tiles to allow graceful client-side fallback
+                    let response = await fetch(tileUrl2);
+                    
+                    // If 401 Unauthorized (Free Key) or similar error, try fallback to Maps 1.0 (Free)
                     if (!response.ok) {
-                        console.warn(`Tile fetch failed: ${response.status} ${response.statusText} for ${layer}`);
-                        return { statusCode: response.status, body: '' }; 
+                        console.warn(`Maps 2.0 failed (${response.status}). Trying Maps 1.0 Fallback.`);
+                        
+                        const fallbackLayer = MAP_LAYER_FALLBACKS[layer];
+                        if (fallbackLayer) {
+                             const tileUrl1 = `https://tile.openweathermap.org/map/${fallbackLayer}/${z}/${x}/${y}.png?appid=${API_KEY}`;
+                             console.log(`Fallback URL: ${tileUrl1}`);
+                             response = await fetch(tileUrl1);
+                        } else {
+                            // No fallback mapping available for this layer
+                             return { statusCode: 500, body: '' };
+                        }
                     }
+
+                    if (!response.ok) {
+                        return { statusCode: 500, body: '' };
+                    }
+
                     const buffer = await response.arrayBuffer();
                     return { statusCode: 200, headers: { 'Content-Type': 'image/png' }, body: Buffer.from(buffer).toString('base64'), isBase64Encoded: true };
                 } catch (e) {
@@ -507,10 +533,15 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
             case 'relief': {
                 const { z, x, y } = params;
                 if (!z || !x || !y) return { statusCode: 400, body: JSON.stringify({ message: "Parâmetros de tile de relevo ausentes." }) };
+                // Relief map is generally paid-only on OWM Maps 2.0 and has no direct 1.0 equivalent.
+                // We try to fetch it, and if it fails (401), we return empty so the map doesn't break.
                 const tileUrl = `https://maps.openweathermap.org/maps/2.0/relief/${z}/${x}/${y}?appid=${API_KEY}`;
                  try {
                     const response = await fetch(tileUrl);
-                    if (!response.ok) return { statusCode: response.status, body: '' };
+                    if (!response.ok) {
+                        // Likely 401 Unauthorized on free plans
+                        return { statusCode: 404, body: '' }; // 404 signals Leaflet to hide the tile
+                    }
                     const buffer = await response.arrayBuffer();
                     return { statusCode: 200, headers: { 'Content-Type': 'image/png' }, body: Buffer.from(buffer).toString('base64'), isBase64Encoded: true };
                  } catch(e) {
