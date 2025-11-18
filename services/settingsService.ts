@@ -7,7 +7,8 @@ const WEATHER_CACHE_PREFIX = 'weather_data_';
 const DEFAULT_SETTINGS: AppSettings = {
     userName: '',
     showClock: true,
-    startFullscreen: false, // Default is off
+    startFullscreen: false,
+    weatherSource: 'auto',
     startupBehavior: 'idle',
     aiCustomInstructions: '',
     startupSection: 'weather'
@@ -46,7 +47,7 @@ export const exportAppData = (): void => {
 
     const exportPayload: ExportData = {
         settings,
-        chatHistory: [], // Placeholder
+        chatHistory: [], // Placeholder for future implementation
         weatherCache,
         timestamp: Date.now()
     };
@@ -70,7 +71,9 @@ export const importAppData = (
         const data: ExportData = JSON.parse(jsonContent);
 
         if (options.importSettings && data.settings) {
-            saveSettings(data.settings);
+            // Merge imported settings with defaults to ensure compatibility
+            const mergedSettings = { ...DEFAULT_SETTINGS, ...data.settings };
+            saveSettings(mergedSettings);
         }
 
         if (options.importCache && data.weatherCache) {

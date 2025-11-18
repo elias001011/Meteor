@@ -67,6 +67,8 @@ const App: React.FC = () => {
   const [currentCoords, setCurrentCoords] = useState<{lat: number, lon: number} | null>(null);
   const [currentCityInfo, setCurrentCityInfo] = useState<{name: string, country: string} | null>(null);
   const [isDataSourceModalOpen, setIsDataSourceModalOpen] = useState(false);
+  
+  // Synced with Settings.weatherSource but allows temporary override via Modal
   const [preferredDataSource, setPreferredDataSource] = useState<DataSource | 'auto'>('auto');
 
   const { weatherData, airQualityData, hourlyForecast, dailyForecast, alerts, dataSource, lastUpdated } = weatherInfo;
@@ -76,6 +78,7 @@ const App: React.FC = () => {
       const initApp = () => {
           const savedSettings = getSettings();
           setSettings(savedSettings);
+          setPreferredDataSource(savedSettings.weatherSource); // Sync source
 
           // Handle Fullscreen logic
           if (savedSettings.startFullscreen) {
@@ -101,14 +104,14 @@ const App: React.FC = () => {
                handleFetchWeather(
                    { lat: savedSettings.specificLocation.lat, lon: savedSettings.specificLocation.lon },
                    { name: savedSettings.specificLocation.name, country: savedSettings.specificLocation.country },
-                   'auto'
+                   savedSettings.weatherSource
                );
           } else if (savedSettings.startupBehavior === 'last_location') {
                const lastCoordsStr = localStorage.getItem('last_coords');
                if (lastCoordsStr) {
                    try {
                        const coords = JSON.parse(lastCoordsStr);
-                       handleFetchWeather(coords, undefined, 'auto');
+                       handleFetchWeather(coords, undefined, savedSettings.weatherSource);
                    } catch (e) {
                        console.error("Failed to parse last location", e);
                    }
@@ -120,6 +123,15 @@ const App: React.FC = () => {
       initApp();
       // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Update preferredDataSource when settings change (e.g. from Settings View)
+  useEffect(() => {
+      setPreferredDataSource(settings.weatherSource);
+      // If we have active weather data, reload it with new source
+      if (currentCoords && settings.weatherSource !== dataSource && weatherStatus === 'success') {
+          handleFetchWeather(currentCoords, currentCityInfo || undefined, settings.weatherSource);
+      }
+  }, [settings.weatherSource]);
 
 
   // Setup Speech Recognition
