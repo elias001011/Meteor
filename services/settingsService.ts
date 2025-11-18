@@ -16,7 +16,6 @@ const DEFAULT_SETTINGS: AppSettings = {
     accentColor: '#06b6d4', // Default Cyan-500
     rainIntensity: 'low',
     reduceTransparency: false,
-    headerBehavior: 'fixed'
 };
 
 export const getSettings = (): AppSettings => {

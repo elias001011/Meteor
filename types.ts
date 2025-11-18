@@ -119,7 +119,6 @@ export interface AppSettings {
     accentColor: string; // Hex code
     rainIntensity: 'off' | 'low' | 'high';
     reduceTransparency: boolean;
-    headerBehavior: 'fixed' | 'scroll';
 }
 
 export interface ExportData {
