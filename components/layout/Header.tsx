@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import type { View } from '../../types';
 import { SparklesIcon } from '../icons';
@@ -16,7 +17,7 @@ const Header: React.FC<HeaderProps> = ({ activeView, setView, showClock }) => {
   const { classes, glassClass } = useTheme();
 
   return (
-    <header className={`fixed top-0 left-0 right-0 z-40 border-b transition-all duration-300 ${glassClass}`}>
+    <header className={`fixed top-0 left-0 right-0 z-40 border-b transition-all duration-300 ${glassClass} ${classes.borderFaded}`}>
       <div className="w-full px-4 sm:px-6 h-16 flex items-center justify-between">
         <div className="flex items-center gap-2">
             <SparklesIcon className={`w-6 h-6 ${classes.text}`} />

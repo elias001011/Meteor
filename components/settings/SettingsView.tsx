@@ -193,6 +193,19 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
                                 </div>
                             </div>
                         )}
+
+                        <div className="flex items-center justify-between pt-4 border-t border-gray-700/30">
+                            <div className="flex flex-col">
+                                <span className="text-gray-300">Exibir Barras de Rolagem</span>
+                                <span className="text-xs text-gray-500">Pode ser útil em desktops para navegar.</span>
+                            </div>
+                            <button 
+                                onClick={() => handleSave({ showScrollbars: !settings.showScrollbars })}
+                                className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${settings.showScrollbars ? classes.bg : 'bg-gray-600'}`}
+                            >
+                                <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.showScrollbars ? 'translate-x-6' : 'translate-x-0'}`} />
+                            </button>
+                        </div>
                     </div>
 
                 </div>

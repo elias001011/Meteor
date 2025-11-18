@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { CitySearchResult } from '../../types';
 import { searchCities } from '../../services/weatherService';
@@ -78,7 +79,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onCitySelect, onGeolocate }) => {
             onFocus={() => { if(results.length > 0) setIsDropdownOpen(true)}}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Pesquisar cidades..."
-            className={`w-full bg-gray-800 border border-gray-700 rounded-full py-3 px-5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 ${classes.ring}`}
+            className={`w-full bg-gray-800 border border-gray-700 rounded-full py-3 px-5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-inset ${classes.ring}`}
           />
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
               <button type="submit" className={`${classes.bg} ${classes.bgHover} rounded-full p-2 text-white`} aria-label="Pesquisar">
