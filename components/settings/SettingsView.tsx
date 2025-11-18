@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import type { AppSettings, View, DataSource, AppTheme } from '../../types';
 import { getSettings, saveSettings, exportAppData, importAppData, resetSettings, resetCache, resetAllData } from '../../services/settingsService';
@@ -7,11 +8,11 @@ import ImportModal from './ImportModal';
 import { useTheme } from '../context/ThemeContext';
 
 interface SettingsViewProps {
+    settings: AppSettings;
     onSettingsChanged: (newSettings: AppSettings) => void;
 }
 
-const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsChanged }) => {
-    const [settings, setSettings] = useState<AppSettings>(getSettings());
+const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged }) => {
     const [showCityModal, setShowCityModal] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
     const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
@@ -30,8 +31,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsChanged }) => {
 
     const handleSave = (updatedSettings: Partial<AppSettings>) => {
         const newSettings = { ...settings, ...updatedSettings };
-        setSettings(newSettings);
-        saveSettings(newSettings);
         onSettingsChanged(newSettings);
     };
 
@@ -53,9 +52,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsChanged }) => {
         switch (type) {
             case 'settings':
                 resetSettings();
-                const def = getSettings();
-                setSettings(def);
-                onSettingsChanged(def);
+                const defaultSettings = getSettings();
+                onSettingsChanged(defaultSettings);
                 setFeedbackMessage("Configurações resetadas.");
                 break;
             case 'cache':

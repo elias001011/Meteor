@@ -9,7 +9,7 @@ import type { ChatMessage, View, CitySearchResult, AllWeatherData, GroundingSour
 import { streamChatResponse } from './services/geminiService';
 import { getSearchResults } from './services/searchService';
 import { fetchAllWeatherData } from './services/weatherService';
-import { getSettings } from './services/settingsService';
+import { getSettings, saveSettings } from './services/settingsService';
 import DesktopWeather from './components/weather/DesktopWeather';
 import PlaceholderView from './components/common/PlaceholderView';
 import MobileAiControls from './components/ai/MobileAiControls';
@@ -79,6 +79,11 @@ const App: React.FC = () => {
   const [activeTheme, setActiveTheme] = useState<AppTheme>(settings.themeColor);
 
   const { weatherData, airQualityData, hourlyForecast, dailyForecast, alerts, dataSource, lastUpdated } = weatherInfo;
+
+  const handleSettingsChange = (newSettings: AppSettings) => {
+    saveSettings(newSettings); // Persist to localStorage
+    setSettings(newSettings); // Update state
+  };
 
   // Dynamic Theme Logic
   useEffect(() => {
@@ -416,7 +421,7 @@ const App: React.FC = () => {
               <MapView lat={currentCoords?.lat} lon={currentCoords?.lon} />
             )}
             {view === 'news' && <PlaceholderView title="Notícias" />}
-            {view === 'settings' && <SettingsView onSettingsChanged={setSettings} />}
+            {view === 'settings' && <SettingsView settings={settings} onSettingsChanged={handleSettingsChange} />}
             {view === 'tips' && <PlaceholderView title="Dicas" />}
             {view === 'info' && <PlaceholderView title="Informações" />}
           </div>
@@ -436,7 +441,7 @@ const App: React.FC = () => {
               <PlaceholderView title="Notícias" />
             </div>
              <div className={`${view === 'settings' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24`}>
-               <SettingsView onSettingsChanged={setSettings} />
+               <SettingsView settings={settings} onSettingsChanged={handleSettingsChange} />
             </div>
              <div className={`${view === 'tips' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24`}>
               <PlaceholderView title="Dicas" />
