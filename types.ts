@@ -1,3 +1,4 @@
+
 export type View = 'weather' | 'ai' | 'map' | 'news' | 'settings' | 'tips' | 'info';
 
 export interface WeatherData {
@@ -25,16 +26,16 @@ export interface WeatherData {
 }
 
 export interface AirQualityData {
-    aqi?: number; // Index 1-5. Made optional for sources like Open-Meteo.
+    aqi?: number; 
     components: {
-        co: number; // Carbon monoxide
-        no: number; // Nitrogen monoxide
-        no2: number; // Nitrogen dioxide
-        o3: number; // Ozone
-        so2: number; // Sulphur dioxide
-        pm2_5: number; // Fine particles matter
-        pm10: number; // Coarse particulate matter
-        nh3: number; // Ammonia
+        co: number;
+        no: number;
+        no2: number;
+        o3: number;
+        so2: number;
+        pm2_5: number;
+        pm10: number;
+        nh3: number;
     };
 }
 
@@ -98,4 +99,24 @@ export interface SearchResultItem {
     title: string;
     link: string;
     snippet: string;
+}
+
+// --- SETTINGS TYPES ---
+
+export type StartupBehavior = 'last_location' | 'idle' | 'specific_location' | 'custom_section';
+
+export interface AppSettings {
+    userName: string;
+    showClock: boolean;
+    startupBehavior: StartupBehavior;
+    specificLocation?: CitySearchResult; // Used if startupBehavior is 'specific_location'
+    startupSection?: View; // Used if startupBehavior is 'custom_section'
+    aiCustomInstructions: string;
+}
+
+export interface ExportData {
+    settings: AppSettings;
+    chatHistory: ChatMessage[]; // Placeholder for structure
+    weatherCache: Record<string, any>; // Raw cache dump
+    timestamp: number;
 }

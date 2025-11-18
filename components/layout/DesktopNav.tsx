@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { View } from '../../types';
 import Clock from '../common/Clock';
@@ -5,6 +6,7 @@ import Clock from '../common/Clock';
 interface DesktopNavProps {
     activeView: View;
     setView: (view: View) => void;
+    showClock: boolean;
 }
 
 const NavItem: React.FC<{ label: string; isActive: boolean; onClick: () => void; }> = ({ label, isActive, onClick }) => (
@@ -13,12 +15,14 @@ const NavItem: React.FC<{ label: string; isActive: boolean; onClick: () => void;
     </button>
 );
 
-const DesktopNav: React.FC<DesktopNavProps> = ({ activeView, setView }) => {
+const DesktopNav: React.FC<DesktopNavProps> = ({ activeView, setView, showClock }) => {
     return (
         <nav className="hidden lg:flex items-baseline space-x-4">
-            <div className="px-3 py-2 text-sm font-medium text-gray-300">
-                <Clock />
-            </div>
+            {showClock && (
+                <div className="px-3 py-2 text-sm font-medium text-gray-300">
+                    <Clock />
+                </div>
+            )}
             <NavItem label="Clima" isActive={activeView === 'weather'} onClick={() => setView('weather')} />
             <NavItem label="Mapa" isActive={activeView === 'map'} onClick={() => setView('map')} />
             <NavItem label="IA" isActive={activeView === 'ai'} onClick={() => setView('ai')} />
