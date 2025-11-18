@@ -1,5 +1,6 @@
 
 
+
 import type { AppSettings, ExportData } from '../types';
 
 const SETTINGS_KEY = 'meteor_settings';
@@ -15,7 +16,7 @@ const DEFAULT_SETTINGS: AppSettings = {
     startupSection: 'weather',
     themeColor: 'purple',
     dynamicTheme: false,
-    glassEffectEnabled: true, // Default to ON for the modern look
+    transparencyMode: 'glass', // Default to Glass
     showScrollbars: false, // Default to OFF for a cleaner, mobile-first UI
     rainAnimation: {
         enabled: true,
@@ -34,16 +35,24 @@ export const getSettings = (): AppSettings => {
         // This logic smoothly transitions users from old settings formats to the new one.
         let migratedSettings = { ...parsed };
 
-        // 1. Migrate from legacy `transparencyLevel: 'none'|'low'|'high'` to `glassEffectEnabled: boolean`
+        // 1. Migrate legacy `glassEffectEnabled` (boolean) to `transparencyMode`
+        if (typeof parsed.glassEffectEnabled === 'boolean') {
+            migratedSettings.transparencyMode = parsed.glassEffectEnabled ? 'glass' : 'off';
+            delete migratedSettings.glassEffectEnabled;
+        }
+
+        // 2. Migrate from legacy `transparencyLevel: 'none'|'low'|'high'` to `transparencyMode`
         if (typeof parsed.transparencyLevel === 'string') {
-            migratedSettings.glassEffectEnabled = parsed.transparencyLevel !== 'none';
-            delete migratedSettings.transparencyLevel; // Clean up old key
+             if (parsed.transparencyLevel === 'none') migratedSettings.transparencyMode = 'off';
+             else if (parsed.transparencyLevel === 'low') migratedSettings.transparencyMode = 'low';
+             else migratedSettings.transparencyMode = 'glass';
+             delete migratedSettings.transparencyLevel;
         }
         
-        // 2. Migrate from even older legacy `enableTransparency: boolean` if `glassEffectEnabled` is still not set
-        if (typeof migratedSettings.glassEffectEnabled === 'undefined' && typeof parsed.enableTransparency === 'boolean') {
-             migratedSettings.glassEffectEnabled = parsed.enableTransparency;
-             delete migratedSettings.enableTransparency; // Clean up old key
+        // 3. Migrate from even older legacy `enableTransparency`
+        if (typeof migratedSettings.transparencyMode === 'undefined' && typeof parsed.enableTransparency === 'boolean') {
+             migratedSettings.transparencyMode = parsed.enableTransparency ? 'glass' : 'off';
+             delete migratedSettings.enableTransparency;
         }
         // --- END MIGRATION LOGIC ---
 

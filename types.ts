@@ -105,6 +105,7 @@ export interface SearchResultItem {
 
 export type StartupBehavior = 'last_location' | 'idle' | 'specific_location' | 'custom_section';
 export type AppTheme = 'cyan' | 'blue' | 'purple' | 'emerald' | 'rose' | 'amber';
+export type TransparencyMode = 'off' | 'low' | 'glass';
 
 export interface AppSettings {
     userName: string;
@@ -118,7 +119,7 @@ export interface AppSettings {
     // Visual Customization
     themeColor: AppTheme;
     dynamicTheme: boolean; 
-    glassEffectEnabled: boolean; // Simplified from transparencyLevel
+    transparencyMode: TransparencyMode; // Replaces glassEffectEnabled
     showScrollbars: boolean;
     rainAnimation: {
         enabled: boolean;
