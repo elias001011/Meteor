@@ -345,18 +345,30 @@ const App: React.FC = () => {
   const isRaining = weatherData?.condition?.toLowerCase().includes('chuv');
   const showRain = isRaining && settings.rainIntensity !== 'off';
 
-  // Layout Logic: 
-  // 'Scroll' Mode = Whole page scrolls (normal web behavior). Header scrolls out of view.
-  // 'Fixed' Mode = Header fixed at top. Content area scrolls internally.
-  // Map always forces a Fixed-style layout because it needs to be full height.
-  const isScrollLayout = settings.headerBehavior === 'scroll' && view !== 'map';
-  const fixedBehavior = isScrollLayout ? 'scroll' : 'fixed';
+  // Layout Logic for Scrollbar Fix:
+  // 'fixed' (Floating) = Header is fixed to viewport. Page content flows under it (with padding). Body scrolls naturally.
+  // 'scroll' (Standard) = Header is relative/static. It moves up with content. Body scrolls naturally.
+  // Map View = needs h-screen and hidden overflow to prevent page scroll.
+  
+  const isMap = view === 'map';
+  const isFixedHeader = settings.headerBehavior === 'fixed';
+  
+  // If it's map, we lock viewport. Otherwise we let it flow (min-h-screen)
+  const containerClasses = isMap 
+      ? 'h-screen overflow-hidden' 
+      : 'min-h-screen flex flex-col';
 
   return (
-    <div className={`relative bg-gray-900 text-white font-sans flex flex-col transition-colors duration-300 ${isScrollLayout ? 'min-h-screen overflow-auto' : 'h-screen overflow-hidden'}`}>
+    <div className={`relative bg-gray-900 text-white font-sans transition-colors duration-300 ${containerClasses}`}>
       {view === 'weather' && showRain && <RainAnimation intensity={settings.rainIntensity === 'off' ? 'low' : settings.rainIntensity} />}
       
-      <Header activeView={view} setView={setView} showClock={settings.showClock} behavior={fixedBehavior} />
+      {/* Header: If fixed, it sticks. If scroll, it's relative. */}
+      <Header 
+          activeView={view} 
+          setView={setView} 
+          showClock={settings.showClock} 
+          behavior={isFixedHeader ? 'fixed' : 'scroll'} 
+      />
       
       {appError && <ErrorPopup message={appError} onClose={() => setAppError(null)} />}
       
@@ -368,22 +380,27 @@ const App: React.FC = () => {
         onSourceChange={handleDataSourceChange}
       />
 
-      <main className={`relative z-10 flex-1 ${settings.headerBehavior === 'fixed' || view === 'map' ? 'pt-16 overflow-hidden' : ''}`}>
+      {/* Main Content: If header is fixed, we need top padding so content doesn't hide behind it. */}
+      <main className={`relative z-10 flex-1 ${isFixedHeader && !isMap ? 'pt-16' : ''} ${isMap ? 'h-full' : ''}`}>
         {/* --- DESKTOP VIEW --- */}
-        <div className="hidden lg:block h-full">
+        <div className={`hidden lg:block ${isMap ? 'h-full' : ''}`}>
           {view === 'weather' && (
-            <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 p-6 ${isScrollLayout ? '' : 'h-full'}`}>
-              <div className={`${isScrollLayout ? '' : 'overflow-y-auto pr-2'} space-y-6`}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
+              <div className="space-y-6">
                 <DesktopWeather {...weatherProps} />
               </div>
-              <div className={`${isScrollLayout ? 'h-[600px]' : 'h-full'} rounded-3xl overflow-hidden`}>
+              <div className="h-[600px] rounded-3xl overflow-hidden sticky top-24">
                 <MapView lat={currentCoords?.lat} lon={currentCoords?.lon} />
               </div>
             </div>
           )}
           {view === 'ai' && <AiView {...aiViewProps} />}
           {view === 'map' && (
-            <MapView lat={currentCoords?.lat} lon={currentCoords?.lon} />
+            <div className="h-full pt-16"> 
+                {/* Map needs manual padding if header is fixed or overlay logic if map is full screen. 
+                    Here we want map to fill available space. */}
+                <MapView lat={currentCoords?.lat} lon={currentCoords?.lon} />
+            </div>
           )}
           {view === 'news' && <PlaceholderView title="Notícias" />}
           {view === 'settings' && <SettingsView onSettingsChanged={setSettings} />}
@@ -392,31 +409,26 @@ const App: React.FC = () => {
         </div>
         
         {/* --- MOBILE VIEW --- */}
-        <div className="lg:hidden h-full">
-          <div className={`${view === 'weather' ? 'block' : 'hidden'} ${isScrollLayout ? 'h-auto pb-24' : 'h-full overflow-y-auto pb-24'}`}>
+        <div className={`lg:hidden ${isMap ? 'h-full pb-24' : ''}`}>
+          <div className={`${view === 'weather' ? 'block' : 'hidden'} pb-24`}>
             <WeatherView {...weatherProps} />
           </div>
-          <div className={`${view === 'ai' ? 'block' : 'hidden'} ${isScrollLayout ? 'h-auto pb-24' : 'h-full overflow-y-auto pb-24'}`}>
-             {/* Note: Chat history handles its own scroll usually, but in scroll layout we might want page scroll. 
-                 For now, AI view works best with its own internal scroll to keep input fixed, 
-                 so we might want to force fixed layout for AI too, but user asked for global option.
-                 Let's stick to internal scroll for AI to ensure input stays visible. 
-                 Actually, ChatHistory is designed to fill space. */}
+          <div className={`${view === 'ai' ? 'block' : 'hidden'} pb-24`}>
             <AiView {...aiViewProps} />
           </div>
-          <div className={`${view === 'map' ? 'block' : 'hidden'} h-full pb-24`}>
+          <div className={`${view === 'map' ? 'block' : 'hidden'} h-full`}>
              <MapView lat={currentCoords?.lat} lon={currentCoords?.lon} />
           </div>
-          <div className={`${view === 'news' ? 'block' : 'hidden'} ${isScrollLayout ? 'h-auto pb-24' : 'h-full overflow-y-auto pb-24'}`}>
+          <div className={`${view === 'news' ? 'block' : 'hidden'} pb-24`}>
             <PlaceholderView title="Notícias" />
           </div>
-           <div className={`${view === 'settings' ? 'block' : 'hidden'} ${isScrollLayout ? 'h-auto pb-24' : 'h-full overflow-y-auto pb-24'}`}>
+           <div className={`${view === 'settings' ? 'block' : 'hidden'} pb-24`}>
              <SettingsView onSettingsChanged={setSettings} />
           </div>
-           <div className={`${view === 'tips' ? 'block' : 'hidden'} ${isScrollLayout ? 'h-auto pb-24' : 'h-full overflow-y-auto pb-24'}`}>
+           <div className={`${view === 'tips' ? 'block' : 'hidden'} pb-24`}>
             <PlaceholderView title="Dicas" />
           </div>
-           <div className={`${view === 'info' ? 'block' : 'hidden'} ${isScrollLayout ? 'h-auto pb-24' : 'h-full overflow-y-auto pb-24'}`}>
+           <div className={`${view === 'info' ? 'block' : 'hidden'} pb-24`}>
             <PlaceholderView title="Informações" />
           </div>
         </div>

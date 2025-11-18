@@ -151,12 +151,12 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsChanged }) => {
                                 onChange={(e) => handleSave({ headerBehavior: e.target.value as any })}
                                 className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-1 text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none"
                             >
-                                <option value="fixed">Fixa (Topo)</option>
-                                <option value="scroll">Rolar com a página</option>
+                                <option value="scroll">Padrão (No Conteúdo)</option>
+                                <option value="fixed">Flutuante (Fixa no Topo)</option>
                             </select>
                          </div>
                          <p className="text-xs text-gray-500 mb-2">
-                            "Fixa" mantém a barra presa ao topo. "Rolar" faz ela subir e desaparecer ao rolar a página.
+                            "Padrão": A barra faz parte do site e some ao rolar. "Flutuante": A barra fica presa na tela e sempre visível.
                         </p>
                          
                          <div className="flex items-center justify-between mt-4">
@@ -356,8 +356,10 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsChanged }) => {
             </section>
 
             {/* --- VERSION FOOTER --- */}
-            <div className="text-center py-4 text-gray-500 text-sm">
-                Versão 2.0. Desenvolvido por <a href="https://www.instagram.com/elias_jrnunes/" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-300 transition-colors">@elias_jrnunes</a>
+            <div className="text-center py-6 border-t border-gray-800">
+                <p className="text-gray-500 text-sm font-medium">
+                    Versão 2.0. Desenvolvido por <a href="https://www.instagram.com/elias_jrnunes/" target="_blank" rel="noopener noreferrer" className="text-gray-400 underline hover:text-cyan-400 transition-colors">@elias_jrnunes</a>
+                </p>
             </div>
 
             <CitySelectionModal 
