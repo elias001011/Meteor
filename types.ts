@@ -118,6 +118,7 @@ export interface AppSettings {
     aiCustomInstructions: string;
     // Visual Customization
     themeColor: AppTheme;
+    dynamicTheme: boolean; // New field for automatic theme switching
     transparencyLevel: TransparencyLevel;
     rainAnimation: {
         enabled: boolean;

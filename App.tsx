@@ -5,7 +5,7 @@ import AiView from './components/ai/AiView';
 import MapView from './components/map/MapView';
 import BottomNav from './components/layout/BottomNav';
 import Header from './components/layout/Header';
-import type { ChatMessage, View, CitySearchResult, AllWeatherData, GroundingSource, SearchResultItem, DataSource, AppSettings } from './types';
+import type { ChatMessage, View, CitySearchResult, AllWeatherData, GroundingSource, SearchResultItem, DataSource, AppSettings, AppTheme } from './types';
 import { streamChatResponse } from './services/geminiService';
 import { getSearchResults } from './services/searchService';
 import { fetchAllWeatherData } from './services/weatherService';
@@ -74,8 +74,47 @@ const App: React.FC = () => {
   
   // Synced with Settings.weatherSource but allows temporary override via Modal
   const [preferredDataSource, setPreferredDataSource] = useState<DataSource | 'auto'>('auto');
+  
+  // Dynamic Theme State
+  const [activeTheme, setActiveTheme] = useState<AppTheme>(settings.themeColor);
 
   const { weatherData, airQualityData, hourlyForecast, dailyForecast, alerts, dataSource, lastUpdated } = weatherInfo;
+
+  // Dynamic Theme Logic
+  useEffect(() => {
+      // If dynamic theme is off, use fixed setting
+      if (!settings.dynamicTheme) {
+          setActiveTheme(settings.themeColor);
+          return;
+      }
+
+      // If no weather data yet, fallback to fixed setting
+      if (!weatherData) {
+          setActiveTheme(settings.themeColor);
+          return;
+      }
+
+      const now = Date.now() / 1000;
+      const isNight = now < weatherData.sunrise || now > weatherData.sunset;
+
+      if (isNight) {
+          setActiveTheme('purple');
+      } else {
+          // Daytime Logic
+          const condition = weatherData.condition?.toLowerCase() || '';
+          const icon = weatherData.conditionIcon || '';
+
+          if (condition.includes('chuv') || condition.includes('rain') || condition.includes('drizzle') || condition.includes('trov')) {
+              setActiveTheme('blue');
+          } else if (condition.includes('limpo') || condition.includes('clear') || condition.includes('sol') || icon === '☀️') {
+              setActiveTheme('amber');
+          } else if (condition.includes('nublado') || condition.includes('cloud') || condition.includes('nevo') || condition.includes('mist')) {
+              setActiveTheme('emerald');
+          } else {
+              setActiveTheme('cyan');
+          }
+      }
+  }, [settings.dynamicTheme, settings.themeColor, weatherData]);
 
   // PWA Theme Color Update (Darker border)
   useEffect(() => {
@@ -342,7 +381,7 @@ const App: React.FC = () => {
 
 
   return (
-    <ThemeProvider theme={settings.themeColor} transparencyLevel={settings.transparencyLevel}>
+    <ThemeProvider theme={activeTheme} transparencyLevel={settings.transparencyLevel}>
       <div className="relative bg-gray-900 text-white min-h-screen font-sans flex flex-col h-screen overflow-hidden">
         {view === 'weather' && isRaining && settings.rainAnimation.enabled && (
             <RainAnimation intensity={settings.rainAnimation.intensity} />

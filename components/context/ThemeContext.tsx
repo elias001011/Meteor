@@ -85,7 +85,7 @@ const ThemeContext = createContext<ThemeContextProps>({
 
 export const ThemeProvider: React.FC<{ 
     theme: AppTheme, 
-    transparencyLevel?: TransparencyLevel, // Now optional or derived
+    transparencyLevel?: TransparencyLevel, 
     enableTransparency?: boolean, // Backward compatibility prop
     children: React.ReactNode 
 }> = ({ theme, transparencyLevel, enableTransparency, children }) => {
@@ -101,9 +101,10 @@ export const ThemeProvider: React.FC<{
     
     let glassClass = 'bg-gray-900';
     if (level === 'low') {
-        glassClass = 'bg-gray-900/95 backdrop-blur-sm border-white/5';
+        glassClass = 'bg-gray-900/80 backdrop-blur-md border-white/5';
     } else if (level === 'high') {
-        glassClass = 'bg-gray-900/60 backdrop-blur-md border-white/10';
+        // More aggressive transparency (lower opacity, higher blur)
+        glassClass = 'bg-gray-900/40 backdrop-blur-xl border-white/10 shadow-2xl';
     }
 
     return (
