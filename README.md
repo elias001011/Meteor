@@ -68,7 +68,7 @@ Siga estes passos para rodar o Meteor no seu computador:
 Clone o repositório e instale as dependências:
 
 ```bash
-git clone https://github.com/seu-usuario/meteor.git
+git clone https://github.com/elias001011/Meteor.git
 cd meteor
 npm install
 ```
