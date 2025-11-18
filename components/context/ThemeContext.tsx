@@ -1,6 +1,4 @@
 
-
-
 import React, { createContext, useContext } from 'react';
 import type { AppTheme, TransparencyMode } from '../../types';
 
@@ -104,14 +102,14 @@ export const ThemeProvider: React.FC<{
     let glassClass = '';
     switch (transparencyMode) {
         case 'off':
-            glassClass = 'bg-gray-800/95'; // Solid, high contrast
+            glassClass = 'bg-gray-800'; // Solid, completely opaque
             break;
         case 'low':
-            glassClass = 'bg-gray-800/80'; // Transparent but no blur (lighter on GPU)
+            glassClass = 'bg-gray-800/95'; // Very slight transparency, no blur (replaces old 'off')
             break;
         case 'glass':
         default:
-            glassClass = 'bg-gray-800/50 backdrop-blur-xl'; // Full effects
+            glassClass = 'bg-gray-800/50 backdrop-blur-xl'; // Full glass effect
             break;
     }
 
