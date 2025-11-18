@@ -93,7 +93,7 @@ export const ThemeProvider: React.FC<{
     
     // Define class based on the single boolean
     const glassClass = glassEffectEnabled
-        ? 'bg-gray-800/60 backdrop-blur-xl border-white/5' // ON State
+        ? 'bg-gray-800/60 backdrop-blur-xl border-gray-700/50' // ON State with a defined border
         : 'bg-gray-800/95 border-gray-700/50'; // OFF State (solid)
 
     return (
