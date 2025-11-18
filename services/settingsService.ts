@@ -11,13 +11,30 @@ const DEFAULT_SETTINGS: AppSettings = {
     weatherSource: 'auto',
     startupBehavior: 'idle',
     aiCustomInstructions: '',
-    startupSection: 'weather'
+    startupSection: 'weather',
+    themeColor: 'cyan',
+    enableTransparency: true,
+    rainAnimation: {
+        enabled: true,
+        intensity: 'low'
+    }
 };
 
 export const getSettings = (): AppSettings => {
     try {
         const stored = localStorage.getItem(SETTINGS_KEY);
-        return stored ? { ...DEFAULT_SETTINGS, ...JSON.parse(stored) } : DEFAULT_SETTINGS;
+        if (!stored) return DEFAULT_SETTINGS;
+        
+        const parsed = JSON.parse(stored);
+        // Merge deeply to ensure new nested objects (like rainAnimation) are populated if missing in old data
+        return {
+            ...DEFAULT_SETTINGS,
+            ...parsed,
+            rainAnimation: {
+                ...DEFAULT_SETTINGS.rainAnimation,
+                ...(parsed.rainAnimation || {})
+            }
+        };
     } catch (e) {
         console.error("Error loading settings:", e);
         return DEFAULT_SETTINGS;
@@ -72,7 +89,14 @@ export const importAppData = (
 
         if (options.importSettings && data.settings) {
             // Merge imported settings with defaults to ensure compatibility
-            const mergedSettings = { ...DEFAULT_SETTINGS, ...data.settings };
+            const mergedSettings = { 
+                ...DEFAULT_SETTINGS, 
+                ...data.settings,
+                rainAnimation: {
+                    ...DEFAULT_SETTINGS.rainAnimation,
+                    ...(data.settings.rainAnimation || {})
+                }
+            };
             saveSettings(mergedSettings);
         }
 

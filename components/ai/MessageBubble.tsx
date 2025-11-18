@@ -1,6 +1,8 @@
+
 import React from 'react';
 import type { ChatMessage } from '../../types';
 import { LinkIcon } from '../icons';
+import { useTheme } from '../context/ThemeContext';
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -8,6 +10,8 @@ interface MessageBubbleProps {
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   const isModel = message.role === 'model';
+  const { classes } = useTheme();
+
   return (
     <div className={`flex items-end ${isModel ? 'justify-start' : 'justify-end'}`}>
       <div className="flex flex-col">
@@ -15,7 +19,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
           className={`max-w-xl md:max-w-2xl px-4 py-3 rounded-2xl ${
             isModel
               ? 'bg-gray-700 rounded-bl-none'
-              : 'bg-blue-600 text-white rounded-br-none'
+              : `${classes.bg} text-white rounded-br-none`
           }`}
         >
           <div className="text-base whitespace-pre-wrap">{message.text}{!isModel && message.text.length === 0 ? '...' : ''}</div>
@@ -31,7 +35,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
                   href={source.uri} 
                   target="_blank" 
                   rel="noopener noreferrer" 
-                  className="text-sm text-cyan-400 bg-gray-700/50 hover:bg-gray-700 p-2 rounded-lg flex items-center gap-2 truncate"
+                  className={`text-sm ${classes.text} bg-gray-700/50 hover:bg-gray-700 p-2 rounded-lg flex items-center gap-2 truncate`}
                 >
                   <LinkIcon className="w-4 h-4 flex-shrink-0" />
                   <span className="truncate">{source.title || new URL(source.uri).hostname}</span>

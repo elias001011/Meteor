@@ -104,6 +104,7 @@ export interface SearchResultItem {
 // --- SETTINGS TYPES ---
 
 export type StartupBehavior = 'last_location' | 'idle' | 'specific_location' | 'custom_section';
+export type AppTheme = 'cyan' | 'blue' | 'purple' | 'emerald' | 'rose' | 'amber';
 
 export interface AppSettings {
     userName: string;
@@ -114,6 +115,13 @@ export interface AppSettings {
     specificLocation?: CitySearchResult; // Used if startupBehavior is 'specific_location'
     startupSection?: View; // Used if startupBehavior is 'custom_section'
     aiCustomInstructions: string;
+    // Visual Customization
+    themeColor: AppTheme;
+    enableTransparency: boolean;
+    rainAnimation: {
+        enabled: boolean;
+        intensity: 'low' | 'high';
+    };
 }
 
 export interface ExportData {
