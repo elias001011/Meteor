@@ -77,6 +77,24 @@ const App: React.FC = () => {
           const savedSettings = getSettings();
           setSettings(savedSettings);
 
+          // Handle Fullscreen logic
+          if (savedSettings.startFullscreen) {
+             const enterFullscreen = () => {
+                 if (!document.fullscreenElement) {
+                     document.documentElement.requestFullscreen().catch(e => console.log("Auto-fullscreen blocked until interaction", e));
+                 }
+                 // Remove listeners once triggered
+                 window.removeEventListener('click', enterFullscreen);
+                 window.removeEventListener('touchstart', enterFullscreen);
+                 window.removeEventListener('keydown', enterFullscreen);
+             };
+
+             // Browsers require user interaction for fullscreen. We attach a one-time listener.
+             window.addEventListener('click', enterFullscreen);
+             window.addEventListener('touchstart', enterFullscreen);
+             window.addEventListener('keydown', enterFullscreen);
+          }
+
           if (savedSettings.startupBehavior === 'custom_section' && savedSettings.startupSection) {
               setView(savedSettings.startupSection);
           } else if (savedSettings.startupBehavior === 'specific_location' && savedSettings.specificLocation) {

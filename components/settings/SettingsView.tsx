@@ -107,14 +107,28 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsChanged }) => {
                         />
                     </div>
                     
-                    <div className="flex items-center justify-between">
-                        <span className="text-gray-300">Modo Tela Cheia</span>
-                        <button 
-                            onClick={toggleFullscreen}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isFullscreen ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30' : 'bg-gray-700 hover:bg-gray-600 text-white'}`}
-                        >
-                            {isFullscreen ? 'Sair' : 'Ativar'}
-                        </button>
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <span className="text-gray-300">Modo Tela Cheia (Agora)</span>
+                            <button 
+                                onClick={toggleFullscreen}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isFullscreen ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30' : 'bg-gray-700 hover:bg-gray-600 text-white'}`}
+                            >
+                                {isFullscreen ? 'Sair' : 'Ativar'}
+                            </button>
+                        </div>
+                         <div className="flex items-center justify-between pt-2 border-t border-gray-700/30">
+                            <div className="flex flex-col">
+                                <span className="text-gray-300">Sempre iniciar em tela cheia</span>
+                                <span className="text-xs text-gray-500">Entrará automaticamente ao tocar na tela.</span>
+                            </div>
+                            <button 
+                                onClick={() => handleSave({ startFullscreen: !settings.startFullscreen })}
+                                className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${settings.startFullscreen ? 'bg-cyan-600' : 'bg-gray-600'}`}
+                            >
+                                <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.startFullscreen ? 'translate-x-6' : 'translate-x-0'}`} />
+                            </button>
+                        </div>
                     </div>
 
                     <div className="flex items-center justify-between">

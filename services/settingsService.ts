@@ -7,6 +7,7 @@ const WEATHER_CACHE_PREFIX = 'weather_data_';
 const DEFAULT_SETTINGS: AppSettings = {
     userName: '',
     showClock: true,
+    startFullscreen: false, // Default is off
     startupBehavior: 'idle',
     aiCustomInstructions: '',
     startupSection: 'weather'
