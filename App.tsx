@@ -368,24 +368,25 @@ const App: React.FC = () => {
       />
 
       {/* Main Content */}
-      <main className={`relative z-10 flex-1 ${isMap ? 'h-[calc(100vh-4rem)] mt-16' : 'pt-16'}`}>
+      {/* Logic: Desktop Weather View gets a specific full-height container with internal scrolling to achieve the "Split Pane" dashboard effect. Other views behave normally. */}
+      <main className={`relative z-10 flex-1 pt-16 ${view === 'weather' || view === 'map' ? 'lg:h-screen lg:overflow-hidden' : 'lg:min-h-screen'}`}>
         
         {/* --- DESKTOP VIEW --- */}
-        <div className={`hidden lg:block ${isMap ? 'h-full' : ''}`}>
+        <div className={`hidden lg:block h-full`}>
           {view === 'weather' && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
-                  {/* Weather Content */}
-                  <div className="space-y-6">
-                    <DesktopWeather {...weatherProps} />
-                  </div>
-                  
-                  {/* Map Container - Sticky to stay visible while scrolling the page */}
-                  <div className="relative">
-                      <div className="sticky top-20 h-[calc(100vh-6rem)] rounded-3xl overflow-hidden shadow-xl">
+             <div className="flex h-full">
+                 {/* Left: Weather Content - SCROLLABLE */}
+                 <div className="w-1/2 h-full overflow-y-auto p-6 space-y-6">
+                     <DesktopWeather {...weatherProps} />
+                 </div>
+                 
+                 {/* Right: Map - STATIC/FIXED */}
+                 <div className="w-1/2 h-full p-6 pl-0">
+                     <div className="h-full w-full rounded-3xl overflow-hidden shadow-xl relative">
                         <MapView lat={currentCoords?.lat} lon={currentCoords?.lon} />
-                      </div>
-                  </div>
-                </div>
+                     </div>
+                 </div>
+             </div>
           )}
 
           {view === 'ai' && <AiView {...aiViewProps} />}
@@ -396,10 +397,10 @@ const App: React.FC = () => {
             </div>
           )}
           
-          {view === 'news' && <PlaceholderView title="Notícias" />}
-          {view === 'settings' && <SettingsView onSettingsChanged={setSettings} />}
-          {view === 'tips' && <PlaceholderView title="Dicas" />}
-          {view === 'info' && <PlaceholderView title="Informações" />}
+          {view === 'news' && <div className="p-6"><PlaceholderView title="Notícias" /></div>}
+          {view === 'settings' && <div className="h-full overflow-y-auto"><SettingsView onSettingsChanged={setSettings} /></div>}
+          {view === 'tips' && <div className="p-6"><PlaceholderView title="Dicas" /></div>}
+          {view === 'info' && <div className="p-6"><PlaceholderView title="Informações" /></div>}
         </div>
         
         {/* --- MOBILE VIEW --- */}
