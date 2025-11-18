@@ -47,9 +47,11 @@ const buildContextualContent = (
 
 
 const handler: Handler = async (event: HandlerEvent) => {
-    const GEMINI_API_KEY = process.env.GEMINI_API;
-    if (!GEMINI_API_KEY) {
-        return { statusCode: 500, body: JSON.stringify({ message: "Chave da API do Gemini não configurada no servidor." }) };
+    // Validando explicitamente a variável configurada no Netlify: GEMINI_API
+    const apiKey = process.env.GEMINI_API;
+
+    if (!apiKey) {
+        return { statusCode: 500, body: JSON.stringify({ message: "Chave GEMINI_API não configurada no servidor." }) };
     }
     if (event.httpMethod !== 'POST') {
         return { statusCode: 405, body: 'Method Not Allowed' };
@@ -62,7 +64,7 @@ const handler: Handler = async (event: HandlerEvent) => {
             return { statusCode: 400, body: JSON.stringify({ message: "O prompt é obrigatório." }) };
         }
 
-        const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+        const ai = new GoogleGenAI({ apiKey });
         const model = 'gemini-2.5-flash-lite';
         
         const contextualContent = buildContextualContent(weatherContext, searchResults);
