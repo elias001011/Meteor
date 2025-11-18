@@ -30,7 +30,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeView, setView }) => {
   }
 
   return (
-    <div className="fixed bottom-0 inset-x-0 z-40 px-4">
+    <div className="fixed bottom-0 inset-x-0 z-50 px-4">
       {isMoreMenuOpen && (
         <div 
             className="fixed inset-0 bg-black/30 z-30" 
