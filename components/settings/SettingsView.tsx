@@ -142,23 +142,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsChanged }) => {
                         </div>
                     </div>
                     
-                    {/* Header & Transparency */}
+                    {/* Transparency */}
                      <div className="space-y-2 pt-2 border-t border-gray-700/30">
-                         <div className="flex items-center justify-between">
-                             <span className="text-gray-300">Comportamento da Borda Superior</span>
-                              <select 
-                                value={settings.headerBehavior}
-                                onChange={(e) => handleSave({ headerBehavior: e.target.value as any })}
-                                className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-1 text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none"
-                            >
-                                <option value="scroll">Padrão (No Conteúdo)</option>
-                                <option value="fixed">Flutuante (Fixa no Topo)</option>
-                            </select>
-                         </div>
-                         <p className="text-xs text-gray-500 mb-2">
-                            "Padrão": A barra faz parte do site e some ao rolar. "Flutuante": A barra fica presa na tela e sempre visível.
-                        </p>
-                         
                          <div className="flex items-center justify-between mt-4">
                             <div className="flex flex-col">
                                 <span className="text-gray-300">Reduzir Transparência</span>
