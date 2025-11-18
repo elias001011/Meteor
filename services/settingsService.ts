@@ -14,7 +14,7 @@ const DEFAULT_SETTINGS: AppSettings = {
     startupSection: 'weather',
     themeColor: 'cyan',
     dynamicTheme: false,
-    transparencyLevel: 'none', 
+    glassEffectEnabled: true, // Default to ON for the modern look
     rainAnimation: {
         enabled: true,
         intensity: 'low'
@@ -28,22 +28,30 @@ export const getSettings = (): AppSettings => {
         
         const parsed = JSON.parse(stored);
         
-        // Migration logic for old boolean 'enableTransparency'
-        let transparencyLevel = parsed.transparencyLevel || DEFAULT_SETTINGS.transparencyLevel;
-        if (parsed.enableTransparency === true && !parsed.transparencyLevel) {
-            transparencyLevel = 'high'; // Migrate old 'true' to 'high'
-        } else if (parsed.enableTransparency === false && !parsed.transparencyLevel) {
-            transparencyLevel = 'none';
+        // --- START MIGRATION LOGIC ---
+        // This logic smoothly transitions users from old settings formats to the new one.
+        let migratedSettings = { ...parsed };
+
+        // 1. Migrate from legacy `transparencyLevel: 'none'|'low'|'high'` to `glassEffectEnabled: boolean`
+        if (typeof parsed.transparencyLevel === 'string') {
+            migratedSettings.glassEffectEnabled = parsed.transparencyLevel !== 'none';
+            delete migratedSettings.transparencyLevel; // Clean up old key
         }
+        
+        // 2. Migrate from even older legacy `enableTransparency: boolean` if `glassEffectEnabled` is still not set
+        if (typeof migratedSettings.glassEffectEnabled === 'undefined' && typeof parsed.enableTransparency === 'boolean') {
+             migratedSettings.glassEffectEnabled = parsed.enableTransparency;
+             delete migratedSettings.enableTransparency; // Clean up old key
+        }
+        // --- END MIGRATION LOGIC ---
 
         // Merge deeply to ensure new nested objects (like rainAnimation) are populated if missing in old data
         return {
             ...DEFAULT_SETTINGS,
-            ...parsed,
-            transparencyLevel,
+            ...migratedSettings,
             rainAnimation: {
                 ...DEFAULT_SETTINGS.rainAnimation,
-                ...(parsed.rainAnimation || {})
+                ...(migratedSettings.rainAnimation || {})
             }
         };
     } catch (e) {

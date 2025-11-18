@@ -1,6 +1,6 @@
-
 import React, { useState, useRef } from 'react';
 import { XIcon } from '../icons';
+import { useTheme } from '../context/ThemeContext';
 
 interface ImportModalProps {
     isOpen: boolean;
@@ -15,6 +15,7 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onImport }) 
         importChat: false 
     });
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const { glassClass } = useTheme();
 
     if (!isOpen) return null;
 
@@ -33,7 +34,7 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onImport }) 
 
     return (
         <div className="fixed inset-0 bg-black/70 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
-            <div className="bg-gray-800 border border-gray-700 rounded-2xl w-full max-w-md p-6 relative shadow-2xl">
+            <div className={`${glassClass} border border-gray-700 rounded-2xl w-full max-w-md p-6 relative shadow-2xl`}>
                  <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white">
                     <XIcon className="w-6 h-6" />
                 </button>

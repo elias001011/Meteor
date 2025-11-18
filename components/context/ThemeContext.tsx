@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext } from 'react';
-import type { AppTheme, TransparencyLevel } from '../../types';
+import type { AppTheme } from '../../types';
 
 interface ThemeClasses {
     text: string;
@@ -14,7 +14,7 @@ interface ThemeClasses {
 
 interface ThemeContextProps {
     theme: AppTheme;
-    transparencyLevel: TransparencyLevel;
+    glassEffectEnabled: boolean;
     classes: ThemeClasses;
     glassClass: string; // Helper for transparency
 }
@@ -78,37 +78,26 @@ const THEME_DEFINITIONS: Record<AppTheme, ThemeClasses> = {
 
 const ThemeContext = createContext<ThemeContextProps>({
     theme: 'cyan',
-    transparencyLevel: 'none',
+    glassEffectEnabled: true,
     classes: THEME_DEFINITIONS.cyan,
-    glassClass: 'bg-gray-900'
+    glassClass: 'bg-gray-900/30 backdrop-blur-xl'
 });
 
 export const ThemeProvider: React.FC<{ 
     theme: AppTheme, 
-    transparencyLevel?: TransparencyLevel, 
-    enableTransparency?: boolean, // Backward compatibility prop
+    glassEffectEnabled: boolean,
     children: React.ReactNode 
-}> = ({ theme, transparencyLevel, enableTransparency, children }) => {
+}> = ({ theme, glassEffectEnabled, children }) => {
     
-    // Resolve level
-    let level: TransparencyLevel = transparencyLevel || 'none';
-    // If enableTransparency is passed but transparencyLevel is not, assume it's legacy code
-    if (transparencyLevel === undefined && enableTransparency !== undefined) {
-        level = enableTransparency ? 'high' : 'none';
-    }
-
-    const currentClasses = THEME_DEFINITIONS[theme];
+    const currentClasses = THEME_DEFINITIONS[theme] || THEME_DEFINITIONS.cyan;
     
-    let glassClass = 'bg-gray-900';
-    if (level === 'low') {
-        glassClass = 'bg-gray-900/80 backdrop-blur-md border-white/5';
-    } else if (level === 'high') {
-        // More aggressive transparency (lower opacity, higher blur)
-        glassClass = 'bg-gray-900/40 backdrop-blur-xl border-white/10 shadow-2xl';
-    }
+    // Define class based on the single boolean
+    const glassClass = glassEffectEnabled
+        ? 'bg-gray-800/60 backdrop-blur-xl border-white/5' // ON State
+        : 'bg-gray-800/95 border-gray-700/50'; // OFF State (solid)
 
     return (
-        <ThemeContext.Provider value={{ theme, transparencyLevel: level, classes: currentClasses, glassClass }}>
+        <ThemeContext.Provider value={{ theme, glassEffectEnabled, classes: currentClasses, glassClass }}>
             {children}
         </ThemeContext.Provider>
     );
