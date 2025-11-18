@@ -2,12 +2,15 @@
 import React from 'react';
 import type { HourlyForecast } from '../../types';
 import { UmbrellaIcon } from '../icons';
+import { useTheme } from '../context/ThemeContext';
 
 interface HourlyForecastProps {
   data: HourlyForecast[];
 }
 
 const HourlyForecastComponent: React.FC<HourlyForecastProps> = ({ data }) => {
+  const { classes } = useTheme();
+
   return (
     <div className="bg-gray-800 rounded-3xl p-4">
       <h3 className="text-sm text-gray-400 mb-3 px-2">Previsão por hora</h3>
@@ -18,7 +21,7 @@ const HourlyForecastComponent: React.FC<HourlyForecastProps> = ({ data }) => {
             <span className="text-2xl">{item.conditionIcon}</span>
             <span className="font-bold">{Math.round(item.temperature)}°C</span>
             {typeof item.pop === 'number' && item.pop > 0 && (
-                <div className="flex items-center gap-1 text-xs text-cyan-300 pt-1">
+                <div className={`flex items-center gap-1 text-xs ${classes.text} pt-1`}>
                     <UmbrellaIcon className="w-3 h-3" />
                     <span>{Math.round(item.pop * 100)}%</span>
                 </div>

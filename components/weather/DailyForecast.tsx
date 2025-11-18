@@ -2,12 +2,15 @@
 import React from 'react';
 import type { DailyForecast } from '../../types';
 import { UmbrellaIcon } from '../icons';
+import { useTheme } from '../context/ThemeContext';
 
 interface DailyForecastProps {
   data: DailyForecast[];
 }
 
 const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data }) => {
+  const { classes } = useTheme();
+  
   const getDayLabel = (dt: number) => {
     const date = new Date(dt * 1000);
     const today = new Date();
@@ -33,7 +36,7 @@ const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data }) => {
         {data.map((item, index) => (
           <div key={index} className="grid grid-cols-4 items-center p-2 rounded-lg hover:bg-gray-700/50">
             <span className="font-medium">{getDayLabel(item.dt)}</span>
-            <div className="flex justify-center items-center gap-1 text-xs text-cyan-300">
+            <div className={`flex justify-center items-center gap-1 text-xs ${classes.text}`}>
                 {typeof item.pop === 'number' && item.pop > 0.05 && (
                     <>
                         <UmbrellaIcon className="w-4 h-4" />
