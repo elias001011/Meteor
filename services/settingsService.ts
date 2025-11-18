@@ -13,7 +13,7 @@ const DEFAULT_SETTINGS: AppSettings = {
     aiCustomInstructions: '',
     startupSection: 'weather',
     themeColor: 'cyan',
-    enableTransparency: true,
+    transparencyLevel: 'none', // Default is now none
     rainAnimation: {
         enabled: true,
         intensity: 'low'
@@ -26,10 +26,20 @@ export const getSettings = (): AppSettings => {
         if (!stored) return DEFAULT_SETTINGS;
         
         const parsed = JSON.parse(stored);
+        
+        // Migration logic for old boolean 'enableTransparency'
+        let transparencyLevel = parsed.transparencyLevel || DEFAULT_SETTINGS.transparencyLevel;
+        if (parsed.enableTransparency === true && !parsed.transparencyLevel) {
+            transparencyLevel = 'high'; // Migrate old 'true' to 'high'
+        } else if (parsed.enableTransparency === false && !parsed.transparencyLevel) {
+            transparencyLevel = 'none';
+        }
+
         // Merge deeply to ensure new nested objects (like rainAnimation) are populated if missing in old data
         return {
             ...DEFAULT_SETTINGS,
             ...parsed,
+            transparencyLevel,
             rainAnimation: {
                 ...DEFAULT_SETTINGS.rainAnimation,
                 ...(parsed.rainAnimation || {})

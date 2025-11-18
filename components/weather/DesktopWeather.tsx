@@ -12,6 +12,7 @@ import ErrorDisplay from '../common/ErrorDisplay';
 import Alerts from './Alerts';
 import DataSourceInfo from './DataSourceInfo';
 import { SparklesIcon } from '../icons';
+import { useTheme } from '../context/ThemeContext';
 
 interface DesktopWeatherProps {
     weatherData: WeatherData | null;
@@ -44,6 +45,7 @@ const DesktopWeather: React.FC<DesktopWeatherProps> = ({
     onRetry,
     onDataSourceInfoClick
 }) => {
+    const { classes } = useTheme();
 
     if (status === 'loading') {
         return (
@@ -66,7 +68,7 @@ const DesktopWeather: React.FC<DesktopWeatherProps> = ({
         return (
             <div className="flex flex-col items-center justify-center h-full text-center space-y-8 p-8 bg-gray-800/30 rounded-3xl border border-gray-700/30">
                  <div className="bg-gray-800 p-6 rounded-full shadow-xl">
-                    <SparklesIcon className="w-16 h-16 text-cyan-400" />
+                    <SparklesIcon className={`w-16 h-16 ${classes.text}`} />
                 </div>
                 <div>
                     <h2 className="text-3xl font-bold text-white mb-3">Bem-vindo ao Meteor</h2>

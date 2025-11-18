@@ -12,6 +12,7 @@ import ErrorDisplay from '../common/ErrorDisplay';
 import Alerts from './Alerts';
 import DataSourceInfo from './DataSourceInfo';
 import { SparklesIcon } from '../icons';
+import { useTheme } from '../context/ThemeContext';
 
 interface WeatherViewProps {
     weatherData: WeatherData | null;
@@ -44,6 +45,8 @@ const WeatherView: React.FC<WeatherViewProps> = ({
     onRetry,
     onDataSourceInfoClick
 }) => {
+    const { classes } = useTheme();
+
     if (status === 'loading') {
         return (
             <div className="flex items-center justify-center h-full">
@@ -68,7 +71,7 @@ const WeatherView: React.FC<WeatherViewProps> = ({
             <div className="flex flex-col h-full p-6">
                 <div className="flex-1 flex flex-col items-center justify-center text-center space-y-6">
                      <div className="bg-gray-800/50 p-4 rounded-full mb-2">
-                        <SparklesIcon className="w-12 h-12 text-cyan-400" />
+                        <SparklesIcon className={`w-12 h-12 ${classes.text}`} />
                     </div>
                     <div>
                         <h2 className="text-2xl font-bold text-white mb-2">Bem-vindo ao Meteor</h2>

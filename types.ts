@@ -105,6 +105,7 @@ export interface SearchResultItem {
 
 export type StartupBehavior = 'last_location' | 'idle' | 'specific_location' | 'custom_section';
 export type AppTheme = 'cyan' | 'blue' | 'purple' | 'emerald' | 'rose' | 'amber';
+export type TransparencyLevel = 'none' | 'low' | 'high';
 
 export interface AppSettings {
     userName: string;
@@ -117,7 +118,7 @@ export interface AppSettings {
     aiCustomInstructions: string;
     // Visual Customization
     themeColor: AppTheme;
-    enableTransparency: boolean;
+    transparencyLevel: TransparencyLevel;
     rainAnimation: {
         enabled: boolean;
         intensity: 'low' | 'high';

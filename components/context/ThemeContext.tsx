@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext } from 'react';
-import type { AppTheme } from '../../types';
+import type { AppTheme, TransparencyLevel } from '../../types';
 
 interface ThemeClasses {
     text: string;
@@ -14,7 +14,7 @@ interface ThemeClasses {
 
 interface ThemeContextProps {
     theme: AppTheme;
-    enableTransparency: boolean;
+    transparencyLevel: TransparencyLevel;
     classes: ThemeClasses;
     glassClass: string; // Helper for transparency
 }
@@ -78,24 +78,36 @@ const THEME_DEFINITIONS: Record<AppTheme, ThemeClasses> = {
 
 const ThemeContext = createContext<ThemeContextProps>({
     theme: 'cyan',
-    enableTransparency: true,
+    transparencyLevel: 'none',
     classes: THEME_DEFINITIONS.cyan,
-    glassClass: 'bg-gray-900/80 backdrop-blur-lg'
+    glassClass: 'bg-gray-900'
 });
 
 export const ThemeProvider: React.FC<{ 
     theme: AppTheme, 
-    enableTransparency: boolean, 
+    transparencyLevel?: TransparencyLevel, // Now optional or derived
+    enableTransparency?: boolean, // Backward compatibility prop
     children: React.ReactNode 
-}> = ({ theme, enableTransparency, children }) => {
+}> = ({ theme, transparencyLevel, enableTransparency, children }) => {
     
+    // Resolve level
+    let level: TransparencyLevel = transparencyLevel || 'none';
+    // If enableTransparency is passed but transparencyLevel is not, assume it's legacy code
+    if (transparencyLevel === undefined && enableTransparency !== undefined) {
+        level = enableTransparency ? 'high' : 'none';
+    }
+
     const currentClasses = THEME_DEFINITIONS[theme];
-    const glassClass = enableTransparency 
-        ? 'bg-gray-900/80 backdrop-blur-lg' 
-        : 'bg-gray-900';
+    
+    let glassClass = 'bg-gray-900';
+    if (level === 'low') {
+        glassClass = 'bg-gray-900/95 backdrop-blur-sm border-white/5';
+    } else if (level === 'high') {
+        glassClass = 'bg-gray-900/60 backdrop-blur-md border-white/10';
+    }
 
     return (
-        <ThemeContext.Provider value={{ theme, enableTransparency, classes: currentClasses, glassClass }}>
+        <ThemeContext.Provider value={{ theme, transparencyLevel: level, classes: currentClasses, glassClass }}>
             {children}
         </ThemeContext.Provider>
     );
