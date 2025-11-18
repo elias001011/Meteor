@@ -1,4 +1,4 @@
-# Logs
+# Logs e arquivos de debug
 logs
 *.log
 npm-debug.log*
@@ -7,37 +7,40 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Dependencies
-node_modules
+# Dependências
+node_modules/
 .pnp
 .pnp.js
 
-# Build Output
+# Saída de Build (Build Output)
 dist
 dist-ssr
 build
 
-# Environment Variables (CRÍTICO DE SEGURANÇA)
+# Variáveis de Ambiente (CRÍTICO PARA SEGURANÇA)
+# Nunca envie chaves de API para o repositório!
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+# Pega qualquer outro arquivo .env
 *.env
 .env*
 
-# Netlify (Cache e Build Local)
+# Arquivos da Netlify (Cache e Build Local)
 .netlify
 netlify-plugins
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-Thumbs.db
+# Diretórios e arquivos de editores de código
+.vscode/
+.idea/
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+# Arquivos gerados pelo Sistema Operacional
+.DS_Store
+Thumbs.db
