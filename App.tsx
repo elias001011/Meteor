@@ -17,10 +17,13 @@ import SettingsView from './components/settings/SettingsView';
 import { Content } from '@google/genai';
 import ErrorPopup from './components/common/ErrorPopup';
 import DataSourceModal from './components/common/DataSourceModal';
+import { ThemeProvider } from './components/context/ThemeContext';
 
 // Rain animation component defined locally
-const RainAnimation: React.FC = () => {
-    const numberOfDrops = 50;
+const RainAnimation: React.FC<{ intensity: 'low' | 'high' }> = ({ intensity }) => {
+    const numberOfDrops = intensity === 'high' ? 150 : 50;
+    const speedMultiplier = intensity === 'high' ? 0.6 : 1;
+
     return (
         <div className="fixed top-0 left-0 w-full h-full z-0 pointer-events-none overflow-hidden">
             {Array.from({ length: numberOfDrops }).map((_, i) => (
@@ -29,8 +32,9 @@ const RainAnimation: React.FC = () => {
                     className="raindrop"
                     style={{
                         left: `${Math.random() * 100}%`,
-                        animationDuration: `${0.5 + Math.random() * 0.5}s`,
+                        animationDuration: `${(0.5 + Math.random() * 0.5) * speedMultiplier}s`,
                         animationDelay: `${Math.random() * 5}s`,
+                        opacity: intensity === 'high' ? 0.4 : 0.25
                     }}
                 />
             ))}
@@ -72,6 +76,15 @@ const App: React.FC = () => {
   const [preferredDataSource, setPreferredDataSource] = useState<DataSource | 'auto'>('auto');
 
   const { weatherData, airQualityData, hourlyForecast, dailyForecast, alerts, dataSource, lastUpdated } = weatherInfo;
+
+  // PWA Theme Color Update (Darker border)
+  useEffect(() => {
+      const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+      if (metaThemeColor) {
+          // Always use the dark background color for the PWA frame to look integrated
+          metaThemeColor.setAttribute('content', '#111827');
+      }
+  }, []);
 
   // Initialization Logic based on Settings
   useEffect(() => {
@@ -329,78 +342,83 @@ const App: React.FC = () => {
 
 
   return (
-    <div className="relative bg-gray-900 text-white min-h-screen font-sans flex flex-col h-screen overflow-hidden">
-      {view === 'weather' && isRaining && <RainAnimation />}
-      <Header activeView={view} setView={setView} showClock={settings.showClock} />
-      {appError && <ErrorPopup message={appError} onClose={() => setAppError(null)} />}
-      
-      <DataSourceModal 
-        isOpen={isDataSourceModalOpen}
-        onClose={() => setIsDataSourceModalOpen(false)}
-        currentSource={dataSource}
-        preferredSource={preferredDataSource}
-        onSourceChange={handleDataSourceChange}
-      />
-
-      <main className="relative z-10 flex-1 pt-16 overflow-hidden">
-        {/* --- DESKTOP VIEW --- */}
-        <div className="hidden lg:block h-full">
-          {view === 'weather' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 h-full">
-              <div className="overflow-y-auto pr-2 space-y-6">
-                <DesktopWeather {...weatherProps} />
-              </div>
-              <div className="h-full rounded-3xl overflow-hidden">
-                <MapView lat={currentCoords?.lat} lon={currentCoords?.lon} />
-              </div>
-            </div>
-          )}
-          {view === 'ai' && <AiView {...aiViewProps} />}
-          {view === 'map' && (
-            <MapView lat={currentCoords?.lat} lon={currentCoords?.lon} />
-          )}
-          {view === 'news' && <PlaceholderView title="Notícias" />}
-          {view === 'settings' && <SettingsView onSettingsChanged={setSettings} />}
-          {view === 'tips' && <PlaceholderView title="Dicas" />}
-          {view === 'info' && <PlaceholderView title="Informações" />}
-        </div>
+    <ThemeProvider theme={settings.themeColor} enableTransparency={settings.enableTransparency}>
+      <div className="relative bg-gray-900 text-white min-h-screen font-sans flex flex-col h-screen overflow-hidden">
+        {view === 'weather' && isRaining && settings.rainAnimation.enabled && (
+            <RainAnimation intensity={settings.rainAnimation.intensity} />
+        )}
         
-        {/* --- MOBILE VIEW --- */}
-        <div className="lg:hidden h-full">
-          <div className={`${view === 'weather' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24`}>
-            <WeatherView {...weatherProps} />
-          </div>
-          <div className={`${view === 'ai' ? 'block' : 'hidden'} h-full`}>
-            <AiView {...aiViewProps} />
-          </div>
-          <div className={`${view === 'map' ? 'block' : 'hidden'} h-full pb-24`}>
-             <MapView lat={currentCoords?.lat} lon={currentCoords?.lon} />
-          </div>
-          <div className={`${view === 'news' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24`}>
-            <PlaceholderView title="Notícias" />
-          </div>
-           <div className={`${view === 'settings' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24`}>
-             <SettingsView onSettingsChanged={setSettings} />
-          </div>
-           <div className={`${view === 'tips' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24`}>
-            <PlaceholderView title="Dicas" />
-          </div>
-           <div className={`${view === 'info' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24`}>
-            <PlaceholderView title="Informações" />
-          </div>
-        </div>
-      </main>
-      
-      <div className="lg:hidden">
-        <BottomNav activeView={view} setView={setView} />
-        <MobileAiControls 
-            isVisible={view === 'ai'} 
-            onSendMessage={handleSendMessage} 
-            isSending={isSending} 
-            {...aiViewProps}
+        <Header activeView={view} setView={setView} showClock={settings.showClock} />
+        {appError && <ErrorPopup message={appError} onClose={() => setAppError(null)} />}
+        
+        <DataSourceModal 
+          isOpen={isDataSourceModalOpen}
+          onClose={() => setIsDataSourceModalOpen(false)}
+          currentSource={dataSource}
+          preferredSource={preferredDataSource}
+          onSourceChange={handleDataSourceChange}
         />
+
+        <main className="relative z-10 flex-1 pt-16 overflow-hidden">
+          {/* --- DESKTOP VIEW --- */}
+          <div className="hidden lg:block h-full overflow-y-auto">
+            {view === 'weather' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 h-full">
+                <div className="overflow-y-auto pr-2 space-y-6">
+                  <DesktopWeather {...weatherProps} />
+                </div>
+                <div className="h-full rounded-3xl overflow-hidden">
+                  <MapView lat={currentCoords?.lat} lon={currentCoords?.lon} />
+                </div>
+              </div>
+            )}
+            {view === 'ai' && <AiView {...aiViewProps} />}
+            {view === 'map' && (
+              <MapView lat={currentCoords?.lat} lon={currentCoords?.lon} />
+            )}
+            {view === 'news' && <PlaceholderView title="Notícias" />}
+            {view === 'settings' && <SettingsView onSettingsChanged={setSettings} />}
+            {view === 'tips' && <PlaceholderView title="Dicas" />}
+            {view === 'info' && <PlaceholderView title="Informações" />}
+          </div>
+          
+          {/* --- MOBILE VIEW --- */}
+          <div className="lg:hidden h-full">
+            <div className={`${view === 'weather' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24`}>
+              <WeatherView {...weatherProps} />
+            </div>
+            <div className={`${view === 'ai' ? 'block' : 'hidden'} h-full`}>
+              <AiView {...aiViewProps} />
+            </div>
+            <div className={`${view === 'map' ? 'block' : 'hidden'} h-full pb-24`}>
+               <MapView lat={currentCoords?.lat} lon={currentCoords?.lon} />
+            </div>
+            <div className={`${view === 'news' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24`}>
+              <PlaceholderView title="Notícias" />
+            </div>
+             <div className={`${view === 'settings' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24`}>
+               <SettingsView onSettingsChanged={setSettings} />
+            </div>
+             <div className={`${view === 'tips' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24`}>
+              <PlaceholderView title="Dicas" />
+            </div>
+             <div className={`${view === 'info' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24`}>
+              <PlaceholderView title="Informações" />
+            </div>
+          </div>
+        </main>
+        
+        <div className="lg:hidden">
+          <BottomNav activeView={view} setView={setView} />
+          <MobileAiControls 
+              isVisible={view === 'ai'} 
+              onSendMessage={handleSendMessage} 
+              isSending={isSending} 
+              {...aiViewProps}
+          />
+        </div>
       </div>
-    </div>
+    </ThemeProvider>
   );
 };
 

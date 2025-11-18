@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import type { View } from '../../types';
 import { HomeIcon, MapIcon, NewspaperIcon, SettingsIcon, SparklesIcon, LightbulbIcon, InfoIcon, MoreHorizontalIcon } from '../icons';
+import { useTheme } from '../context/ThemeContext';
 
 interface BottomNavProps {
   activeView: View;
@@ -14,10 +15,11 @@ interface NavItemProps {
   isActive: boolean;
   onClick: () => void;
   className?: string;
+  activeColorClass: string;
 }
 
-const NavItem: React.FC<NavItemProps> = ({ icon, label, isActive, onClick, className = '' }) => (
-  <button onClick={onClick} className={`flex flex-col items-center justify-center w-16 text-center transition-colors duration-200 ${isActive ? 'text-cyan-400' : 'text-gray-400 hover:text-white'} ${className}`}>
+const NavItem: React.FC<NavItemProps> = ({ icon, label, isActive, onClick, className = '', activeColorClass }) => (
+  <button onClick={onClick} className={`flex flex-col items-center justify-center w-16 text-center transition-colors duration-200 ${isActive ? activeColorClass : 'text-gray-400 hover:text-white'} ${className}`}>
     {icon}
     <span className="text-xs mt-1 truncate">{label}</span>
   </button>
@@ -25,6 +27,7 @@ const NavItem: React.FC<NavItemProps> = ({ icon, label, isActive, onClick, class
 
 const BottomNav: React.FC<BottomNavProps> = ({ activeView, setView }) => {
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+  const { classes, glassClass } = useTheme();
 
   const handleMoreClick = (view: View) => {
     setView(view);
@@ -42,20 +45,20 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeView, setView }) => {
       )}
       <div className="absolute bottom-24 right-4 z-[110]">
         {isMoreMenuOpen && (
-            <div className="bg-gray-700/80 backdrop-blur-lg border border-gray-600/50 rounded-2xl shadow-lg flex flex-col items-start p-2 gap-1">
-                <NavItem icon={<NewspaperIcon className="w-5 h-5" />} label="Notícias" isActive={activeView === 'news'} onClick={() => handleMoreClick('news')} className="w-full !flex-row !justify-start gap-3 !h-10 px-2" />
-                <NavItem icon={<InfoIcon className="w-5 h-5" />} label="Informações" isActive={activeView === 'info'} onClick={() => handleMoreClick('info')} className="w-full !flex-row !justify-start gap-3 !h-10 px-2" />
-                <NavItem icon={<SettingsIcon className="w-5 h-5" />} label="Ajustes" isActive={activeView === 'settings'} onClick={() => handleMoreClick('settings')} className="w-full !flex-row !justify-start gap-3 !h-10 px-2" />
+            <div className={`${glassClass} border border-gray-600/50 rounded-2xl shadow-lg flex flex-col items-start p-2 gap-1`}>
+                <NavItem activeColorClass={classes.text} icon={<NewspaperIcon className="w-5 h-5" />} label="Notícias" isActive={activeView === 'news'} onClick={() => handleMoreClick('news')} className="w-full !flex-row !justify-start gap-3 !h-10 px-2" />
+                <NavItem activeColorClass={classes.text} icon={<InfoIcon className="w-5 h-5" />} label="Informações" isActive={activeView === 'info'} onClick={() => handleMoreClick('info')} className="w-full !flex-row !justify-start gap-3 !h-10 px-2" />
+                <NavItem activeColorClass={classes.text} icon={<SettingsIcon className="w-5 h-5" />} label="Ajustes" isActive={activeView === 'settings'} onClick={() => handleMoreClick('settings')} className="w-full !flex-row !justify-start gap-3 !h-10 px-2" />
             </div>
         )}
       </div>
 
-      <div className="relative bottom-4 bg-gray-800/70 backdrop-blur-lg border border-gray-700/50 rounded-full max-w-lg mx-auto h-16 flex justify-around items-center shadow-lg">
-        <NavItem icon={<HomeIcon className="w-6 h-6" />} label="Clima" isActive={activeView === 'weather'} onClick={() => setView('weather')} />
-        <NavItem icon={<MapIcon className="w-6 h-6" />} label="Mapa" isActive={activeView === 'map'} onClick={() => setView('map')} />
-        <NavItem icon={<SparklesIcon className="w-6 h-6" />} label="IA" isActive={activeView === 'ai'} onClick={() => setView('ai')} />
-        <NavItem icon={<LightbulbIcon className="w-6 h-6" />} label="Dicas" isActive={activeView === 'tips'} onClick={() => setView('tips')} />
-        <NavItem icon={<MoreHorizontalIcon className="w-6 h-6" />} label="Mais" isActive={isMoreMenuOpen} onClick={() => setIsMoreMenuOpen(prev => !prev)} />
+      <div className={`relative bottom-4 ${glassClass} border border-gray-700/50 rounded-full max-w-lg mx-auto h-16 flex justify-around items-center shadow-lg`}>
+        <NavItem activeColorClass={classes.text} icon={<HomeIcon className="w-6 h-6" />} label="Clima" isActive={activeView === 'weather'} onClick={() => setView('weather')} />
+        <NavItem activeColorClass={classes.text} icon={<MapIcon className="w-6 h-6" />} label="Mapa" isActive={activeView === 'map'} onClick={() => setView('map')} />
+        <NavItem activeColorClass={classes.text} icon={<SparklesIcon className="w-6 h-6" />} label="IA" isActive={activeView === 'ai'} onClick={() => setView('ai')} />
+        <NavItem activeColorClass={classes.text} icon={<LightbulbIcon className="w-6 h-6" />} label="Dicas" isActive={activeView === 'tips'} onClick={() => setView('tips')} />
+        <NavItem activeColorClass={classes.text} icon={<MoreHorizontalIcon className="w-6 h-6" />} label="Mais" isActive={isMoreMenuOpen} onClick={() => setIsMoreMenuOpen(prev => !prev)} />
       </div>
     </div>
   );

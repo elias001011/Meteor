@@ -1,6 +1,8 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { CitySearchResult } from '../../types';
 import { searchCities } from '../../services/weatherService';
+import { useTheme } from '../context/ThemeContext';
 
 interface SearchBarProps {
     onCitySelect: (city: CitySearchResult) => void;
@@ -21,6 +23,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onCitySelect, onGeolocate }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  const { classes, glassClass } = useTheme();
 
   const handleSelectCity = (city: CitySearchResult) => {
     setQuery('');
@@ -75,17 +78,17 @@ const SearchBar: React.FC<SearchBarProps> = ({ onCitySelect, onGeolocate }) => {
             onFocus={() => { if(results.length > 0) setIsDropdownOpen(true)}}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Pesquisar cidades..."
-            className="w-full bg-gray-800 border border-gray-700 rounded-full py-3 px-5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            className={`w-full bg-gray-800 border border-gray-700 rounded-full py-3 px-5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 ${classes.ring}`}
           />
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              <button type="submit" className="bg-cyan-500 rounded-full p-2 hover:bg-cyan-400" aria-label="Pesquisar">
+              <button type="submit" className={`${classes.bg} ${classes.bgHover} rounded-full p-2 text-white`} aria-label="Pesquisar">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
               </button>
           </div>
         </form>
 
         {isDropdownOpen && (
-          <div className="absolute top-full mt-2 w-full bg-gray-800/90 backdrop-blur-md border border-gray-700 rounded-2xl shadow-lg z-50 max-h-60 overflow-y-auto">
+          <div className={`absolute top-full mt-2 w-full ${glassClass} border border-gray-700 rounded-2xl shadow-lg z-50 max-h-60 overflow-y-auto`}>
             {isLoading ? (
               <p className="p-4 text-center text-gray-400">Buscando...</p>
             ) : results.length > 0 ? (

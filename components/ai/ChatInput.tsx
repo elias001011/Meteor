@@ -1,5 +1,7 @@
+
 import React from 'react';
 import { SendIcon, MicIcon, SearchIcon } from '../icons';
+import { useTheme } from '../context/ThemeContext';
 
 interface ChatInputProps {
   onSendMessage: (text: string) => void;
@@ -22,6 +24,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
     text,
     setText
 }) => {
+  const { classes } = useTheme();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,12 +56,12 @@ const ChatInput: React.FC<ChatInputProps> = ({
         placeholder={isListening ? "Ouvindo..." : "Pergunte algo..."}
         rows={1}
         disabled={isListening}
-        className="flex-1 bg-gray-700/50 border border-gray-600/50 rounded-full py-2 px-4 text-white placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500 max-h-14 disabled:bg-gray-800 disabled:cursor-not-allowed"
+        className={`flex-1 bg-gray-700/50 border border-gray-600/50 rounded-full py-2 px-4 text-white placeholder-gray-400 resize-none focus:outline-none focus:ring-2 ${classes.ring} max-h-14 disabled:bg-gray-800 disabled:cursor-not-allowed`}
       />
        <button 
         type="button" 
         onClick={onToggleSearch}
-        className={`p-2 transition-colors rounded-full ${isSearchEnabled ? 'text-cyan-400 bg-cyan-500/20' : 'text-gray-400 hover:text-white'}`}
+        className={`p-2 transition-colors rounded-full ${isSearchEnabled ? `${classes.text} ${classes.bg.replace('bg-', 'bg-').replace('500','500/20').replace('600', '600/20')}` : 'text-gray-400 hover:text-white'}`}
         aria-label={isSearchEnabled ? "Desativar pesquisa na web" : "Ativar pesquisa na web"}
       >
           <SearchIcon className="w-6 h-6" />
@@ -66,7 +69,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
       <button
         type="submit"
         disabled={isSending || !text.trim() || isListening}
-        className="bg-cyan-500 text-white rounded-full p-3 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed hover:bg-cyan-400"
+        className={`${classes.bg} ${classes.bgHover} text-white rounded-full p-3 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed`}
       >
         <SendIcon className="w-5 h-5" />
       </button>
