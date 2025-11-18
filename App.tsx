@@ -344,15 +344,13 @@ const App: React.FC = () => {
 
   const isRaining = weatherData?.condition?.toLowerCase().includes('chuv');
   const showRain = isRaining && settings.rainIntensity !== 'off';
-
-  // --- LAYOUT LOGIC ---
   const isMap = view === 'map';
 
   return (
     <div className={`relative bg-gray-900 text-white font-sans transition-colors duration-300 min-h-screen flex flex-col`}>
       {view === 'weather' && showRain && <RainAnimation intensity={settings.rainIntensity === 'off' ? 'low' : settings.rainIntensity} />}
       
-      {/* Header - Always Fixed/Sticky in typical app view */}
+      {/* Header - Fixed */}
       <Header 
           activeView={view} 
           setView={setView} 
@@ -369,11 +367,11 @@ const App: React.FC = () => {
         onSourceChange={handleDataSourceChange}
       />
 
-      {/* Main Content - Pushed down by header height */}
-      <main className={`relative z-10 flex-1 ${isMap ? 'h-screen pt-0' : 'pt-16'}`}>
+      {/* Main Content */}
+      <main className={`relative z-10 flex-1 ${isMap ? 'h-[calc(100vh-4rem)] mt-16' : 'pt-16'}`}>
         
         {/* --- DESKTOP VIEW --- */}
-        <div className={`hidden lg:block ${isMap ? 'h-full' : 'min-h-full'}`}>
+        <div className={`hidden lg:block ${isMap ? 'h-full' : ''}`}>
           {view === 'weather' && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
                   {/* Weather Content */}
@@ -393,7 +391,7 @@ const App: React.FC = () => {
           {view === 'ai' && <AiView {...aiViewProps} />}
           
           {view === 'map' && (
-            <div className="h-full pt-16"> 
+            <div className="h-full"> 
                 <MapView lat={currentCoords?.lat} lon={currentCoords?.lon} />
             </div>
           )}
@@ -412,7 +410,7 @@ const App: React.FC = () => {
           <div className={`${view === 'ai' ? 'block' : 'hidden'} pb-24`}>
             <AiView {...aiViewProps} />
           </div>
-          <div className={`${view === 'map' ? 'block' : 'hidden'} h-full pt-16`}>
+          <div className={`${view === 'map' ? 'block' : 'hidden'} h-full`}>
              <MapView lat={currentCoords?.lat} lon={currentCoords?.lon} />
           </div>
           <div className={`${view === 'news' ? 'block' : 'hidden'} pb-24`}>
