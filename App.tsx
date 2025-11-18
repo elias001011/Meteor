@@ -57,8 +57,9 @@ const App: React.FC = () => {
 
 
   // Weather state
+  // Initial state is now 'idle' to prevent automatic API calls
   const [weatherInfo, setWeatherInfo] = useState<Partial<AllWeatherData>>({});
-  const [weatherStatus, setWeatherStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [weatherStatus, setWeatherStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [weatherError, setWeatherError] = useState<string | null>(null);
   const [currentCoords, setCurrentCoords] = useState<{lat: number, lon: number} | null>(null);
   const [currentCityInfo, setCurrentCityInfo] = useState<{name: string, country: string} | null>(null);
@@ -151,22 +152,6 @@ const App: React.FC = () => {
     }
   }, [handleFetchWeather, preferredDataSource]);
 
-  const initialLoad = useCallback(() => {
-    const portoAlegre: CitySearchResult = {
-      name: 'Porto Alegre',
-      country: 'BR',
-      state: 'Rio Grande do Sul',
-      lat: -30.0346,
-      lon: -51.2177
-    };
-    handleCitySelect(portoAlegre);
-  }, [handleCitySelect]);
-
-  useEffect(() => {
-    initialLoad();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const handleDataSourceChange = useCallback((newSource: DataSource | 'auto') => {
       setPreferredDataSource(newSource);
       setIsDataSourceModalOpen(false);
@@ -254,7 +239,9 @@ const App: React.FC = () => {
         if (currentCoords) {
             handleFetchWeather(currentCoords, currentCityInfo || undefined, preferredDataSource)
         } else {
-            initialLoad();
+            // If retry is clicked but no coords exist, just clear error to go back to idle
+            setWeatherStatus('idle');
+            setWeatherError(null);
         }
     },
     onDataSourceInfoClick: () => setIsDataSourceModalOpen(true),
@@ -293,12 +280,20 @@ const App: React.FC = () => {
                 <DesktopWeather {...weatherProps} />
               </div>
               <div className="h-full rounded-3xl overflow-hidden">
-                {currentCoords && <MapView lat={currentCoords.lat} lon={currentCoords.lon} />}
+                {currentCoords ? (
+                    <MapView lat={currentCoords.lat} lon={currentCoords.lon} />
+                ) : (
+                    <div className="w-full h-full bg-gray-800 rounded-3xl flex items-center justify-center text-gray-500">
+                        <p>Mapa indisponível</p>
+                    </div>
+                )}
               </div>
             </div>
           )}
           {view === 'ai' && <AiView {...aiViewProps} />}
-          {view === 'map' && currentCoords && <MapView lat={currentCoords.lat} lon={currentCoords.lon} />}
+          {view === 'map' && (
+            currentCoords ? <MapView lat={currentCoords.lat} lon={currentCoords.lon} /> : <PlaceholderView title="Mapa" />
+          )}
           {view === 'news' && <PlaceholderView title="Notícias" />}
           {view === 'settings' && <PlaceholderView title="Ajustes" />}
           {view === 'tips' && <PlaceholderView title="Dicas" />}
@@ -314,7 +309,7 @@ const App: React.FC = () => {
             <AiView {...aiViewProps} />
           </div>
           <div className={`${view === 'map' ? 'block' : 'hidden'} h-full pb-24`}>
-             {currentCoords && <MapView lat={currentCoords.lat} lon={currentCoords.lon} />}
+             {currentCoords ? <MapView lat={currentCoords.lat} lon={currentCoords.lon} /> : <div className="flex items-center justify-center h-full text-gray-400">Nenhuma localização selecionada</div>}
           </div>
           <div className={`${view === 'news' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24`}>
             <PlaceholderView title="Notícias" />
