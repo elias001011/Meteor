@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { WeatherData, HourlyForecast, DailyForecast, AirQualityData, CitySearchResult, WeatherAlert, DataSource } from '../../types';
 import SearchBar from './SearchBar';
@@ -10,6 +11,7 @@ import LoadingSpinner from '../common/LoadingSpinner';
 import ErrorDisplay from '../common/ErrorDisplay';
 import Alerts from './Alerts';
 import DataSourceInfo from './DataSourceInfo';
+import { SparklesIcon } from '../icons';
 
 interface WeatherViewProps {
     weatherData: WeatherData | null;
@@ -19,7 +21,7 @@ interface WeatherViewProps {
     alerts: WeatherAlert[];
     dataSource: DataSource | null;
     lastUpdated: number | null;
-    status: 'loading' | 'success' | 'error';
+    status: 'idle' | 'loading' | 'success' | 'error';
     error: string | null;
     onCitySelect: (city: CitySearchResult) => void;
     onGeolocate: () => void;
@@ -56,6 +58,27 @@ const WeatherView: React.FC<WeatherViewProps> = ({
                 <SearchBar onCitySelect={onCitySelect} onGeolocate={onGeolocate} />
                 <div className="mt-6">
                     <ErrorDisplay message={error || "Não foi possível buscar os dados."} onRetry={onRetry} />
+                </div>
+            </div>
+        );
+    }
+
+    if (status === 'idle') {
+        return (
+            <div className="flex flex-col h-full p-6">
+                <div className="flex-1 flex flex-col items-center justify-center text-center space-y-6">
+                     <div className="bg-gray-800/50 p-4 rounded-full mb-2">
+                        <SparklesIcon className="w-12 h-12 text-cyan-400" />
+                    </div>
+                    <div>
+                        <h2 className="text-2xl font-bold text-white mb-2">Bem-vindo ao Meteor</h2>
+                        <p className="text-gray-400 max-w-xs mx-auto">
+                            Selecione um local ou use sua localização para ver a previsão do tempo detalhada.
+                        </p>
+                    </div>
+                    <div className="w-full max-w-md">
+                        <SearchBar onCitySelect={onCitySelect} onGeolocate={onGeolocate} />
+                    </div>
                 </div>
             </div>
         );

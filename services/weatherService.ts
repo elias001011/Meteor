@@ -1,6 +1,6 @@
 import type { AllWeatherData, CitySearchResult, DataSource } from '../types';
 
-const CACHE_DURATION_MS = 30 * 60 * 1000; // 30 minutes cache
+const CACHE_DURATION_MS = 60 * 60 * 1000; // 1 hour cache
 
 // Fetches a list of cities matching the query from our secure Netlify function
 export const searchCities = async (city: string): Promise<CitySearchResult[]> => {
