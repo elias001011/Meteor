@@ -9,11 +9,16 @@ interface HeaderProps {
     activeView: View;
     setView: (view: View) => void;
     showClock: boolean;
+    behavior?: 'fixed' | 'scroll';
 }
 
-const Header: React.FC<HeaderProps> = ({ activeView, setView, showClock }) => {
+const Header: React.FC<HeaderProps> = ({ activeView, setView, showClock, behavior = 'fixed' }) => {
+  // If 'scroll' behavior is active, we rely on the parent container to scroll, so Header is 'relative' (moves with flow)
+  // If 'fixed' behavior, Header is 'fixed' to viewport top.
+  const positionClass = behavior === 'fixed' ? 'fixed' : 'relative';
+  
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 bg-gray-900/80 backdrop-blur-lg border-b border-gray-800">
+    <header className={`${positionClass} top-0 left-0 right-0 z-40 bg-gray-900/80 backdrop-blur-lg border-b border-gray-800 transition-colors duration-300`}>
       <div className="w-full px-4 sm:px-6 h-16 flex items-center justify-between">
         <div className="flex items-center gap-2">
             <SparklesIcon className="w-6 h-6 text-cyan-400" />

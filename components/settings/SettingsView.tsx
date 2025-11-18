@@ -9,6 +9,15 @@ interface SettingsViewProps {
     onSettingsChanged: (newSettings: AppSettings) => void;
 }
 
+const THEME_COLORS = [
+    { name: 'Ciano', hex: '#06b6d4' },
+    { name: 'Azul', hex: '#3b82f6' },
+    { name: 'Roxo', hex: '#8b5cf6' },
+    { name: 'Rosa', hex: '#ec4899' },
+    { name: 'Laranja', hex: '#f97316' },
+    { name: 'Verde', hex: '#22c55e' },
+];
+
 const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsChanged }) => {
     const [settings, setSettings] = useState<AppSettings>(getSettings());
     const [showCityModal, setShowCityModal] = useState(false);
@@ -91,6 +100,81 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsChanged }) => {
                     {feedbackMessage}
                 </div>
             )}
+            
+            {/* --- APPEARANCE --- */}
+            <section className="bg-gray-800/50 rounded-2xl p-5 border border-gray-700/50">
+                <h3 className="text-lg font-semibold text-cyan-400 mb-4">Aparência</h3>
+                <div className="space-y-6">
+                    
+                    {/* Accent Color */}
+                    <div>
+                        <p className="text-sm text-gray-300 mb-3">Cor de Destaque</p>
+                        <div className="flex flex-wrap gap-3">
+                            {THEME_COLORS.map((color) => (
+                                <button
+                                    key={color.hex}
+                                    onClick={() => handleSave({ accentColor: color.hex })}
+                                    className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all ${settings.accentColor === color.hex ? 'border-white scale-110' : 'border-transparent hover:scale-105'}`}
+                                    style={{ backgroundColor: color.hex }}
+                                    aria-label={`Selecionar cor ${color.name}`}
+                                >
+                                    {settings.accentColor === color.hex && (
+                                        <svg className="w-5 h-5 text-white drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Rain Animation */}
+                    <div className="space-y-2 pt-2 border-t border-gray-700/30">
+                         <div className="flex items-center justify-between">
+                             <span className="text-gray-300">Animação de Chuva</span>
+                             <select 
+                                value={settings.rainIntensity}
+                                onChange={(e) => handleSave({ rainIntensity: e.target.value as any })}
+                                className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-1 text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none"
+                            >
+                                <option value="off">Desligado</option>
+                                <option value="low">Baixa (Padrão)</option>
+                                <option value="high">Alta (Intensa)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    {/* Header & Transparency */}
+                     <div className="space-y-2 pt-2 border-t border-gray-700/30">
+                         <div className="flex items-center justify-between">
+                             <span className="text-gray-300">Comportamento da Borda Superior</span>
+                              <select 
+                                value={settings.headerBehavior}
+                                onChange={(e) => handleSave({ headerBehavior: e.target.value as any })}
+                                className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-1 text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none"
+                            >
+                                <option value="fixed">Fixa (Topo)</option>
+                                <option value="scroll">Rolar com a página</option>
+                            </select>
+                         </div>
+                         <p className="text-xs text-gray-500 mb-2">
+                            "Fixa" mantém a barra presa ao topo. "Rolar" faz ela subir e desaparecer ao rolar a página.
+                        </p>
+                         
+                         <div className="flex items-center justify-between mt-4">
+                            <div className="flex flex-col">
+                                <span className="text-gray-300">Reduzir Transparência</span>
+                                <span className="text-xs text-gray-500">Remove efeitos de desfoque (blur) para melhorar performance.</span>
+                            </div>
+                            <button 
+                                onClick={() => handleSave({ reduceTransparency: !settings.reduceTransparency })}
+                                className={`w-11 h-6 rounded-full p-1 transition-colors duration-300 flex-shrink-0 ${settings.reduceTransparency ? 'bg-cyan-600' : 'bg-gray-600'}`}
+                            >
+                                <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.reduceTransparency ? 'translate-x-5' : 'translate-x-0'}`} />
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
 
             {/* --- GENERAL --- */}
             <section className="bg-gray-800/50 rounded-2xl p-5 border border-gray-700/50">
@@ -124,9 +208,9 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsChanged }) => {
                             </div>
                             <button 
                                 onClick={() => handleSave({ startFullscreen: !settings.startFullscreen })}
-                                className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${settings.startFullscreen ? 'bg-cyan-600' : 'bg-gray-600'}`}
+                                className={`w-11 h-6 rounded-full p-1 transition-colors duration-300 flex-shrink-0 ${settings.startFullscreen ? 'bg-cyan-600' : 'bg-gray-600'}`}
                             >
-                                <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.startFullscreen ? 'translate-x-6' : 'translate-x-0'}`} />
+                                <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.startFullscreen ? 'translate-x-5' : 'translate-x-0'}`} />
                             </button>
                         </div>
                     </div>
@@ -135,9 +219,9 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsChanged }) => {
                         <span className="text-gray-300">Exibir Horário</span>
                         <button 
                             onClick={() => handleSave({ showClock: !settings.showClock })}
-                            className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${settings.showClock ? 'bg-cyan-600' : 'bg-gray-600'}`}
+                            className={`w-11 h-6 rounded-full p-1 transition-colors duration-300 flex-shrink-0 ${settings.showClock ? 'bg-cyan-600' : 'bg-gray-600'}`}
                         >
-                            <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.showClock ? 'translate-x-6' : 'translate-x-0'}`} />
+                            <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.showClock ? 'translate-x-5' : 'translate-x-0'}`} />
                         </button>
                     </div>
                 </div>
@@ -270,6 +354,11 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsChanged }) => {
                     </div>
                 </div>
             </section>
+
+            {/* --- VERSION FOOTER --- */}
+            <div className="text-center py-4 text-gray-500 text-sm">
+                Versão 2.0. Desenvolvido por <a href="https://www.instagram.com/elias_jrnunes/" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-300 transition-colors">@elias_jrnunes</a>
+            </div>
 
             <CitySelectionModal 
                 isOpen={showCityModal}

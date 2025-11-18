@@ -18,9 +18,11 @@ import { Content } from '@google/genai';
 import ErrorPopup from './components/common/ErrorPopup';
 import DataSourceModal from './components/common/DataSourceModal';
 
-// Rain animation component defined locally
-const RainAnimation: React.FC = () => {
-    const numberOfDrops = 50;
+// Rain animation component with Intensity control
+const RainAnimation: React.FC<{ intensity: 'low' | 'high' }> = ({ intensity }) => {
+    const numberOfDrops = intensity === 'high' ? 150 : 50;
+    const durationMultiplier = intensity === 'high' ? 0.5 : 1; // Faster if high
+
     return (
         <div className="fixed top-0 left-0 w-full h-full z-0 pointer-events-none overflow-hidden">
             {Array.from({ length: numberOfDrops }).map((_, i) => (
@@ -29,8 +31,9 @@ const RainAnimation: React.FC = () => {
                     className="raindrop"
                     style={{
                         left: `${Math.random() * 100}%`,
-                        animationDuration: `${0.5 + Math.random() * 0.5}s`,
+                        animationDuration: `${(0.5 + Math.random() * 0.5) * durationMultiplier}s`,
                         animationDelay: `${Math.random() * 5}s`,
+                        opacity: Math.random() * 0.3 + 0.1
                     }}
                 />
             ))}
@@ -73,6 +76,29 @@ const App: React.FC = () => {
 
   const { weatherData, airQualityData, hourlyForecast, dailyForecast, alerts, dataSource, lastUpdated } = weatherInfo;
 
+  // --- THEME ENGINE ---
+  useEffect(() => {
+      const root = document.documentElement;
+      const body = document.body;
+
+      // 1. Apply Accent Color Variables
+      root.style.setProperty('--color-accent', settings.accentColor);
+      // Generate a slightly lighter version for hover/text
+      root.style.setProperty('--color-accent-light', settings.accentColor); 
+
+      // 2. Apply Classes for overrides
+      body.classList.add('custom-theme'); // Enables the specific CSS overrides in index.html
+      
+      // 3. Transparency
+      if (settings.reduceTransparency) {
+          body.classList.add('reduce-transparency');
+      } else {
+          body.classList.remove('reduce-transparency');
+      }
+
+  }, [settings.accentColor, settings.reduceTransparency]);
+
+
   // Initialization Logic based on Settings
   useEffect(() => {
       const initApp = () => {
@@ -83,23 +109,17 @@ const App: React.FC = () => {
           // Handle Fullscreen logic
           if (savedSettings.startFullscreen) {
              const enterFullscreen = async () => {
-                 // Check if we are already in fullscreen to avoid errors
                  if (!document.fullscreenElement) {
                      try {
                         await document.documentElement.requestFullscreen();
-                        // Only remove listeners if the request was successful
                         window.removeEventListener('click', enterFullscreen);
                         window.removeEventListener('touchend', enterFullscreen);
                         window.removeEventListener('keydown', enterFullscreen);
                      } catch (e) {
-                        // If blocked, keep listening for the next valid gesture
-                        console.log("Auto-fullscreen deferred, waiting for valid gesture.", e);
+                        console.log("Auto-fullscreen deferred.", e);
                      }
                  }
              };
-
-             // Browsers require user interaction for fullscreen. We attach listeners to common gestures.
-             // Using 'touchend' instead of 'touchstart' is more reliable on mobile browsers.
              window.addEventListener('click', enterFullscreen);
              window.addEventListener('touchend', enterFullscreen);
              window.addEventListener('keydown', enterFullscreen);
@@ -124,7 +144,6 @@ const App: React.FC = () => {
                    }
                }
           }
-          // 'idle' behavior is default
       };
       
       initApp();
@@ -134,7 +153,6 @@ const App: React.FC = () => {
   // Update preferredDataSource when settings change (e.g. from Settings View)
   useEffect(() => {
       setPreferredDataSource(settings.weatherSource);
-      // If we have active weather data, reload it with new source
       if (currentCoords && settings.weatherSource !== dataSource && weatherStatus === 'success') {
           handleFetchWeather(currentCoords, currentCityInfo || undefined, settings.weatherSource);
       }
@@ -183,7 +201,6 @@ const App: React.FC = () => {
     setCurrentCoords(coords);
     if(cityInfo) setCurrentCityInfo(cityInfo);
 
-    // Persist last location
     localStorage.setItem('last_coords', JSON.stringify(coords));
 
     try {
@@ -326,12 +343,21 @@ const App: React.FC = () => {
   };
 
   const isRaining = weatherData?.condition?.toLowerCase().includes('chuv');
+  const showRain = isRaining && settings.rainIntensity !== 'off';
 
+  // Layout Logic: 
+  // 'Scroll' Mode = Whole page scrolls (normal web behavior). Header scrolls out of view.
+  // 'Fixed' Mode = Header fixed at top. Content area scrolls internally.
+  // Map always forces a Fixed-style layout because it needs to be full height.
+  const isScrollLayout = settings.headerBehavior === 'scroll' && view !== 'map';
+  const fixedBehavior = isScrollLayout ? 'scroll' : 'fixed';
 
   return (
-    <div className="relative bg-gray-900 text-white min-h-screen font-sans flex flex-col h-screen overflow-hidden">
-      {view === 'weather' && isRaining && <RainAnimation />}
-      <Header activeView={view} setView={setView} showClock={settings.showClock} />
+    <div className={`relative bg-gray-900 text-white font-sans flex flex-col transition-colors duration-300 ${isScrollLayout ? 'min-h-screen overflow-auto' : 'h-screen overflow-hidden'}`}>
+      {view === 'weather' && showRain && <RainAnimation intensity={settings.rainIntensity === 'off' ? 'low' : settings.rainIntensity} />}
+      
+      <Header activeView={view} setView={setView} showClock={settings.showClock} behavior={fixedBehavior} />
+      
       {appError && <ErrorPopup message={appError} onClose={() => setAppError(null)} />}
       
       <DataSourceModal 
@@ -342,15 +368,15 @@ const App: React.FC = () => {
         onSourceChange={handleDataSourceChange}
       />
 
-      <main className="relative z-10 flex-1 pt-16 overflow-hidden">
+      <main className={`relative z-10 flex-1 ${settings.headerBehavior === 'fixed' || view === 'map' ? 'pt-16 overflow-hidden' : ''}`}>
         {/* --- DESKTOP VIEW --- */}
         <div className="hidden lg:block h-full">
           {view === 'weather' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 h-full">
-              <div className="overflow-y-auto pr-2 space-y-6">
+            <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 p-6 ${isScrollLayout ? '' : 'h-full'}`}>
+              <div className={`${isScrollLayout ? '' : 'overflow-y-auto pr-2'} space-y-6`}>
                 <DesktopWeather {...weatherProps} />
               </div>
-              <div className="h-full rounded-3xl overflow-hidden">
+              <div className={`${isScrollLayout ? 'h-[600px]' : 'h-full'} rounded-3xl overflow-hidden`}>
                 <MapView lat={currentCoords?.lat} lon={currentCoords?.lon} />
               </div>
             </div>
@@ -367,25 +393,30 @@ const App: React.FC = () => {
         
         {/* --- MOBILE VIEW --- */}
         <div className="lg:hidden h-full">
-          <div className={`${view === 'weather' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24`}>
+          <div className={`${view === 'weather' ? 'block' : 'hidden'} ${isScrollLayout ? 'h-auto pb-24' : 'h-full overflow-y-auto pb-24'}`}>
             <WeatherView {...weatherProps} />
           </div>
-          <div className={`${view === 'ai' ? 'block' : 'hidden'} h-full`}>
+          <div className={`${view === 'ai' ? 'block' : 'hidden'} ${isScrollLayout ? 'h-auto pb-24' : 'h-full overflow-y-auto pb-24'}`}>
+             {/* Note: Chat history handles its own scroll usually, but in scroll layout we might want page scroll. 
+                 For now, AI view works best with its own internal scroll to keep input fixed, 
+                 so we might want to force fixed layout for AI too, but user asked for global option.
+                 Let's stick to internal scroll for AI to ensure input stays visible. 
+                 Actually, ChatHistory is designed to fill space. */}
             <AiView {...aiViewProps} />
           </div>
           <div className={`${view === 'map' ? 'block' : 'hidden'} h-full pb-24`}>
              <MapView lat={currentCoords?.lat} lon={currentCoords?.lon} />
           </div>
-          <div className={`${view === 'news' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24`}>
+          <div className={`${view === 'news' ? 'block' : 'hidden'} ${isScrollLayout ? 'h-auto pb-24' : 'h-full overflow-y-auto pb-24'}`}>
             <PlaceholderView title="Notícias" />
           </div>
-           <div className={`${view === 'settings' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24`}>
+           <div className={`${view === 'settings' ? 'block' : 'hidden'} ${isScrollLayout ? 'h-auto pb-24' : 'h-full overflow-y-auto pb-24'}`}>
              <SettingsView onSettingsChanged={setSettings} />
           </div>
-           <div className={`${view === 'tips' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24`}>
+           <div className={`${view === 'tips' ? 'block' : 'hidden'} ${isScrollLayout ? 'h-auto pb-24' : 'h-full overflow-y-auto pb-24'}`}>
             <PlaceholderView title="Dicas" />
           </div>
-           <div className={`${view === 'info' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24`}>
+           <div className={`${view === 'info' ? 'block' : 'hidden'} ${isScrollLayout ? 'h-auto pb-24' : 'h-full overflow-y-auto pb-24'}`}>
             <PlaceholderView title="Informações" />
           </div>
         </div>
