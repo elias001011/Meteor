@@ -39,7 +39,10 @@ const MapView: React.FC<MapViewProps> = ({ lat, lon }) => {
         
         baseLayersRef.current.relief = L.tileLayer('/.netlify/functions/weather?endpoint=relief&z={z}&x={x}&y={y}', {
              attribution: '&copy; <a href="https://openweathermap.org/" target="_blank">OpenWeather</a>',
-             maxZoom: 19
+             maxZoom: 19,
+             errorTileUrl: '' // Don't show broken image icon
+        }).on('tileerror', () => {
+            console.warn("Relief layer failed to load (likely paid API).");
         });
         
         const hasCoords = lat !== undefined && lon !== undefined;
@@ -139,7 +142,24 @@ const MapView: React.FC<MapViewProps> = ({ lat, lon }) => {
             setActiveOverlay(null);
         } else {
             const tileUrl = `/.netlify/functions/weather?endpoint=tile&layer=${layerName}&z={z}&x={x}&y={y}`;
-            const newLayer = L.tileLayer(tileUrl, { opacity: 0.7, zIndex: 10 });
+            const newLayer = L.tileLayer(tileUrl, { 
+                opacity: 0.7, 
+                zIndex: 10,
+                errorTileUrl: '' // Don't show ugly broken image icons
+            });
+            
+            // Graceful degradation: If the tile layer fails (e.g., 401 Unauthorized because it's a paid layer), remove it.
+            newLayer.on('tileerror', () => {
+                console.warn(`Layer ${layerName} failed to load (API limit or paid feature). Removing layer.`);
+                if (map.hasLayer(newLayer)) {
+                    map.removeLayer(newLayer);
+                    if (activeOverlayRef.current === newLayer) {
+                        activeOverlayRef.current = null;
+                        setActiveOverlay(null);
+                    }
+                }
+            });
+
             newLayer.addTo(map);
             activeOverlayRef.current = newLayer;
             setActiveOverlay(layerName);

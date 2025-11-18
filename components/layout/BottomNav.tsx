@@ -8,13 +8,15 @@ interface BottomNavProps {
   setView: (view: View) => void;
 }
 
-const NavItem: React.FC<{
+interface NavItemProps {
   icon: React.ReactNode;
   label: string;
   isActive: boolean;
   onClick: () => void;
   className?: string;
-}> = ({ icon, label, isActive, onClick, className = '' }) => (
+}
+
+const NavItem: React.FC<NavItemProps> = ({ icon, label, isActive, onClick, className = '' }) => (
   <button onClick={onClick} className={`flex flex-col items-center justify-center w-16 text-center transition-colors duration-200 ${isActive ? 'text-cyan-400' : 'text-gray-400 hover:text-white'} ${className}`}>
     {icon}
     <span className="text-xs mt-1 truncate">{label}</span>
@@ -30,15 +32,15 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeView, setView }) => {
   }
 
   return (
-    <div className="fixed bottom-0 inset-x-0 z-[60] px-4">
+    <div className="fixed bottom-0 inset-x-0 z-[100] px-4">
       {isMoreMenuOpen && (
         <div 
-            className="fixed inset-0 bg-black/30 z-[55]" 
+            className="fixed inset-0 bg-black/30 z-[90]" 
             onClick={() => setIsMoreMenuOpen(false)}
             aria-hidden="true"
         ></div>
       )}
-      <div className="absolute bottom-24 right-4 z-[70]">
+      <div className="absolute bottom-24 right-4 z-[110]">
         {isMoreMenuOpen && (
             <div className="bg-gray-700/80 backdrop-blur-lg border border-gray-600/50 rounded-2xl shadow-lg flex flex-col items-start p-2 gap-1">
                 <NavItem icon={<NewspaperIcon className="w-5 h-5" />} label="Notícias" isActive={activeView === 'news'} onClick={() => handleMoreClick('news')} className="w-full !flex-row !justify-start gap-3 !h-10 px-2" />

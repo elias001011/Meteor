@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import type { AppSettings, View } from '../../types';
+import type { AppSettings, View, DataSource } from '../../types';
 import { getSettings, saveSettings, exportAppData, importAppData, resetSettings, resetCache, resetAllData } from '../../services/settingsService';
 import CitySelectionModal from '../common/CitySelectionModal';
 import ImportModal from './ImportModal';
@@ -140,6 +140,27 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsChanged }) => {
                             <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.showClock ? 'translate-x-6' : 'translate-x-0'}`} />
                         </button>
                     </div>
+                </div>
+            </section>
+
+             {/* --- DATA SOURCE --- */}
+             <section className="bg-gray-800/50 rounded-2xl p-5 border border-gray-700/50">
+                <h3 className="text-lg font-semibold text-cyan-400 mb-4">Dados Meteorológicos</h3>
+                <div className="flex flex-col gap-2">
+                    <label className="text-sm text-gray-300">Fonte de Dados Preferida</label>
+                    <select 
+                        value={settings.weatherSource}
+                        onChange={(e) => handleSave({ weatherSource: e.target.value as DataSource | 'auto' })}
+                        className="bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-cyan-500 outline-none"
+                    >
+                        <option value="auto">Automático (Recomendado)</option>
+                        <option value="onecall">OpenWeather (OneCall/Pro)</option>
+                        <option value="free">OpenWeather (Padrão/Gratuito)</option>
+                        <option value="open-meteo">Open-Meteo (Open Source)</option>
+                    </select>
+                    <p className="text-xs text-gray-500">
+                        Define de onde o Meteor deve tentar buscar os dados primeiro. O modo Automático gerencia limites e falhas automaticamente.
+                    </p>
                 </div>
             </section>
 

@@ -1,3 +1,4 @@
+
 // FIX: Module '"@netlify/functions"' has no exported member 'getStore'. This is likely due to a version mismatch. Importing `getStore` directly from `@netlify/blobs` as a documented fallback.
 import { type Handler, type HandlerEvent, type HandlerContext } from "@netlify/functions";
 import { getStore } from "@netlify/blobs";
@@ -219,26 +220,28 @@ const fetchWithOneCall = async (lat: string, lon: string) => {
 
 
 const fetchWithFreeTier = async (lat: string, lon: string) => {
-    console.log("Attempting to fetch data from Developer Tier APIs");
+    console.log("Attempting to fetch data from Free Tier APIs (Standard + Forecast 5d/3h)");
+    
+    // Use ONLY the free endpoints. 
+    // 'weather' = Current weather
+    // 'forecast' = 5 Day / 3 Hour Forecast. We will manually aggregate this to create daily/hourly views.
     const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&lang=pt_br&appid=${API_KEY}`;
-    const hourlyUrl = `https://pro.openweathermap.org/data/2.5/forecast/hourly?lat=${lat}&lon=${lon}&units=metric&lang=pt_br&appid=${API_KEY}`;
-    const dailyUrl = `https://api.openweathermap.org/data/2.5/forecast/daily?lat=${lat}&lon=${lon}&cnt=7&units=metric&lang=pt_br&appid=${API_KEY}`;
+    const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&lang=pt_br&appid=${API_KEY}`;
     const airPollutionUrl = `https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${API_KEY}`;
     
-    const [weatherRes, hourlyRes, dailyRes, airPollutionRes] = await Promise.all([
+    const [weatherRes, forecastRes, airPollutionRes] = await Promise.all([
         fetch(weatherUrl),
-        fetch(hourlyUrl),
-        fetch(dailyUrl),
+        fetch(forecastUrl),
         fetch(airPollutionUrl)
     ]);
 
-    if (!weatherRes.ok || !hourlyRes.ok || !dailyRes.ok) {
-        const error = !weatherRes.ok ? await weatherRes.json() : (!hourlyRes.ok ? await hourlyRes.json() : await dailyRes.json());
-        throw new Error(error.message || 'Falha ao buscar dados essenciais do clima.');
+    if (!weatherRes.ok || !forecastRes.ok) {
+        const error = !weatherRes.ok ? await weatherRes.json() : await forecastRes.json();
+        throw new Error(error.message || 'Falha ao buscar dados do nível gratuito.');
     }
-    console.log("Successfully fetched data from Developer Tier APIs");
+    console.log("Successfully fetched data from Free Tier APIs");
 
-    const [weatherApiData, hourlyApiData, dailyApiData] = await Promise.all([ weatherRes.json(), hourlyRes.json(), dailyRes.json() ]);
+    const [weatherApiData, forecastApiData] = await Promise.all([ weatherRes.json(), forecastRes.json() ]);
     
     let airPollutionApiData = null;
     if (airPollutionRes.ok) {
@@ -266,19 +269,51 @@ const fetchWithFreeTier = async (lat: string, lon: string) => {
         sunset: weatherApiData.sys.sunset,
     };
     
-    const hourlyForecast = hourlyApiData.list.slice(0, 8).map((item: any) => ({
+    // Process "Hourly" (It's actually every 3 hours, but we map it as hourly for the UI)
+    // Take the first 8 segments (24 hours)
+    const hourlyForecast = forecastApiData.list.slice(0, 8).map((item: any) => ({
         dt: item.dt,
         temperature: item.main.temp,
         conditionIcon: mapOwmIconToEmoji(item.weather[0].icon),
         pop: item.pop,
     }));
     
-    const dailyForecast = dailyApiData.list.map((item: any) => ({
-        dt: item.dt,
-        temperature: item.temp.max,
-        conditionIcon: mapOwmIconToEmoji(item.weather[0].icon),
-        pop: item.pop,
-    }));
+    // Process "Daily" (Aggregate the 3-hour segments by day)
+    const dailyMap = new Map();
+    
+    forecastApiData.list.forEach((item: any) => {
+        const date = new Date(item.dt * 1000).toISOString().split('T')[0]; // YYYY-MM-DD
+        
+        if (!dailyMap.has(date)) {
+            dailyMap.set(date, {
+                dt: item.dt, // Use timestamp of first occurrence
+                temps: [],
+                icons: [],
+                pops: []
+            });
+        }
+        
+        const dayData = dailyMap.get(date);
+        dayData.temps.push(item.main.temp);
+        dayData.icons.push(item.weather[0].icon);
+        dayData.pops.push(item.pop);
+    });
+
+    // Convert map to array and format
+    const dailyForecast = Array.from(dailyMap.values()).slice(0, 5).map((day: any) => {
+        const maxTemp = Math.max(...day.temps);
+        // Find most frequent icon (simple mode) or just take noon icon. Let's take the middle one.
+        const midIndex = Math.floor(day.icons.length / 2);
+        const icon = day.icons[midIndex];
+        const maxPop = Math.max(...day.pops);
+
+        return {
+            dt: day.dt,
+            temperature: maxTemp,
+            conditionIcon: mapOwmIconToEmoji(icon),
+            pop: maxPop
+        };
+    });
 
     const airQualityData = airPollutionApiData && airPollutionApiData.list?.[0]
         ? { aqi: airPollutionApiData.list[0].main.aqi, components: airPollutionApiData.list[0].components }
@@ -289,7 +324,7 @@ const fetchWithFreeTier = async (lat: string, lon: string) => {
         airQualityData,
         hourlyForecast,
         dailyForecast,
-        alerts: [],
+        alerts: [], // Free tier does not have alerts
         dataSource: 'free' as const,
     };
 };
@@ -317,13 +352,25 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
                 let fallbackStatus: 'onecall_failed' | 'free_tier_failed' | null = null;
                 
                 if (source === 'onecall') {
-                    weatherBundle = await fetchWithOneCall(lat, lon);
+                    try {
+                        weatherBundle = await fetchWithOneCall(lat, lon);
+                    } catch (error) {
+                         console.warn(`Explicit OneCall failed: ${error.message}. Fallback to free.`);
+                         fallbackStatus = 'onecall_failed';
+                         weatherBundle = await fetchWithFreeTier(lat, lon);
+                    }
                 } else if (source === 'free') {
-                    weatherBundle = await fetchWithFreeTier(lat, lon);
+                    try {
+                        weatherBundle = await fetchWithFreeTier(lat, lon);
+                    } catch (error) {
+                         console.warn(`Explicit Free failed: ${error.message}. Fallback to Open-Meteo.`);
+                         fallbackStatus = 'free_tier_failed';
+                         weatherBundle = await fetchWithOpenMeteo(lat, lon);
+                    }
                 } else if (source === 'open-meteo') {
-                    weatherBundle = await fetchWithOpenMeteo(lat, lon);
+                     weatherBundle = await fetchWithOpenMeteo(lat, lon);
                 } else {
-                    // AUTO MODE (default fallback behavior)
+                    // AUTO MODE (Logic: Try OneCall -> Check Limit -> Fallback to Free -> Fallback to Open-Meteo)
                     let useFallbackDirectly = false;
                     try {
                         const store = getStore("onecall-rate-limit");
@@ -362,12 +409,12 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
                                 console.warn(`[Rate Limit Info] Failed to increment rate limit counter. Error: ${blobError.message}`);
                             }
                         } catch (error) {
-                            console.warn(`One Call API failed: ${error.message}. Falling back to developer tier APIs.`);
+                            console.warn(`One Call API failed: ${error.message}. Falling back to free tier APIs.`);
                             fallbackStatus = 'onecall_failed';
                             try {
                                 weatherBundle = await fetchWithFreeTier(lat, lon);
                             } catch (error2) {
-                                console.warn(`Developer tier APIs also failed: ${error2.message}. Falling back to Open-Meteo.`);
+                                console.warn(`Free tier APIs also failed: ${error2.message}. Falling back to Open-Meteo.`);
                                 fallbackStatus = 'free_tier_failed';
                                 weatherBundle = await fetchWithOpenMeteo(lat, lon);
                             }
@@ -442,20 +489,33 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
                 const { layer, z, x, y } = params;
                 if (!layer || !z || !x || !y) return { statusCode: 400, body: JSON.stringify({ message: "Parâmetros de tile ausentes." }) };
                 const tileUrl = `https://maps.openweathermap.org/maps/2.0/weather/${layer}/${z}/${x}/${y}?appid=${API_KEY}`;
-                const response = await fetch(tileUrl);
-                if (!response.ok) throw new Error(`Erro ao buscar tile: ${response.statusText}`);
-                const buffer = await response.arrayBuffer();
-                return { statusCode: 200, headers: { 'Content-Type': 'image/png' }, body: Buffer.from(buffer).toString('base64'), isBase64Encoded: true };
+                
+                try {
+                    const response = await fetch(tileUrl);
+                    // Explicitly handle 401/403/404 for tiles to allow graceful client-side fallback
+                    if (!response.ok) {
+                        console.warn(`Tile fetch failed: ${response.status} ${response.statusText} for ${layer}`);
+                        return { statusCode: response.status, body: '' }; 
+                    }
+                    const buffer = await response.arrayBuffer();
+                    return { statusCode: 200, headers: { 'Content-Type': 'image/png' }, body: Buffer.from(buffer).toString('base64'), isBase64Encoded: true };
+                } catch (e) {
+                    return { statusCode: 500, body: '' };
+                }
             }
 
             case 'relief': {
                 const { z, x, y } = params;
                 if (!z || !x || !y) return { statusCode: 400, body: JSON.stringify({ message: "Parâmetros de tile de relevo ausentes." }) };
                 const tileUrl = `https://maps.openweathermap.org/maps/2.0/relief/${z}/${x}/${y}?appid=${API_KEY}`;
-                 const response = await fetch(tileUrl);
-                if (!response.ok) throw new Error(`Erro ao buscar tile de relevo: ${response.statusText}`);
-                const buffer = await response.arrayBuffer();
-                return { statusCode: 200, headers: { 'Content-Type': 'image/png' }, body: Buffer.from(buffer).toString('base64'), isBase64Encoded: true };
+                 try {
+                    const response = await fetch(tileUrl);
+                    if (!response.ok) return { statusCode: response.status, body: '' };
+                    const buffer = await response.arrayBuffer();
+                    return { statusCode: 200, headers: { 'Content-Type': 'image/png' }, body: Buffer.from(buffer).toString('base64'), isBase64Encoded: true };
+                 } catch(e) {
+                     return { statusCode: 500, body: '' };
+                 }
             }
 
             default:

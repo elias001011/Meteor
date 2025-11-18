@@ -108,7 +108,8 @@ export type StartupBehavior = 'last_location' | 'idle' | 'specific_location' | '
 export interface AppSettings {
     userName: string;
     showClock: boolean;
-    startFullscreen: boolean; // New setting
+    startFullscreen: boolean;
+    weatherSource: DataSource | 'auto';
     startupBehavior: StartupBehavior;
     specificLocation?: CitySearchResult; // Used if startupBehavior is 'specific_location'
     startupSection?: View; // Used if startupBehavior is 'custom_section'
