@@ -13,7 +13,8 @@ const DEFAULT_SETTINGS: AppSettings = {
     aiCustomInstructions: '',
     startupSection: 'weather',
     themeColor: 'cyan',
-    transparencyLevel: 'none', // Default is now none
+    dynamicTheme: false,
+    transparencyLevel: 'none', 
     rainAnimation: {
         enabled: true,
         intensity: 'low'

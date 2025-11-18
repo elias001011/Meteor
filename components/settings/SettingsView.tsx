@@ -116,14 +116,31 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsChanged }) => {
                 <h3 className={`text-lg font-semibold ${classes.text} mb-4`}>Personalização</h3>
                 <div className="space-y-6">
                     
+                    {/* Dynamic Theme Toggle */}
+                    <div className="flex items-center justify-between pb-4 border-b border-gray-700/30">
+                        <div className="flex flex-col">
+                            <span className="text-gray-300">Tema Dinâmico</span>
+                            <span className="text-xs text-gray-500">Muda a cor com base no clima e na hora do dia.</span>
+                        </div>
+                        <button 
+                            onClick={() => handleSave({ dynamicTheme: !settings.dynamicTheme })}
+                            className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${settings.dynamicTheme ? classes.bg : 'bg-gray-600'}`}
+                        >
+                            <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.dynamicTheme ? 'translate-x-6' : 'translate-x-0'}`} />
+                        </button>
+                    </div>
+
                     {/* Theme Color */}
-                    <div>
-                        <label className="text-sm text-gray-300 mb-3 block">Cor do Tema</label>
+                    <div className={`transition-opacity duration-300 ${settings.dynamicTheme ? 'opacity-50 pointer-events-none grayscale' : 'opacity-100'}`}>
+                        <label className="text-sm text-gray-300 mb-3 block">
+                            Cor do Tema {settings.dynamicTheme && '(Controlado pela IA)'}
+                        </label>
                         <div className="flex flex-wrap gap-3">
                             {themes.map((theme) => (
                                 <button
                                     key={theme.id}
                                     onClick={() => handleSave({ themeColor: theme.id })}
+                                    disabled={settings.dynamicTheme}
                                     className={`w-10 h-10 rounded-full ${theme.color} transition-transform hover:scale-110 focus:outline-none ring-2 ring-offset-2 ring-offset-gray-800 ${settings.themeColor === theme.id ? `ring-white scale-110` : 'ring-transparent'}`}
                                     aria-label={`Selecionar tema ${theme.name}`}
                                     title={theme.name}
@@ -148,7 +165,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsChanged }) => {
                                 ))}
                              </div>
                              <p className="text-xs text-gray-500">
-                                "Baixo" oferece um visual moderno sem afetar muito o contraste. "Alto" aplica o efeito "vidro fosco".
+                                "Baixo" oferece um visual moderno. "Alto" aplica um efeito de vidro fosco intenso (transparente).
                             </p>
                         </div>
 
