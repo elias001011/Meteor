@@ -8,8 +8,8 @@ type WeatherLayer = 'TA2' | 'CL' | 'PR0' | 'APM' | 'WS10';
 type BaseLayer = 'standard' | 'relief';
 
 interface MapViewProps {
-    lat: number;
-    lon: number;
+    lat?: number;
+    lon?: number;
 }
 
 const MapView: React.FC<MapViewProps> = ({ lat, lon }) => {
@@ -23,6 +23,10 @@ const MapView: React.FC<MapViewProps> = ({ lat, lon }) => {
     const [isLayerMenuOpen, setIsLayerMenuOpen] = useState(false);
     const [activeBaseLayer, setActiveBaseLayer] = useState<BaseLayer>('standard');
     const [activeOverlay, setActiveOverlay] = useState<WeatherLayer | null>(null);
+
+    // Default view (Brazil)
+    const DEFAULT_CENTER = [-14.2350, -51.9253];
+    const DEFAULT_ZOOM = 4;
 
     // Effect for map initialization (runs only once)
     useEffect(() => {
@@ -38,20 +42,27 @@ const MapView: React.FC<MapViewProps> = ({ lat, lon }) => {
              maxZoom: 19
         });
         
+        const hasCoords = lat !== undefined && lon !== undefined;
+        const initialCenter = hasCoords ? [lat, lon] : DEFAULT_CENTER;
+        const initialZoom = hasCoords ? 10 : DEFAULT_ZOOM;
+
         const map = L.map(mapContainerRef.current, { 
             zoomControl: false,
             layers: [baseLayersRef.current.standard] // Default layer
-        }).setView([lat, lon], 10);
+        }).setView(initialCenter, initialZoom);
 
         L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-        const customIcon = L.icon({
-            iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-            shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-            iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
-        });
+        // Only create marker if we have initial coords
+        if (hasCoords) {
+            const customIcon = L.icon({
+                iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+                shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+                iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+            });
+            markerRef.current = L.marker([lat, lon], { icon: customIcon }).addTo(map);
+        }
         
-        markerRef.current = L.marker([lat, lon], { icon: customIcon }).addTo(map);
         mapInstanceRef.current = map;
 
         const resizeObserver = new ResizeObserver(() => {
@@ -68,10 +79,31 @@ const MapView: React.FC<MapViewProps> = ({ lat, lon }) => {
 
     // Effect for updating map view and marker when props change
     useEffect(() => {
-        if (mapInstanceRef.current && markerRef.current) {
+        const map = mapInstanceRef.current;
+        if (!map) return;
+
+        if (lat !== undefined && lon !== undefined) {
+            // We have specific coordinates
             const newLatLng = L.latLng(lat, lon);
-            mapInstanceRef.current.setView(newLatLng, 10);
-            markerRef.current.setLatLng(newLatLng);
+            map.setView(newLatLng, 10);
+
+            if (markerRef.current) {
+                markerRef.current.setLatLng(newLatLng);
+            } else {
+                const customIcon = L.icon({
+                    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+                    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+                    iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+                });
+                markerRef.current = L.marker([lat, lon], { icon: customIcon }).addTo(map);
+            }
+        } else {
+            // No coordinates (reset to default view)
+            map.setView(DEFAULT_CENTER, DEFAULT_ZOOM);
+            if (markerRef.current) {
+                map.removeLayer(markerRef.current);
+                markerRef.current = null;
+            }
         }
     }, [lat, lon]);
 

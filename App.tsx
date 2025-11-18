@@ -280,19 +280,14 @@ const App: React.FC = () => {
                 <DesktopWeather {...weatherProps} />
               </div>
               <div className="h-full rounded-3xl overflow-hidden">
-                {currentCoords ? (
-                    <MapView lat={currentCoords.lat} lon={currentCoords.lon} />
-                ) : (
-                    <div className="w-full h-full bg-gray-800 rounded-3xl flex items-center justify-center text-gray-500">
-                        <p>Mapa indisponível</p>
-                    </div>
-                )}
+                {/* Always render MapView, passing undefined coords if not available */}
+                <MapView lat={currentCoords?.lat} lon={currentCoords?.lon} />
               </div>
             </div>
           )}
           {view === 'ai' && <AiView {...aiViewProps} />}
           {view === 'map' && (
-            currentCoords ? <MapView lat={currentCoords.lat} lon={currentCoords.lon} /> : <PlaceholderView title="Mapa" />
+            <MapView lat={currentCoords?.lat} lon={currentCoords?.lon} />
           )}
           {view === 'news' && <PlaceholderView title="Notícias" />}
           {view === 'settings' && <PlaceholderView title="Ajustes" />}
@@ -309,7 +304,7 @@ const App: React.FC = () => {
             <AiView {...aiViewProps} />
           </div>
           <div className={`${view === 'map' ? 'block' : 'hidden'} h-full pb-24`}>
-             {currentCoords ? <MapView lat={currentCoords.lat} lon={currentCoords.lon} /> : <div className="flex items-center justify-center h-full text-gray-400">Nenhuma localização selecionada</div>}
+             <MapView lat={currentCoords?.lat} lon={currentCoords?.lon} />
           </div>
           <div className={`${view === 'news' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24`}>
             <PlaceholderView title="Notícias" />
