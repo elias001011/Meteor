@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import WeatherView from './components/weather/WeatherView';
 import AiView from './components/ai/AiView';
@@ -133,8 +135,8 @@ const App: React.FC = () => {
   useEffect(() => {
       const metaThemeColor = document.querySelector('meta[name="theme-color"]');
       if (metaThemeColor) {
-          // Always use the dark background color for the PWA frame to look integrated
-          metaThemeColor.setAttribute('content', '#111827');
+          // Always use the specific dark background color (matches Header)
+          metaThemeColor.setAttribute('content', '#131B2E');
       }
   }, []);
 
@@ -394,7 +396,7 @@ const App: React.FC = () => {
 
 
   return (
-    <ThemeProvider theme={activeTheme} glassEffectEnabled={settings.glassEffectEnabled}>
+    <ThemeProvider theme={activeTheme} transparencyMode={settings.transparencyMode}>
       <div className="relative bg-gray-900 text-white min-h-screen font-sans flex flex-col h-screen overflow-hidden">
         {view === 'weather' && isRaining && settings.rainAnimation.enabled && (
             <RainAnimation intensity={settings.rainAnimation.intensity} />

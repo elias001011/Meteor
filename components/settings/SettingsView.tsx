@@ -1,7 +1,9 @@
 
 
+
+
 import React, { useState, useEffect } from 'react';
-import type { AppSettings, View, DataSource, AppTheme } from '../../types';
+import type { AppSettings, View, DataSource, AppTheme, TransparencyMode } from '../../types';
 import { getSettings, saveSettings, exportAppData, importAppData, resetSettings, resetCache, resetAllData } from '../../services/settingsService';
 import CitySelectionModal from '../common/CitySelectionModal';
 import ImportModal from './ImportModal';
@@ -90,6 +92,12 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
         { id: 'rose', name: 'Floral', color: 'bg-rose-600' },
         { id: 'amber', name: 'Solar', color: 'bg-amber-500' },
     ];
+
+    const transparencyOptions: { id: TransparencyMode, label: string }[] = [
+        { id: 'off', label: 'Desativado' },
+        { id: 'low', label: 'Ligado' },
+        { id: 'glass', label: 'Vidro' }
+    ];
     
     return (
         <div className="p-6 max-w-3xl mx-auto space-y-8 pb-32">
@@ -143,17 +151,26 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
 
                     {/* Visual Effects */}
                     <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <div className="flex flex-col">
-                                <span className="text-gray-300">Efeito de Vidro (Glass)</span>
-                                <span className="text-xs text-gray-500">Aplica um efeito translúcido na barra superior e navegação.</span>
+                        <div>
+                            <div className="flex flex-col mb-2">
+                                <span className="text-gray-300">Transparência</span>
+                                <span className="text-xs text-gray-500">Controle os efeitos visuais da interface.</span>
                             </div>
-                            <button 
-                                onClick={() => handleSave({ glassEffectEnabled: !settings.glassEffectEnabled })}
-                                className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${settings.glassEffectEnabled ? classes.bg : 'bg-gray-600'}`}
-                            >
-                                <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.glassEffectEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
-                            </button>
+                            <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-700/50">
+                                {transparencyOptions.map((option) => (
+                                    <button
+                                        key={option.id}
+                                        onClick={() => handleSave({ transparencyMode: option.id })}
+                                        className={`flex-1 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                                            settings.transparencyMode === option.id 
+                                                ? 'bg-gray-700 text-white shadow-md' 
+                                                : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
+                                        }`}
+                                    >
+                                        {option.label}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
 
                         <div className="flex items-center justify-between pt-4 border-t border-gray-700/30">
@@ -415,7 +432,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
 
             <div className="text-center pt-8 pb-4">
                 <p className="text-xs text-gray-500">
-                    Versão 2.0. Desenvolvido por{' '}
+                    Versão 2.1. Desenvolvido por{' '}
                     <a 
                         href="https://www.instagram.com/elias_jrnunes/" 
                         target="_blank" 
