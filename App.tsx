@@ -82,19 +82,26 @@ const App: React.FC = () => {
 
           // Handle Fullscreen logic
           if (savedSettings.startFullscreen) {
-             const enterFullscreen = () => {
+             const enterFullscreen = async () => {
+                 // Check if we are already in fullscreen to avoid errors
                  if (!document.fullscreenElement) {
-                     document.documentElement.requestFullscreen().catch(e => console.log("Auto-fullscreen blocked until interaction", e));
+                     try {
+                        await document.documentElement.requestFullscreen();
+                        // Only remove listeners if the request was successful
+                        window.removeEventListener('click', enterFullscreen);
+                        window.removeEventListener('touchend', enterFullscreen);
+                        window.removeEventListener('keydown', enterFullscreen);
+                     } catch (e) {
+                        // If blocked, keep listening for the next valid gesture
+                        console.log("Auto-fullscreen deferred, waiting for valid gesture.", e);
+                     }
                  }
-                 // Remove listeners once triggered
-                 window.removeEventListener('click', enterFullscreen);
-                 window.removeEventListener('touchstart', enterFullscreen);
-                 window.removeEventListener('keydown', enterFullscreen);
              };
 
-             // Browsers require user interaction for fullscreen. We attach a one-time listener.
+             // Browsers require user interaction for fullscreen. We attach listeners to common gestures.
+             // Using 'touchend' instead of 'touchstart' is more reliable on mobile browsers.
              window.addEventListener('click', enterFullscreen);
-             window.addEventListener('touchstart', enterFullscreen);
+             window.addEventListener('touchend', enterFullscreen);
              window.addEventListener('keydown', enterFullscreen);
           }
 
