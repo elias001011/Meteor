@@ -381,7 +381,7 @@ const App: React.FC = () => {
 
 
   return (
-    <ThemeProvider theme={activeTheme} transparencyLevel={settings.transparencyLevel}>
+    <ThemeProvider theme={activeTheme} glassEffectEnabled={settings.glassEffectEnabled}>
       <div className="relative bg-gray-900 text-white min-h-screen font-sans flex flex-col h-screen overflow-hidden">
         {view === 'weather' && isRaining && settings.rainAnimation.enabled && (
             <RainAnimation intensity={settings.rainAnimation.intensity} />

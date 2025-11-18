@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { DataSource } from '../../types';
 import { XIcon } from '../icons';
+import { useTheme } from '../context/ThemeContext';
 
 interface DataSourceModalProps {
   isOpen: boolean;
@@ -39,6 +40,7 @@ const DataSourceModal: React.FC<DataSourceModalProps> = ({
   onSourceChange,
 }) => {
   const [selectedSource, setSelectedSource] = useState<DataSource | 'auto'>(preferredSource);
+  const { glassClass } = useTheme();
 
   useEffect(() => {
     setSelectedSource(preferredSource);
@@ -59,7 +61,7 @@ const DataSourceModal: React.FC<DataSourceModalProps> = ({
         aria-labelledby="dataSourceModalTitle"
     >
         <div 
-            className="bg-gray-800 border border-gray-700/50 rounded-2xl shadow-lg w-full max-w-md max-h-[90vh] flex flex-col"
+            className={`${glassClass} border border-gray-700/50 rounded-2xl shadow-lg w-full max-w-md max-h-[90vh] flex flex-col`}
             onClick={e => e.stopPropagation()}
         >
             <header className="flex items-center justify-between p-4 border-b border-gray-700/50 flex-shrink-0">

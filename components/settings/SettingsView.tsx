@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import type { AppSettings, View, DataSource, AppTheme, TransparencyLevel } from '../../types';
+import type { AppSettings, View, DataSource, AppTheme } from '../../types';
 import { getSettings, saveSettings, exportAppData, importAppData, resetSettings, resetCache, resetAllData } from '../../services/settingsService';
 import CitySelectionModal from '../common/CitySelectionModal';
 import ImportModal from './ImportModal';
@@ -93,12 +93,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsChanged }) => {
         { id: 'amber', name: 'Solar', color: 'bg-amber-500' },
     ];
     
-    const transparencyOptions: { id: TransparencyLevel, label: string }[] = [
-        { id: 'none', label: 'Desligado' },
-        { id: 'low', label: 'Baixo' },
-        { id: 'high', label: 'Alto' },
-    ];
-
     return (
         <div className="p-6 max-w-3xl mx-auto space-y-8 pb-32">
             <h2 className="text-2xl font-bold text-white flex items-center gap-2">
@@ -151,22 +145,17 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsChanged }) => {
 
                     {/* Visual Effects */}
                     <div className="space-y-4">
-                        <div className="flex flex-col gap-2">
-                             <label className="text-sm text-gray-300">Efeitos de Transparência</label>
-                             <div className="flex bg-gray-900 rounded-lg p-1">
-                                {transparencyOptions.map((option) => (
-                                    <button
-                                        key={option.id}
-                                        onClick={() => handleSave({ transparencyLevel: option.id })}
-                                        className={`flex-1 py-2 rounded-md text-xs font-medium transition-colors ${settings.transparencyLevel === option.id ? 'bg-gray-700 text-white shadow' : 'text-gray-400 hover:text-white'}`}
-                                    >
-                                        {option.label}
-                                    </button>
-                                ))}
-                             </div>
-                             <p className="text-xs text-gray-500">
-                                "Baixo" oferece um visual moderno. "Alto" aplica um efeito de vidro fosco intenso (transparente).
-                            </p>
+                        <div className="flex items-center justify-between">
+                            <div className="flex flex-col">
+                                <span className="text-gray-300">Efeito de Vidro (Glass)</span>
+                                <span className="text-xs text-gray-500">Aplica um efeito translúcido na barra superior e navegação.</span>
+                            </div>
+                            <button 
+                                onClick={() => handleSave({ glassEffectEnabled: !settings.glassEffectEnabled })}
+                                className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${settings.glassEffectEnabled ? classes.bg : 'bg-gray-600'}`}
+                            >
+                                <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.glassEffectEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
+                            </button>
                         </div>
 
                         <div className="flex items-center justify-between pt-4 border-t border-gray-700/30">
