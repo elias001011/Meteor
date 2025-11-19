@@ -1,8 +1,9 @@
 
-import type { AppSettings, ExportData } from '../types';
+import type { AppSettings, ExportData, AppNotification } from '../types';
 
 const SETTINGS_KEY = 'meteor_settings';
 const WEATHER_CACHE_PREFIX = 'weather_data_';
+const NOTIFICATIONS_KEY = 'meteor_notifications';
 
 const DEFAULT_SETTINGS: AppSettings = {
     userName: '',
@@ -21,6 +22,14 @@ const DEFAULT_SETTINGS: AppSettings = {
     rainAnimation: {
         enabled: true,
         intensity: 'low'
+    },
+    notificationConfig: {
+        enabled: false,
+        historyEnabled: true, // Default on
+        time: "08:00",
+        days: [0, 1, 2, 3, 4, 5, 6], // Everyday
+        location: undefined,
+        separateAlerts: false
     }
 };
 
@@ -32,16 +41,13 @@ export const getSettings = (): AppSettings => {
         const parsed = JSON.parse(stored);
         
         // --- START MIGRATION LOGIC ---
-        // This logic smoothly transitions users from old settings formats to the new one.
         let migratedSettings = { ...parsed };
 
-        // 1. Migrate legacy `glassEffectEnabled` (boolean) to `transparencyMode`
         if (typeof parsed.glassEffectEnabled === 'boolean') {
             migratedSettings.transparencyMode = parsed.glassEffectEnabled ? 'glass' : 'off';
             delete migratedSettings.glassEffectEnabled;
         }
 
-        // 2. Migrate from legacy `transparencyLevel: 'none'|'low'|'high'` to `transparencyMode`
         if (typeof parsed.transparencyLevel === 'string') {
              if (parsed.transparencyLevel === 'none') migratedSettings.transparencyMode = 'off';
              else if (parsed.transparencyLevel === 'low') migratedSettings.transparencyMode = 'low';
@@ -49,21 +55,22 @@ export const getSettings = (): AppSettings => {
              delete migratedSettings.transparencyLevel;
         }
         
-        // 3. Migrate from even older legacy `enableTransparency`
         if (typeof migratedSettings.transparencyMode === 'undefined' && typeof parsed.enableTransparency === 'boolean') {
              migratedSettings.transparencyMode = parsed.enableTransparency ? 'glass' : 'off';
              delete migratedSettings.enableTransparency;
         }
         // --- END MIGRATION LOGIC ---
 
-        // Merge deeply to ensure new nested objects (like rainAnimation) are populated if missing in old data
-        // Also ensures clockDisplayMode is added for existing users
         return {
             ...DEFAULT_SETTINGS,
             ...migratedSettings,
             rainAnimation: {
                 ...DEFAULT_SETTINGS.rainAnimation,
                 ...(migratedSettings.rainAnimation || {})
+            },
+            notificationConfig: {
+                ...DEFAULT_SETTINGS.notificationConfig,
+                ...(migratedSettings.notificationConfig || {})
             }
         };
     } catch (e) {
@@ -101,11 +108,21 @@ export const exportAppData = (): void => {
             chatHistory = JSON.parse(storedChat);
         }
     } catch (e) {}
+    
+    // Include notifications
+    let notifications: AppNotification[] = [];
+    try {
+        const storedNotifs = localStorage.getItem(NOTIFICATIONS_KEY);
+        if (storedNotifs) {
+            notifications = JSON.parse(storedNotifs);
+        }
+    } catch (e) {}
 
     const exportPayload: ExportData = {
         settings,
         chatHistory,
         weatherCache,
+        notifications,
         timestamp: Date.now()
     };
 
@@ -128,27 +145,28 @@ export const importAppData = (
         const data: ExportData = JSON.parse(jsonContent);
 
         if (options.importSettings && data.settings) {
-            // Merge imported settings with defaults to ensure compatibility
             const mergedSettings = { 
                 ...DEFAULT_SETTINGS, 
                 ...data.settings,
                 rainAnimation: {
                     ...DEFAULT_SETTINGS.rainAnimation,
                     ...(data.settings.rainAnimation || {})
+                },
+                 notificationConfig: {
+                    ...DEFAULT_SETTINGS.notificationConfig,
+                    ...(data.settings.notificationConfig || {})
                 }
             };
             saveSettings(mergedSettings);
         }
 
         if (options.importCache && data.weatherCache) {
-            // Clear existing weather cache first
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
                 if (key && key.startsWith(WEATHER_CACHE_PREFIX)) {
                     localStorage.removeItem(key);
                 }
             }
-            // Restore
             Object.entries(data.weatherCache).forEach(([key, value]) => {
                 localStorage.setItem(key, JSON.stringify(value));
             });
@@ -156,6 +174,10 @@ export const importAppData = (
 
         if (options.importChat && data.chatHistory) {
             localStorage.setItem('chat_history', JSON.stringify(data.chatHistory));
+        }
+        
+        if (data.notifications) {
+             localStorage.setItem(NOTIFICATIONS_KEY, JSON.stringify(data.notifications));
         }
         
         return true;
