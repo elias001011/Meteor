@@ -153,29 +153,51 @@ export const scheduleNotifications = async (config: NotificationConfig) => {
 /**
  * Trigger a test notification immediately to verify permissions/style
  */
-export const triggerTestNotification = async () => {
-    if (Notification.permission !== 'granted') {
-        await Notification.requestPermission();
-    }
-    
-    if (Notification.permission === 'granted') {
-        // Check if we can use Service Worker notification (better for mobile)
-        const reg = await navigator.serviceWorker.getRegistration();
-        if (reg) {
-             reg.showNotification("Teste do Meteor", {
-                body: "As notificações estão ativas! ☄️",
-                icon: '/favicon.svg',
-                badge: '/favicon.svg'
-            });
+export const triggerTestNotification = async (): Promise<{ success: boolean; message: string }> => {
+    try {
+        if (!('Notification' in window)) {
+            return { success: false, message: "Navegador não suporta notificações." };
+        }
+
+        if (Notification.permission !== 'granted') {
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+                return { success: false, message: "Permissão de notificação negada pelo usuário." };
+            }
+        }
+        
+        // We must wait for the Service Worker to be ready to show a notification on Android properly
+        if ('serviceWorker' in navigator) {
+            try {
+                const registration = await navigator.serviceWorker.ready;
+                await registration.showNotification("Teste do Meteor", {
+                    body: "Seus alertas estão configurados corretamente! ☄️",
+                    icon: '/favicon.svg',
+                    badge: '/favicon.svg',
+                    vibrate: [200, 100, 200],
+                    tag: 'test-notification'
+                } as any);
+                return { success: true, message: "Notificação enviada via Service Worker." };
+            } catch (swError) {
+                console.error("SW Notification failed, trying fallback", swError);
+                // Fallback to standard API
+                new Notification("Teste do Meteor", {
+                    body: "Seus alertas estão configurados corretamente! ☄️",
+                    icon: '/favicon.svg'
+                });
+                return { success: true, message: "Notificação enviada via Fallback." };
+            }
         } else {
-            new Notification("Teste do Meteor", {
-                body: "As notificações estão ativas! ☄️",
+             new Notification("Teste do Meteor", {
+                body: "Seus alertas estão configurados corretamente! ☄️",
                 icon: '/favicon.svg'
             });
+            return { success: true, message: "Notificação enviada (Sem SW)." };
         }
-        return true;
+    } catch (e) {
+        console.error("Test Notification Error:", e);
+        return { success: false, message: `Erro: ${e instanceof Error ? e.message : 'Desconhecido'}` };
     }
-    return false;
 };
 
 /**
