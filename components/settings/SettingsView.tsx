@@ -504,7 +504,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
 
             <div className="text-center pt-8 pb-4">
                 <p className="text-xs text-gray-500">
-                    Versão 2.1. Desenvolvido por{' '}
+                    Versão 2.5. Desenvolvido por{' '}
                     <a 
                         href="https://www.instagram.com/elias_jrnunes/" 
                         target="_blank" 
