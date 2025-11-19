@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'meteor-cache-v3'; // Version bumped
+const CACHE_NAME = 'meteor-cache-v4'; // Version bumped for Notification features
 const APP_SHELL_URLS = [
   '/',
   '/index.html',

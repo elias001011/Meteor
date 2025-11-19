@@ -114,10 +114,12 @@ export const scheduleNotifications = async (config: NotificationConfig) => {
              }
         }
 
-        // For OFFLINE scheduling, force Open-Meteo (Free Source)
+        // For OFFLINE scheduling, force Open-Meteo (Free Source) to avoid spending OneCall quota on background tasks
         const weatherData = await fetchAllWeatherData(lat, lon, undefined, 'open-meteo');
         
+        // Find the forecast for the target day
         const targetDayStr = nextDate.toISOString().split('T')[0];
+        // Fallback to index 0 if exact day not found (should not happen usually)
         const forecast = weatherData.dailyForecast.find(d => new Date(d.dt * 1000).toISOString().split('T')[0] === targetDayStr) || weatherData.dailyForecast[0];
         
         const title = `Meteor: Previsão para ${name}`;
@@ -157,10 +159,20 @@ export const triggerTestNotification = async () => {
     }
     
     if (Notification.permission === 'granted') {
-        new Notification("Teste do Meteor", {
-            body: "As notificações estão ativas! ☄️",
-            icon: '/favicon.svg'
-        });
+        // Check if we can use Service Worker notification (better for mobile)
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (reg) {
+             reg.showNotification("Teste do Meteor", {
+                body: "As notificações estão ativas! ☄️",
+                icon: '/favicon.svg',
+                badge: '/favicon.svg'
+            });
+        } else {
+            new Notification("Teste do Meteor", {
+                body: "As notificações estão ativas! ☄️",
+                icon: '/favicon.svg'
+            });
+        }
         return true;
     }
     return false;

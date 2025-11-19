@@ -18,9 +18,9 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ activeView, setView, showClock, unreadCount, onOpenNotifications }) => {
   const { classes } = useTheme();
   
-  // Check if history is enabled to decide whether to show the bell
+  // Check if notification AND history is enabled to decide whether to show the bell
   const settings = getSettings();
-  const showNotifications = settings.notificationConfig.historyEnabled;
+  const showNotifications = settings.notificationConfig.enabled && settings.notificationConfig.historyEnabled;
 
   return (
     <header className={`fixed top-0 left-0 right-0 z-40 border-b transition-all duration-300 bg-[#131B2E] ${classes.borderFaded}`}>
