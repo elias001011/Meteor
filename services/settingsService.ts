@@ -1,8 +1,4 @@
 
-
-
-
-
 import type { AppSettings, ExportData } from '../types';
 
 const SETTINGS_KEY = 'meteor_settings';
@@ -95,9 +91,18 @@ export const exportAppData = (): void => {
         }
     }
 
+    // Include chat history in export if it exists
+    let chatHistory = [];
+    try {
+        const storedChat = localStorage.getItem('chat_history');
+        if (storedChat) {
+            chatHistory = JSON.parse(storedChat);
+        }
+    } catch (e) {}
+
     const exportPayload: ExportData = {
         settings,
-        chatHistory: [], // Placeholder for future implementation
+        chatHistory,
         weatherCache,
         timestamp: Date.now()
     };
@@ -145,6 +150,10 @@ export const importAppData = (
             Object.entries(data.weatherCache).forEach(([key, value]) => {
                 localStorage.setItem(key, JSON.stringify(value));
             });
+        }
+
+        if (options.importChat && data.chatHistory) {
+            localStorage.setItem('chat_history', JSON.stringify(data.chatHistory));
         }
         
         return true;
