@@ -7,6 +7,7 @@ const WEATHER_CACHE_PREFIX = 'weather_data_';
 const DEFAULT_SETTINGS: AppSettings = {
     userName: '',
     showClock: true,
+    clockDisplayMode: 'always', // Default to showing it always
     startFullscreen: false,
     weatherSource: 'auto',
     startupBehavior: 'idle',
@@ -56,6 +57,7 @@ export const getSettings = (): AppSettings => {
         // --- END MIGRATION LOGIC ---
 
         // Merge deeply to ensure new nested objects (like rainAnimation) are populated if missing in old data
+        // Also ensures clockDisplayMode is added for existing users
         return {
             ...DEFAULT_SETTINGS,
             ...migratedSettings,

@@ -107,10 +107,12 @@ export interface SearchResultItem {
 export type StartupBehavior = 'last_location' | 'idle' | 'specific_location' | 'custom_section';
 export type AppTheme = 'cyan' | 'blue' | 'purple' | 'emerald' | 'rose' | 'amber';
 export type TransparencyMode = 'off' | 'low' | 'glass';
+export type ClockDisplayMode = 'always' | 'different_zone' | 'never';
 
 export interface AppSettings {
     userName: string;
-    showClock: boolean;
+    showClock: boolean; // System clock in header
+    clockDisplayMode: ClockDisplayMode; // Local time in weather card
     startFullscreen: boolean;
     weatherSource: DataSource | 'auto';
     startupBehavior: StartupBehavior;

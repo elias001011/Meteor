@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import type { AppSettings, View, DataSource, AppTheme, TransparencyMode } from '../../types';
+import type { AppSettings, View, DataSource, AppTheme, TransparencyMode, ClockDisplayMode } from '../../types';
 import { getSettings, saveSettings, exportAppData, importAppData, resetSettings, resetCache, resetAllData } from '../../services/settingsService';
 import CitySelectionModal from '../common/CitySelectionModal';
 import ImportModal from './ImportModal';
@@ -267,13 +267,29 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
                     </div>
 
                     <div className="flex items-center justify-between">
-                        <span className="text-gray-300">Exibir Horário</span>
+                        <span className="text-gray-300">Relógio do Sistema (Topo)</span>
                         <button 
                             onClick={() => handleSave({ showClock: !settings.showClock })}
                             className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${settings.showClock ? classes.bg : 'bg-gray-600'}`}
                         >
                             <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.showClock ? 'translate-x-6' : 'translate-x-0'}`} />
                         </button>
+                    </div>
+
+                    <div className="flex flex-col gap-2 pt-2 border-t border-gray-700/30">
+                        <label className="text-sm text-gray-300">Horário Local da Cidade</label>
+                        <select 
+                            value={settings.clockDisplayMode}
+                            onChange={(e) => handleSave({ clockDisplayMode: e.target.value as ClockDisplayMode })}
+                            className={`bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:ring-2 outline-none ${classes.ring}`}
+                        >
+                            <option value="always">Sempre mostrar</option>
+                            <option value="different_zone">Apenas se o fuso for diferente do meu</option>
+                            <option value="never">Nunca mostrar</option>
+                        </select>
+                        <p className="text-xs text-gray-500">
+                            Define quando o horário da cidade visualizada aparece no card principal.
+                        </p>
                     </div>
                 </div>
             </section>
