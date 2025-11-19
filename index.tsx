@@ -1,9 +1,10 @@
-
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
 // Register service worker for PWA functionality
+// We only attempt to register if it's supported. 
+// Note: In development (Vite), sw.js might not be served at root, causing a console error.
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
@@ -11,7 +12,12 @@ if ('serviceWorker' in navigator) {
         console.log('Service Worker registered with scope:', registration.scope);
       })
       .catch(err => {
-        console.error('Service Worker registration failed:', err);
+        // Suppress the noisy error in console during development if sw.js isn't found or served as HTML
+        if (err.message.includes('MIME type') || err.message.includes('404') || err.message.includes('Script has an unsupported MIME type')) {
+             console.warn('Service Worker registration skipped (likely in development mode or sw.js missing).');
+        } else {
+             console.error('Service Worker registration failed:', err);
+        }
       });
   });
 }

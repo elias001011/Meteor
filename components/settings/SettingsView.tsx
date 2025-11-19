@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import type { AppSettings, View, DataSource, AppTheme, TransparencyMode, ClockDisplayMode } from '../../types';
 import { getSettings, saveSettings, exportAppData, importAppData, resetSettings, resetCache, resetAllData } from '../../services/settingsService';
 import CitySelectionModal from '../common/CitySelectionModal';
 import ImportModal from './ImportModal';
 import { useTheme } from '../context/ThemeContext';
+import { XIcon, LightbulbIcon } from '../icons';
 
 interface SettingsViewProps {
     settings: AppSettings;
@@ -16,6 +16,9 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
     const [showCityModal, setShowCityModal] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
     const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+    
+    // State for PWA Banner
+    const [showPwaBanner, setShowPwaBanner] = useState(true);
     
     // Use Theme Context to get dynamic styles for headings/buttons
     const { classes } = useTheme();
@@ -72,6 +75,18 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
         setTimeout(() => setFeedbackMessage(null), 3000);
     };
 
+    const handleExport = () => {
+        try {
+            exportAppData();
+            // Visual feedback is crucial for UX
+            setFeedbackMessage("Backup salvo nos downloads!");
+            setTimeout(() => setFeedbackMessage(null), 3000);
+        } catch (e) {
+            console.error(e);
+            setFeedbackMessage("Erro ao exportar dados.");
+        }
+    };
+
     const handleImport = (content: string, options: any) => {
         const success = importAppData(content, options);
         if (success) {
@@ -79,6 +94,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
             setTimeout(() => window.location.reload(), 1500);
         } else {
             setFeedbackMessage("Falha ao importar arquivo.");
+            setTimeout(() => setFeedbackMessage(null), 3000);
         }
         setShowImportModal(false);
     };
@@ -104,8 +120,34 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
                 Ajustes do Meteor
             </h2>
 
+            {/* PWA Banner Prompt */}
+            {showPwaBanner && !window.matchMedia('(display-mode: standalone)').matches && (
+                <div className="bg-gradient-to-r from-blue-900/60 to-cyan-900/60 border border-blue-500/30 p-4 rounded-2xl flex items-start justify-between gap-4 shadow-lg animate-fade-in">
+                    <div className="flex gap-4">
+                        <div className="p-2 bg-blue-500/20 rounded-full h-fit text-blue-400">
+                            <LightbulbIcon className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-white">Instale o Meteor</h4>
+                            <p className="text-sm text-gray-300 mt-1">
+                                O aplicativo funciona muito melhor quando instalado como PWA. Você ganha tela cheia, melhor desempenho e acesso offline.
+                            </p>
+                            <p className="text-xs text-blue-300 mt-2">
+                                Toque em "Compartilhar" e depois em "Adicionar à Tela de Início" (iOS) ou "Instalar App" (Android).
+                            </p>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={() => setShowPwaBanner(false)} 
+                        className="text-gray-400 hover:text-white transition-colors p-1"
+                    >
+                        <XIcon className="w-5 h-5" />
+                    </button>
+                </div>
+            )}
+
             {feedbackMessage && (
-                <div className="bg-green-500/20 text-green-300 p-3 rounded-lg text-center font-medium border border-green-500/50">
+                <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-green-500/90 backdrop-blur-md text-white px-6 py-3 rounded-full font-medium shadow-xl border border-green-400/50 animate-fade-in-down text-center whitespace-nowrap">
                     {feedbackMessage}
                 </div>
             )}
@@ -410,7 +452,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
              <section className="bg-gray-800/50 rounded-2xl p-5 border border-gray-700/50">
                 <h3 className={`text-lg font-semibold ${classes.text} mb-4`}>Gerenciamento de Dados</h3>
                 <div className="grid grid-cols-2 gap-4 mb-6">
-                    <button onClick={exportAppData} className="bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-xl font-medium transition-colors">
+                    <button onClick={handleExport} className="bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-xl font-medium transition-colors">
                         Exportar Dados
                     </button>
                     <button onClick={() => setShowImportModal(true)} className="bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-xl font-medium transition-colors">

@@ -60,6 +60,15 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onImport }) 
                         />
                         <span>Cache do Clima (Economiza dados)</span>
                     </label>
+                    <label className="flex items-center gap-3 p-3 bg-gray-700/50 rounded-lg cursor-pointer">
+                        <input 
+                            type="checkbox" 
+                            checked={options.importChat} 
+                            onChange={e => setOptions(prev => ({...prev, importChat: e.target.checked}))}
+                            className="form-checkbox h-5 w-5 text-cyan-500 rounded border-gray-600 bg-gray-800 focus:ring-cyan-500 focus:ring-offset-gray-800"
+                        />
+                        <span>Histórico de Chat</span>
+                    </label>
                 </div>
 
                 <input 
@@ -67,6 +76,7 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onImport }) 
                     ref={fileInputRef} 
                     accept=".json" 
                     onChange={handleFileChange} 
+                    onClick={(e) => { (e.target as HTMLInputElement).value = '' }}
                     className="hidden" 
                 />
                 
