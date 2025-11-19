@@ -1,4 +1,3 @@
-
 import type { AppSettings, ExportData } from '../types';
 
 const SETTINGS_KEY = 'meteor_settings';
@@ -102,11 +101,21 @@ export const exportAppData = (): void => {
         }
     } catch (e) {}
 
-    const exportPayload: ExportData = {
+    // Include last known location to preserve state
+    let lastCoords = null;
+    try {
+        const storedCoords = localStorage.getItem('last_coords');
+        if (storedCoords) {
+            lastCoords = JSON.parse(storedCoords);
+        }
+    } catch (e) {}
+
+    const exportPayload: ExportData & { lastCoords?: any } = {
         settings,
         chatHistory,
         weatherCache,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        lastCoords
     };
 
     const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
@@ -125,7 +134,7 @@ export const importAppData = (
     options: { importSettings: boolean, importCache: boolean, importChat: boolean }
 ): boolean => {
     try {
-        const data: ExportData = JSON.parse(jsonContent);
+        const data: ExportData & { lastCoords?: any } = JSON.parse(jsonContent);
 
         if (options.importSettings && data.settings) {
             // Merge imported settings with defaults to ensure compatibility
@@ -156,6 +165,11 @@ export const importAppData = (
 
         if (options.importChat && data.chatHistory) {
             localStorage.setItem('chat_history', JSON.stringify(data.chatHistory));
+        }
+
+        // Restore last coords if present in the backup
+        if (data.lastCoords) {
+            localStorage.setItem('last_coords', JSON.stringify(data.lastCoords));
         }
         
         return true;
