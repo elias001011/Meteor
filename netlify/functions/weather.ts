@@ -1,10 +1,4 @@
 
-
-
-
-
-
-
 // FIX: Module '"@netlify/functions"' has no exported member 'getStore'. This is likely due to a version mismatch. Importing `getStore` directly from `@netlify/blobs` as a documented fallback.
 import { type Handler, type HandlerEvent, type HandlerContext } from "@netlify/functions";
 import { getStore } from "@netlify/blobs";
@@ -62,7 +56,7 @@ const fetchWithOpenMeteo = async (lat: string, lon: string) => {
         current: 'temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,cloud_cover,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m',
         hourly: 'temperature_2m,weather_code,precipitation_probability,is_day',
         daily: 'weather_code,temperature_2m_max,sunrise,sunset,precipitation_probability_max',
-        timezone: 'auto',
+        timezone: 'auto', // Requests correct timezone calculation from Open-Meteo
         forecast_days: '7',
     });
     const airQualityParams = new URLSearchParams({
@@ -99,9 +93,13 @@ const fetchWithOpenMeteo = async (lat: string, lon: string) => {
     const current = forecastApiData.current;
     const daily = forecastApiData.daily;
     const hourly = forecastApiData.hourly;
+    
+    // Open-Meteo returns `utc_offset_seconds`
+    const timezoneOffset = forecastApiData.utc_offset_seconds || 0;
 
     const weatherData = {
         dt: new Date(current.time).getTime() / 1000,
+        timezoneOffset: timezoneOffset,
         temperature: current.temperature_2m,
         feels_like: current.apparent_temperature,
         condition: mapWmoCodeToDescription(current.weather_code),
@@ -118,15 +116,14 @@ const fetchWithOpenMeteo = async (lat: string, lon: string) => {
     };
     
     // Calculate current time to filter past hourly data
-    // OpenMeteo returns hourly data starting from 00:00 of the first day.
-    // We must find the index corresponding to the current time.
     const nowSeconds = Math.floor(Date.now() / 1000);
     let startIndex = 0;
     for (let i = 0; i < hourly.time.length; i++) {
         // Compare using seconds
         const hourlyTime = new Date(hourly.time[i]).getTime() / 1000;
         // Ensure we only take from current hour onwards (ignore past hours)
-        if (hourlyTime >= nowSeconds - 1800) { // 30 min buffer to include current hour
+        // Allow a small buffer (e.g. 55 mins past hour, still show that hour)
+        if (hourlyTime >= nowSeconds - 3600) { 
             startIndex = i;
             break;
         }
@@ -143,13 +140,17 @@ const fetchWithOpenMeteo = async (lat: string, lon: string) => {
         });
     }
     
-    // Filter daily to ensure we don't show yesterday
+    // Process Daily to ensure we show "Today" correctly based on City time
     const dailyForecast = [];
+    // Get "today" in target timezone to compare
+    const localToday = new Date(Date.now() + timezoneOffset * 1000).toISOString().split('T')[0];
+
     for (let i = 0; i < daily.time.length; i++) {
          const dayTime = new Date(daily.time[i]).getTime() / 1000;
-         // Simple check to ensure the day isn't in the past (older than 24h from now)
-         // Note: OpenMeteo daily times are usually 00:00 local time.
-         if (dailyForecast.length < 7) {
+         const dayString = daily.time[i].split('T')[0];
+         
+         // Allow today and future days
+         if (dayString >= localToday && dailyForecast.length < 7) {
               dailyForecast.push({
                 dt: dayTime,
                 temperature: daily.temperature_2m_max[i],
@@ -206,6 +207,7 @@ const fetchWithOneCall = async (lat: string, lon: string) => {
     
     const weatherData = {
         dt: onecallApiData.current.dt,
+        timezoneOffset: onecallApiData.timezone_offset,
         temperature: onecallApiData.current.temp,
         feels_like: onecallApiData.current.feels_like,
         visibility: onecallApiData.current.visibility,
@@ -226,8 +228,6 @@ const fetchWithOneCall = async (lat: string, lon: string) => {
     };
 
     // OneCall returns hourly starting from current hour.
-    // Sometimes it returns the previous hour if the cache is slightly stale or depending on request timing.
-    // Filter to ensure we only show current hour onwards.
     const nowSeconds = Math.floor(Date.now() / 1000);
     const hourlyForecast = onecallApiData.hourly
         .filter((item: any) => item.dt >= nowSeconds - 3600) // Allow current hour
@@ -264,9 +264,6 @@ const fetchWithOneCall = async (lat: string, lon: string) => {
 const fetchWithFreeTier = async (lat: string, lon: string) => {
     console.log("Attempting to fetch data from Free Tier APIs (Standard + Forecast 5d/3h)");
     
-    // Use ONLY the free endpoints. 
-    // 'weather' = Current weather
-    // 'forecast' = 5 Day / 3 Hour Forecast. We will manually aggregate this to create daily/hourly views.
     const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&lang=pt_br&appid=${API_KEY}`;
     const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&lang=pt_br&appid=${API_KEY}`;
     const airPollutionUrl = `https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${API_KEY}`;
@@ -294,6 +291,7 @@ const fetchWithFreeTier = async (lat: string, lon: string) => {
 
     const weatherData = {
         dt: weatherApiData.dt,
+        timezoneOffset: weatherApiData.timezone, // Available in free tier weather endpoint
         temperature: weatherApiData.main.temp,
         feels_like: weatherApiData.main.feels_like,
         visibility: weatherApiData.visibility,
@@ -311,12 +309,10 @@ const fetchWithFreeTier = async (lat: string, lon: string) => {
         sunset: weatherApiData.sys.sunset,
     };
     
-    // Process "Hourly" (It's actually every 3 hours, but we map it as hourly for the UI)
-    // Filter out past entries strictly
+    // Process "Hourly"
     const nowSeconds = Math.floor(Date.now() / 1000);
-    const futureList = forecastApiData.list.filter((item: any) => item.dt > nowSeconds);
+    const futureList = forecastApiData.list.filter((item: any) => item.dt >= nowSeconds - 3600); // Allow current 3-hour block
 
-    // Take the first 8 segments (24 hours approx)
     const hourlyForecast = futureList.slice(0, 8).map((item: any) => ({
         dt: item.dt,
         temperature: item.main.temp,
@@ -324,22 +320,20 @@ const fetchWithFreeTier = async (lat: string, lon: string) => {
         pop: item.pop,
     }));
     
-    // Process "Daily" (Aggregate the 3-hour segments by day)
+    // Process "Daily"
     const dailyMap = new Map();
     
     // Use the timezone offset from the API to ensure "days" align with the city's local time
     const timezoneOffset = forecastApiData.city.timezone; // seconds
 
-    // Iterate over future list only to prevent "Yesterday" bug
     futureList.forEach((item: any) => {
-        // Shift timestamp to local time before extracting date string.
-        // This creates a "fake UTC" date object where the getUTCHours/getUTCDate matches the local time in the city.
+        // We use UTC methods on the shifted time to bucket by day correctly relative to the city
         const localDt = (item.dt + timezoneOffset) * 1000;
-        const date = new Date(localDt).toISOString().split('T')[0]; // YYYY-MM-DD (Local representation)
+        const date = new Date(localDt).toISOString().split('T')[0]; 
         
         if (!dailyMap.has(date)) {
             dailyMap.set(date, {
-                dt: item.dt, // Use timestamp of first occurrence (UTC)
+                dt: item.dt, 
                 temps: [],
                 icons: [],
                 pops: []
@@ -352,7 +346,6 @@ const fetchWithFreeTier = async (lat: string, lon: string) => {
         dayData.pops.push(item.pop);
     });
 
-    // Convert map to array and format
     const dailyForecast = Array.from(dailyMap.values()).slice(0, 5).map((day: any) => {
         const maxTemp = Math.max(...day.temps);
         const midIndex = Math.floor(day.icons.length / 2);
@@ -376,7 +369,7 @@ const fetchWithFreeTier = async (lat: string, lon: string) => {
         airQualityData,
         hourlyForecast,
         dailyForecast,
-        alerts: [], // Free tier does not have alerts
+        alerts: [],
         dataSource: 'free' as const,
     };
 };

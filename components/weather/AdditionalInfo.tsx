@@ -25,15 +25,20 @@ const degreesToCardinal = (deg: number): string => {
     return directions[Math.round(deg / 45) % 8];
 };
 
-const formatTime = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleTimeString('pt-BR', {
-        hour: '2-digit',
-        minute: '2-digit',
-    });
-};
-
 const AdditionalInfo: React.FC<AdditionalInfoProps> = ({ data }) => {
   const { classes } = useTheme();
+
+  const formatTime = (timestamp: number) => {
+      // Shift by timezone offset to get local time
+      const offset = data.timezoneOffset || 0;
+      const date = new Date((timestamp + offset) * 1000);
+      // Use UTC methods since we shifted the epoch
+      return date.toLocaleTimeString('pt-BR', {
+          hour: '2-digit',
+          minute: '2-digit',
+          timeZone: 'UTC'
+      });
+  };
 
   const getUviInfo = (uvi: number) => {
     const uviValue = Math.round(uvi);

@@ -6,27 +6,33 @@ import { useTheme } from '../context/ThemeContext';
 
 interface DailyForecastProps {
   data: DailyForecast[];
+  timezoneOffset?: number;
 }
 
-const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data }) => {
+const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data, timezoneOffset = 0 }) => {
   const { classes } = useTheme();
   
   const getDayLabel = (dt: number) => {
-    const date = new Date(dt * 1000);
-    const today = new Date();
+    // Apply offset to get the target location's day
+    const localDate = new Date((dt + timezoneOffset) * 1000);
     
-    // Compare dates in UTC to avoid timezone shift issues
-    const isToday = date.getUTCFullYear() === today.getUTCFullYear() &&
-                    date.getUTCMonth() === today.getUTCMonth() &&
-                    date.getUTCDate() === today.getUTCDate();
+    // We need to compare with "Today" in the Target Location's timezone, not Browser's timezone.
+    // Get current UTC time
+    const nowUtc = Date.now();
+    const todayTarget = new Date(nowUtc + (timezoneOffset * 1000));
+
+    // Compare UTC day/month/year because we shifted both times to same relative epoch
+    const isToday = localDate.getUTCFullYear() === todayTarget.getUTCFullYear() &&
+                    localDate.getUTCMonth() === todayTarget.getUTCMonth() &&
+                    localDate.getUTCDate() === todayTarget.getUTCDate();
 
     if (isToday) {
       return 'Hoje';
     }
     
-    // Render the day name also based on UTC to be consistent
-    let dayName = date.toLocaleString('pt-BR', { weekday: 'short', timeZone: 'UTC' });
-    return dayName.charAt(0).toUpperCase() + dayName.slice(1, -1); // Capitalize and remove dot (e.g., "sáb.")
+    // Render based on UTC
+    let dayName = localDate.toLocaleString('pt-BR', { weekday: 'short', timeZone: 'UTC' });
+    return dayName.charAt(0).toUpperCase() + dayName.slice(1, -1); 
   };
 
   return (

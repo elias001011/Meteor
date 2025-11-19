@@ -1,10 +1,4 @@
 
-
-
-
-
-
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import WeatherView from './components/weather/WeatherView';
 import AiView from './components/ai/AiView';

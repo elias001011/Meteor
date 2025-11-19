@@ -12,6 +12,7 @@ export interface WeatherData {
   humidity: number;
   pressure: number;
   imageUrl: string;
+  timezoneOffset: number; // Added timezone offset in seconds
   uvi?: number;
   sunrise: number;
   sunset: number;

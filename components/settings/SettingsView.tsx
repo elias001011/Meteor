@@ -1,11 +1,4 @@
 
-
-
-
-
-
-
-
 import React, { useState, useEffect } from 'react';
 import type { AppSettings, View, DataSource, AppTheme, TransparencyMode } from '../../types';
 import { getSettings, saveSettings, exportAppData, importAppData, resetSettings, resetCache, resetAllData } from '../../services/settingsService';
