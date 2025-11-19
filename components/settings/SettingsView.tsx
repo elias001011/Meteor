@@ -41,10 +41,18 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
     };
     
     const handleTestNotification = async () => {
-        const sent = await triggerTestNotification();
-        if (sent) setFeedbackMessage("Notificação de teste enviada!");
-        else setFeedbackMessage("Permissão negada ou bloqueada.");
-        setTimeout(() => setFeedbackMessage(null), 3000);
+        setFeedbackMessage("Solicitando permissão...");
+        const result = await triggerTestNotification();
+        
+        if (result.success) {
+            setFeedbackMessage(result.message);
+        } else {
+            setFeedbackMessage(`Erro: ${result.message}`);
+            // Show alert for clearer feedback on error
+            alert(result.message);
+        }
+        
+        setTimeout(() => setFeedbackMessage(null), 4000);
     };
 
     const toggleFullscreen = () => {
@@ -154,8 +162,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
                     <button 
                         onClick={() => {
                             const newValue = !settings.notificationConfig.enabled;
-                            // Logic: If disabling, we generally don't need history enabled by default, but we keep it as preference.
-                            // UI logic handles hiding the extra options.
                             handleSave({ notificationConfig: { ...settings.notificationConfig, enabled: newValue } });
                             if (newValue && Notification.permission !== 'granted') {
                                 Notification.requestPermission();
@@ -245,9 +251,10 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
                                     <span className="text-gray-300 text-sm">Histórico de Notificações</span>
                                     <span className="text-xs text-gray-500">Salvar lista e exibir ícone de sino no topo.</span>
                                 </div>
+                                {/* FIX: Increased width to w-11 and padding to avoid ball clipping */}
                                 <button 
                                     onClick={() => handleSave({ notificationConfig: { ...settings.notificationConfig, historyEnabled: !settings.notificationConfig.historyEnabled } })}
-                                    className={`w-10 h-5 rounded-full p-0.5 transition-colors duration-300 ${settings.notificationConfig.historyEnabled ? classes.bg : 'bg-gray-600'}`}
+                                    className={`w-11 h-6 rounded-full p-1 transition-colors duration-300 ${settings.notificationConfig.historyEnabled ? classes.bg : 'bg-gray-600'}`}
                                 >
                                     <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.notificationConfig.historyEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
                                 </button>
@@ -257,11 +264,12 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
                              <div className="flex items-center justify-between pt-2 border-t border-gray-700/30 mt-4">
                                 <div className="flex flex-col">
                                     <span className="text-gray-300 text-sm">Alertas Separados</span>
-                                    <span className="text-xs text-gray-500">Enviar segunda notificação para alertas severos (Se disponível na fonte ativa).</span>
+                                    <span className="text-xs text-gray-500">Enviar segunda notificação para alertas severos (Se disponível).</span>
                                 </div>
+                                {/* FIX: Increased width to w-11 and padding to avoid ball clipping */}
                                 <button 
                                     onClick={() => handleSave({ notificationConfig: { ...settings.notificationConfig, separateAlerts: !settings.notificationConfig.separateAlerts } })}
-                                    className={`w-10 h-5 rounded-full p-0.5 transition-colors duration-300 ${settings.notificationConfig.separateAlerts ? classes.bg : 'bg-gray-600'}`}
+                                    className={`w-11 h-6 rounded-full p-1 transition-colors duration-300 ${settings.notificationConfig.separateAlerts ? classes.bg : 'bg-gray-600'}`}
                                 >
                                     <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.notificationConfig.separateAlerts ? 'translate-x-5' : 'translate-x-0'}`} />
                                 </button>
