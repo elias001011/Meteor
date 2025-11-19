@@ -1,5 +1,4 @@
 
-
 // FIX: Module '"@netlify/functions"' has no exported member 'getStore'. This is likely due to a version mismatch. Importing `getStore` directly from `@netlify/blobs` as a documented fallback.
 import { type Handler, type HandlerEvent, type HandlerContext } from "@netlify/functions";
 import { getStore } from "@netlify/blobs";
@@ -114,8 +113,6 @@ const fetchWithOpenMeteo = async (lat: string, lon: string) => {
         rain_1h: current.precipitation,
         sunrise: new Date(daily.sunrise[0]).getTime() / 1000,
         sunset: new Date(daily.sunset[0]).getTime() / 1000,
-        lat: parseFloat(lat),
-        lon: parseFloat(lon),
     };
     
     // Calculate current time to filter past hourly data
@@ -228,8 +225,6 @@ const fetchWithOneCall = async (lat: string, lon: string) => {
         uvi: onecallApiData.current.uvi,
         sunrise: onecallApiData.current.sunrise,
         sunset: onecallApiData.current.sunset,
-        lat: parseFloat(lat),
-        lon: parseFloat(lon),
     };
 
     // OneCall returns hourly starting from current hour.
@@ -312,8 +307,6 @@ const fetchWithFreeTier = async (lat: string, lon: string) => {
         pressure: weatherApiData.main.pressure,
         sunrise: weatherApiData.sys.sunrise,
         sunset: weatherApiData.sys.sunset,
-        lat: parseFloat(lat),
-        lon: parseFloat(lon),
     };
     
     // Process "Hourly"

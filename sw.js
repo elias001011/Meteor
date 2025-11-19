@@ -1,5 +1,4 @@
-
-const CACHE_NAME = 'meteor-cache-v4'; // Version bumped for Notification features
+const CACHE_NAME = 'meteor-cache-v1';
 const APP_SHELL_URLS = [
   '/',
   '/index.html',
@@ -12,7 +11,6 @@ const APP_SHELL_URLS = [
 ];
 
 self.addEventListener('install', event => {
-  self.skipWaiting(); // Force new SW to activate immediately
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
@@ -40,13 +38,17 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  if (event.request.method !== 'GET') return;
+  if (event.request.method !== 'GET') {
+    return;
+  }
   
   const url = new URL(event.request.url);
 
-  // Never cache API calls (Netlify Functions)
   if (url.pathname.startsWith('/.netlify/functions/')) {
-    return; // Let browser handle it (network only)
+    event.respondWith(
+      fetch(event.request)
+    );
+    return;
   }
   
   event.respondWith(
@@ -55,38 +57,23 @@ self.addEventListener('fetch', event => {
         if (cachedResponse) {
           return cachedResponse;
         }
-        return fetch(event.request).then(response => {
-            // Cache valid responses for static assets
+
+        return fetch(event.request).then(
+          response => {
             if (!response || response.status !== 200 || (response.type !== 'basic' && response.type !== 'cors')) {
               return response;
             }
+
             const responseToCache = response.clone();
-            caches.open(CACHE_NAME).then(cache => {
+
+            caches.open(CACHE_NAME)
+              .then(cache => {
                 cache.put(event.request, responseToCache);
-            });
+              });
+
             return response;
-        });
+          }
+        );
       })
-  );
-});
-
-// --- NOTIFICATION HANDLING ---
-// This ensures that when an offline notification (Trigger) fires and user clicks it, the app opens.
-self.addEventListener('notificationclick', event => {
-  event.notification.close();
-
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
-      // If a window is already open, focus it
-      for (const client of clientList) {
-        if (client.url.includes('/') && 'focus' in client) {
-          return client.focus();
-        }
-      }
-      // Otherwise, open a new window
-      if (clients.openWindow) {
-        return clients.openWindow('/');
-      }
-    })
   );
 });
