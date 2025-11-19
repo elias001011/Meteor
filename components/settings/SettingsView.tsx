@@ -153,8 +153,11 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
                     </div>
                     <button 
                         onClick={() => {
-                            handleSave({ notificationConfig: { ...settings.notificationConfig, enabled: !settings.notificationConfig.enabled } });
-                            if (!settings.notificationConfig.enabled && Notification.permission !== 'granted') {
+                            const newValue = !settings.notificationConfig.enabled;
+                            // Logic: If disabling, we generally don't need history enabled by default, but we keep it as preference.
+                            // UI logic handles hiding the extra options.
+                            handleSave({ notificationConfig: { ...settings.notificationConfig, enabled: newValue } });
+                            if (newValue && Notification.permission !== 'granted') {
                                 Notification.requestPermission();
                             }
                         }}
@@ -175,7 +178,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
                 {showNotifInfo && (
                     <div className="mb-4 bg-blue-900/20 border border-blue-500/30 p-3 rounded-lg text-xs text-gray-300 animate-in fade-in">
                         <p className="mb-2"><strong>Como funciona:</strong> Se "Offline" estiver ativo, o Android entrega a notificação mesmo com o app fechado. Se "Runtime", o app verifica a hora enquanto você o usa.</p>
-                        <p><strong>Economia Inteligente:</strong> Se a cidade da notificação for a mesma que você está vendo na tela, usamos os dados já carregados (incluindo One Call). Se for diferente, usamos Open-Meteo (Grátis).</p>
+                        <p><strong>Economia Inteligente:</strong> Se a cidade da notificação for a mesma que você está vendo na tela, usamos os dados já carregados. Se for diferente, usamos Open-Meteo (Grátis).</p>
                     </div>
                 )}
                 
@@ -234,33 +237,37 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
                         </p>
                     </div>
 
-                    {/* Notification History Toggle */}
-                    <div className="flex items-center justify-between pt-2 border-t border-gray-700/30">
-                        <div className="flex flex-col">
-                            <span className="text-gray-300 text-sm">Histórico de Notificações</span>
-                            <span className="text-xs text-gray-500">Salvar lista e exibir ícone de sino no topo.</span>
-                        </div>
-                        <button 
-                            onClick={() => handleSave({ notificationConfig: { ...settings.notificationConfig, historyEnabled: !settings.notificationConfig.historyEnabled } })}
-                            className={`w-10 h-5 rounded-full p-0.5 transition-colors duration-300 ${settings.notificationConfig.historyEnabled ? classes.bg : 'bg-gray-600'}`}
-                        >
-                            <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.notificationConfig.historyEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
-                        </button>
-                    </div>
+                    {/* Notification History Toggle - Only visible if Enabled */}
+                    {settings.notificationConfig.enabled && (
+                        <div className="animate-in fade-in slide-in-from-top-2">
+                             <div className="flex items-center justify-between pt-2 border-t border-gray-700/30">
+                                <div className="flex flex-col">
+                                    <span className="text-gray-300 text-sm">Histórico de Notificações</span>
+                                    <span className="text-xs text-gray-500">Salvar lista e exibir ícone de sino no topo.</span>
+                                </div>
+                                <button 
+                                    onClick={() => handleSave({ notificationConfig: { ...settings.notificationConfig, historyEnabled: !settings.notificationConfig.historyEnabled } })}
+                                    className={`w-10 h-5 rounded-full p-0.5 transition-colors duration-300 ${settings.notificationConfig.historyEnabled ? classes.bg : 'bg-gray-600'}`}
+                                >
+                                    <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.notificationConfig.historyEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                                </button>
+                            </div>
 
-                    {/* Separate Alerts Toggle */}
-                     <div className="flex items-center justify-between pt-2 border-t border-gray-700/30">
-                        <div className="flex flex-col">
-                            <span className="text-gray-300 text-sm">Alertas Separados</span>
-                            <span className="text-xs text-gray-500">Enviar segunda notificação para alertas severos (Se disponível na fonte ativa).</span>
+                            {/* Separate Alerts Toggle - Only visible if Enabled */}
+                             <div className="flex items-center justify-between pt-2 border-t border-gray-700/30 mt-4">
+                                <div className="flex flex-col">
+                                    <span className="text-gray-300 text-sm">Alertas Separados</span>
+                                    <span className="text-xs text-gray-500">Enviar segunda notificação para alertas severos (Se disponível na fonte ativa).</span>
+                                </div>
+                                <button 
+                                    onClick={() => handleSave({ notificationConfig: { ...settings.notificationConfig, separateAlerts: !settings.notificationConfig.separateAlerts } })}
+                                    className={`w-10 h-5 rounded-full p-0.5 transition-colors duration-300 ${settings.notificationConfig.separateAlerts ? classes.bg : 'bg-gray-600'}`}
+                                >
+                                    <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.notificationConfig.separateAlerts ? 'translate-x-5' : 'translate-x-0'}`} />
+                                </button>
+                            </div>
                         </div>
-                        <button 
-                            onClick={() => handleSave({ notificationConfig: { ...settings.notificationConfig, separateAlerts: !settings.notificationConfig.separateAlerts } })}
-                            className={`w-10 h-5 rounded-full p-0.5 transition-colors duration-300 ${settings.notificationConfig.separateAlerts ? classes.bg : 'bg-gray-600'}`}
-                        >
-                            <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.notificationConfig.separateAlerts ? 'translate-x-5' : 'translate-x-0'}`} />
-                        </button>
-                    </div>
+                    )}
                     
                      <button 
                         onClick={handleTestNotification}
