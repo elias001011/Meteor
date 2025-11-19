@@ -1,12 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
-import type { WeatherData } from '../../types';
+import type { WeatherData, ClockDisplayMode } from '../../types';
 
 interface CurrentWeatherProps {
   data: WeatherData;
+  clockDisplayMode: ClockDisplayMode;
 }
 
-const CurrentWeather: React.FC<CurrentWeatherProps> = ({ data }) => {
+const CurrentWeather: React.FC<CurrentWeatherProps> = ({ data, clockDisplayMode }) => {
   const [formattedLocalTime, setFormattedLocalTime] = useState('');
 
   useEffect(() => {
@@ -35,6 +36,23 @@ const CurrentWeather: React.FC<CurrentWeatherProps> = ({ data }) => {
       timeZone: 'UTC' // Important: treat the shifted timestamp as UTC to avoid double shifting
   });
 
+  // Logic to determine if we should show the clock based on user setting and timezone difference
+  const shouldShowClock = () => {
+    if (clockDisplayMode === 'never') return false;
+    if (clockDisplayMode === 'always') return true;
+    
+    if (clockDisplayMode === 'different_zone') {
+        // Browser offset is in minutes (positive if local is behind UTC). Convert to seconds and invert sign to match API format.
+        // Example: GMT-3 => offset is 180. API expects -10800 (-3h). 180 * 60 * -1 = -10800.
+        const userOffsetSeconds = new Date().getTimezoneOffset() * -60;
+        const cityOffsetSeconds = data.timezoneOffset || 0;
+        
+        // We use a small tolerance of 120 seconds to handle potential minor discrepancies
+        return Math.abs(userOffsetSeconds - cityOffsetSeconds) > 120; 
+    }
+    return true;
+  };
+
   return (
     <div className="relative rounded-3xl p-6 text-white overflow-hidden bg-gray-800">
         <img 
@@ -50,11 +68,13 @@ const CurrentWeather: React.FC<CurrentWeatherProps> = ({ data }) => {
                         <span>{formattedDate}</span>
                     </div>
                 </div>
-                <div className="bg-black/40 backdrop-blur-sm px-3 py-1 rounded-lg border border-white/10">
-                     <span className="text-sm font-mono text-white font-medium tracking-wide">
-                         {formattedLocalTime} <span className="text-xs text-gray-400">Local</span>
-                     </span>
-                </div>
+                {shouldShowClock() && (
+                    <div className="bg-black/40 backdrop-blur-sm px-3 py-1 rounded-lg border border-white/10">
+                        <span className="text-sm font-mono text-white font-medium tracking-wide">
+                            {formattedLocalTime} <span className="text-xs text-gray-400">Local</span>
+                        </span>
+                    </div>
+                )}
             </div>
             <div className="text-right mt-8">
                 <p className="text-7xl font-bold">{Math.round(data.temperature)}°C</p>

@@ -405,6 +405,7 @@ const App: React.FC = () => {
     status: weatherStatus,
     error: weatherError,
     weatherData, airQualityData, hourlyForecast, dailyForecast, alerts, dataSource, lastUpdated,
+    clockDisplayMode: settings.clockDisplayMode,
     onCitySelect: handleCitySelect,
     onGeolocate: fetchUserLocationWeather,
     onRetry: () => {

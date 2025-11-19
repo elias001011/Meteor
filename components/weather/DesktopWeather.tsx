@@ -1,6 +1,6 @@
 
 import React from 'react';
-import type { WeatherData, HourlyForecast, DailyForecast, AirQualityData, CitySearchResult, WeatherAlert, DataSource } from '../../types';
+import type { WeatherData, HourlyForecast, DailyForecast, AirQualityData, CitySearchResult, WeatherAlert, DataSource, ClockDisplayMode } from '../../types';
 import SearchBar from './SearchBar';
 import CurrentWeather from './CurrentWeather';
 import AdditionalInfo from './AdditionalInfo';
@@ -24,6 +24,7 @@ interface DesktopWeatherProps {
     lastUpdated: number | null;
     status: 'idle' | 'loading' | 'success' | 'error';
     error: string | null;
+    clockDisplayMode: ClockDisplayMode;
     onCitySelect: (city: CitySearchResult) => void;
     onGeolocate: () => void;
     onRetry: () => void;
@@ -40,6 +41,7 @@ const DesktopWeather: React.FC<DesktopWeatherProps> = ({
     lastUpdated,
     status,
     error,
+    clockDisplayMode,
     onCitySelect,
     onGeolocate,
     onRetry,
@@ -87,7 +89,7 @@ const DesktopWeather: React.FC<DesktopWeatherProps> = ({
         return (
             <div className="space-y-6">
                 <SearchBar onCitySelect={onCitySelect} onGeolocate={onGeolocate} />
-                <CurrentWeather data={weatherData} />
+                <CurrentWeather data={weatherData} clockDisplayMode={clockDisplayMode} />
                 {dataSource !== 'open-meteo' && <Alerts alerts={alerts} />}
                 <AdditionalInfo data={weatherData} />
                 {airQualityData && <AirQuality data={airQualityData} />}
