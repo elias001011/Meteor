@@ -2,6 +2,10 @@
 
 
 
+
+
+
+
 import React, { useState, useEffect } from 'react';
 import type { AppSettings, View, DataSource, AppTheme, TransparencyMode } from '../../types';
 import { getSettings, saveSettings, exportAppData, importAppData, resetSettings, resetCache, resetAllData } from '../../services/settingsService';
@@ -12,9 +16,10 @@ import { useTheme } from '../context/ThemeContext';
 interface SettingsViewProps {
     settings: AppSettings;
     onSettingsChanged: (newSettings: AppSettings) => void;
+    onClearHistory: () => void; // New prop for immediate clearing
 }
 
-const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged }) => {
+const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged, onClearHistory }) => {
     const [showCityModal, setShowCityModal] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
     const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
@@ -63,7 +68,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
                 setFeedbackMessage("Cache limpo.");
                 break;
             case 'history':
-                setFeedbackMessage("Histórico da IA limpo (recarregue a página).");
+                onClearHistory(); // Use the prop function
+                setFeedbackMessage("Histórico da IA limpo.");
                 break;
             case 'all':
                 resetAllData();
@@ -361,18 +367,33 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
             {/* --- AI --- */}
             <section className="bg-gray-800/50 rounded-2xl p-5 border border-gray-700/50">
                 <h3 className={`text-lg font-semibold ${classes.text} mb-4`}>Inteligência Artificial</h3>
-                <div className="flex flex-col gap-2">
-                    <label className="text-sm text-gray-300">Instruções Personalizadas</label>
-                    <p className="text-xs text-gray-500 mb-2">
-                        Tudo o que você escrever aqui será enviado para a IA como uma "regra" de comportamento extra. Ex: "Seja sarcástico", "Fale sempre em rimas", "Responda como um meteorologista técnico".
-                    </p>
-                    <textarea 
-                        value={settings.aiCustomInstructions}
-                        onChange={(e) => handleSave({ aiCustomInstructions: e.target.value })}
-                        placeholder="Digite suas instruções personalizadas para a IA..."
-                        rows={4}
-                        className={`bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:ring-2 outline-none resize-none ${classes.ring}`}
-                    />
+                <div className="space-y-6">
+                    <div className="flex items-center justify-between pb-4 border-b border-gray-700/30">
+                        <div className="flex flex-col">
+                            <span className="text-gray-300">Salvar Histórico de Chat</span>
+                            <span className="text-xs text-gray-500">Manter conversas após recarregar.</span>
+                        </div>
+                        <button 
+                            onClick={() => handleSave({ saveChatHistory: !settings.saveChatHistory })}
+                            className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${settings.saveChatHistory ? classes.bg : 'bg-gray-600'}`}
+                        >
+                            <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.saveChatHistory ? 'translate-x-6' : 'translate-x-0'}`} />
+                        </button>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                        <label className="text-sm text-gray-300">Instruções Personalizadas</label>
+                        <p className="text-xs text-gray-500 mb-2">
+                            Tudo o que você escrever aqui será enviado para a IA como uma "regra" de comportamento extra. Ex: "Seja sarcástico", "Fale sempre em rimas", "Responda como um meteorologista técnico".
+                        </p>
+                        <textarea 
+                            value={settings.aiCustomInstructions}
+                            onChange={(e) => handleSave({ aiCustomInstructions: e.target.value })}
+                            placeholder="Digite suas instruções personalizadas para a IA..."
+                            rows={4}
+                            className={`bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:ring-2 outline-none resize-none ${classes.ring}`}
+                        />
+                    </div>
                 </div>
             </section>
 

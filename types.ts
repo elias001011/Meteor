@@ -116,6 +116,7 @@ export interface AppSettings {
     specificLocation?: CitySearchResult; // Used if startupBehavior is 'specific_location'
     startupSection?: View; // Used if startupBehavior is 'custom_section'
     aiCustomInstructions: string;
+    saveChatHistory: boolean;
     // Visual Customization
     themeColor: AppTheme;
     dynamicTheme: boolean; 
