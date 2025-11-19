@@ -1,4 +1,10 @@
 
+
+
+
+
+
+
 // FIX: Module '"@netlify/functions"' has no exported member 'getStore'. This is likely due to a version mismatch. Importing `getStore` directly from `@netlify/blobs` as a documented fallback.
 import { type Handler, type HandlerEvent, type HandlerContext } from "@netlify/functions";
 import { getStore } from "@netlify/blobs";
@@ -92,6 +98,7 @@ const fetchWithOpenMeteo = async (lat: string, lon: string) => {
 
     const current = forecastApiData.current;
     const daily = forecastApiData.daily;
+    const hourly = forecastApiData.hourly;
 
     const weatherData = {
         dt: new Date(current.time).getTime() / 1000,
@@ -110,19 +117,47 @@ const fetchWithOpenMeteo = async (lat: string, lon: string) => {
         sunset: new Date(daily.sunset[0]).getTime() / 1000,
     };
     
-    const hourlyForecast = forecastApiData.hourly.time.slice(0, 8).map((time: string, index: number) => ({
-        dt: new Date(time).getTime() / 1000,
-        temperature: forecastApiData.hourly.temperature_2m[index],
-        conditionIcon: mapOpenMeteoCodeToEmoji(forecastApiData.hourly.weather_code[index], forecastApiData.hourly.is_day[index] === 1),
-        pop: forecastApiData.hourly.precipitation_probability[index] / 100,
-    }));
+    // Calculate current time to filter past hourly data
+    // OpenMeteo returns hourly data starting from 00:00 of the first day.
+    // We must find the index corresponding to the current time.
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    let startIndex = 0;
+    for (let i = 0; i < hourly.time.length; i++) {
+        // Compare using seconds
+        const hourlyTime = new Date(hourly.time[i]).getTime() / 1000;
+        // Ensure we only take from current hour onwards (ignore past hours)
+        if (hourlyTime >= nowSeconds - 1800) { // 30 min buffer to include current hour
+            startIndex = i;
+            break;
+        }
+    }
+
+    // Take the next 8 hours starting from current time
+    const hourlyForecast = [];
+    for (let i = startIndex; i < startIndex + 8 && i < hourly.time.length; i++) {
+        hourlyForecast.push({
+            dt: new Date(hourly.time[i]).getTime() / 1000,
+            temperature: hourly.temperature_2m[i],
+            conditionIcon: mapOpenMeteoCodeToEmoji(hourly.weather_code[i], hourly.is_day[i] === 1),
+            pop: hourly.precipitation_probability[i] / 100,
+        });
+    }
     
-    const dailyForecast = daily.time.map((time: string, index: number) => ({
-        dt: new Date(time).getTime() / 1000,
-        temperature: daily.temperature_2m_max[index],
-        conditionIcon: mapOpenMeteoCodeToEmoji(daily.weather_code[index]),
-        pop: daily.precipitation_probability_max[index] / 100,
-    }));
+    // Filter daily to ensure we don't show yesterday
+    const dailyForecast = [];
+    for (let i = 0; i < daily.time.length; i++) {
+         const dayTime = new Date(daily.time[i]).getTime() / 1000;
+         // Simple check to ensure the day isn't in the past (older than 24h from now)
+         // Note: OpenMeteo daily times are usually 00:00 local time.
+         if (dailyForecast.length < 7) {
+              dailyForecast.push({
+                dt: dayTime,
+                temperature: daily.temperature_2m_max[i],
+                conditionIcon: mapOpenMeteoCodeToEmoji(daily.weather_code[i]),
+                pop: daily.precipitation_probability_max[i] / 100,
+            });
+         }
+    }
 
     const airQualityData = airQualityApiData?.current
       ? {
@@ -190,12 +225,19 @@ const fetchWithOneCall = async (lat: string, lon: string) => {
         sunset: onecallApiData.current.sunset,
     };
 
-    const hourlyForecast = onecallApiData.hourly.slice(0, 8).map((item: any) => ({
-        dt: item.dt,
-        temperature: item.temp,
-        conditionIcon: mapOwmIconToEmoji(item.weather[0].icon),
-        pop: item.pop,
-    }));
+    // OneCall returns hourly starting from current hour.
+    // Sometimes it returns the previous hour if the cache is slightly stale or depending on request timing.
+    // Filter to ensure we only show current hour onwards.
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    const hourlyForecast = onecallApiData.hourly
+        .filter((item: any) => item.dt >= nowSeconds - 3600) // Allow current hour
+        .slice(0, 8)
+        .map((item: any) => ({
+            dt: item.dt,
+            temperature: item.temp,
+            conditionIcon: mapOwmIconToEmoji(item.weather[0].icon),
+            pop: item.pop,
+        }));
 
     const dailyForecast = onecallApiData.daily.slice(0, 7).map((item: any) => ({
         dt: item.dt,
@@ -270,8 +312,12 @@ const fetchWithFreeTier = async (lat: string, lon: string) => {
     };
     
     // Process "Hourly" (It's actually every 3 hours, but we map it as hourly for the UI)
-    // Take the first 8 segments (24 hours)
-    const hourlyForecast = forecastApiData.list.slice(0, 8).map((item: any) => ({
+    // Filter out past entries strictly
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    const futureList = forecastApiData.list.filter((item: any) => item.dt > nowSeconds);
+
+    // Take the first 8 segments (24 hours approx)
+    const hourlyForecast = futureList.slice(0, 8).map((item: any) => ({
         dt: item.dt,
         temperature: item.main.temp,
         conditionIcon: mapOwmIconToEmoji(item.weather[0].icon),
@@ -281,12 +327,19 @@ const fetchWithFreeTier = async (lat: string, lon: string) => {
     // Process "Daily" (Aggregate the 3-hour segments by day)
     const dailyMap = new Map();
     
-    forecastApiData.list.forEach((item: any) => {
-        const date = new Date(item.dt * 1000).toISOString().split('T')[0]; // YYYY-MM-DD
+    // Use the timezone offset from the API to ensure "days" align with the city's local time
+    const timezoneOffset = forecastApiData.city.timezone; // seconds
+
+    // Iterate over future list only to prevent "Yesterday" bug
+    futureList.forEach((item: any) => {
+        // Shift timestamp to local time before extracting date string.
+        // This creates a "fake UTC" date object where the getUTCHours/getUTCDate matches the local time in the city.
+        const localDt = (item.dt + timezoneOffset) * 1000;
+        const date = new Date(localDt).toISOString().split('T')[0]; // YYYY-MM-DD (Local representation)
         
         if (!dailyMap.has(date)) {
             dailyMap.set(date, {
-                dt: item.dt, // Use timestamp of first occurrence
+                dt: item.dt, // Use timestamp of first occurrence (UTC)
                 temps: [],
                 icons: [],
                 pops: []
@@ -302,7 +355,6 @@ const fetchWithFreeTier = async (lat: string, lon: string) => {
     // Convert map to array and format
     const dailyForecast = Array.from(dailyMap.values()).slice(0, 5).map((day: any) => {
         const maxTemp = Math.max(...day.temps);
-        // Find most frequent icon (simple mode) or just take noon icon. Let's take the middle one.
         const midIndex = Math.floor(day.icons.length / 2);
         const icon = day.icons[midIndex];
         const maxPop = Math.max(...day.pops);

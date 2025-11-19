@@ -1,6 +1,10 @@
 
 
 
+
+
+
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import WeatherView from './components/weather/WeatherView';
 import AiView from './components/ai/AiView';
@@ -44,16 +48,16 @@ const RainAnimation: React.FC<{ intensity: 'low' | 'high' }> = ({ intensity }) =
     );
 };
 
+const DEFAULT_WELCOME_MSG: ChatMessage = {
+    id: '1',
+    role: 'model',
+    text: 'Olá! Sou a IA do Meteor. Posso ajudar com informações sobre o clima e buscar na web. O que você gostaria de saber?',
+};
+
 
 const App: React.FC = () => {
   const [view, setView] = useState<View>('weather');
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: '1',
-      role: 'model',
-      text: 'Olá! Sou a IA do Meteor. Posso ajudar com informações sobre o clima e buscar na web. O que você gostaria de saber?',
-    },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([DEFAULT_WELCOME_MSG]);
   const [isSending, setIsSending] = useState(false);
   const [isSearchEnabled, setIsSearchEnabled] = useState(false);
   
@@ -90,10 +94,45 @@ const App: React.FC = () => {
     }
   }, [settings.showScrollbars]);
 
+  // Load chat history if enabled (Run once on mount)
+  useEffect(() => {
+    if (settings.saveChatHistory) {
+        const savedHistory = localStorage.getItem('chat_history');
+        if (savedHistory) {
+            try {
+                const parsed = JSON.parse(savedHistory);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    setMessages(parsed);
+                }
+            } catch (e) {
+                console.error("Failed to load chat history", e);
+            }
+        }
+    }
+  }, []); // Dependencies must be empty to run only once on mount. 
+  // Note: `settings` is initialized with `getSettings()` so `settings.saveChatHistory` is correct on first render.
+
+  // Save chat history when messages update
+  useEffect(() => {
+    if (settings.saveChatHistory) {
+        // Only save if we have more than just the default message or if the default message has changed
+        if (messages.length > 1 || messages[0].text !== DEFAULT_WELCOME_MSG.text) {
+             localStorage.setItem('chat_history', JSON.stringify(messages));
+        }
+    } else {
+        localStorage.removeItem('chat_history');
+    }
+  }, [messages, settings.saveChatHistory]);
+
   const handleSettingsChange = (newSettings: AppSettings) => {
     saveSettings(newSettings); // Persist to localStorage
     setSettings(newSettings); // Update state
   };
+  
+  const handleClearChatHistory = useCallback(() => {
+      setMessages([DEFAULT_WELCOME_MSG]);
+      localStorage.removeItem('chat_history');
+  }, []);
 
   // Dynamic Theme Logic
   useEffect(() => {
@@ -431,7 +470,7 @@ const App: React.FC = () => {
               <MapView lat={currentCoords?.lat} lon={currentCoords?.lon} />
             )}
             {view === 'news' && <PlaceholderView title="Notícias" />}
-            {view === 'settings' && <SettingsView settings={settings} onSettingsChanged={handleSettingsChange} />}
+            {view === 'settings' && <SettingsView settings={settings} onSettingsChanged={handleSettingsChange} onClearHistory={handleClearChatHistory} />}
             {view === 'tips' && <PlaceholderView title="Dicas" />}
             {view === 'info' && <PlaceholderView title="Informações" />}
           </div>
@@ -451,7 +490,7 @@ const App: React.FC = () => {
               <PlaceholderView title="Notícias" />
             </div>
              <div className={`${view === 'settings' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24`}>
-               <SettingsView settings={settings} onSettingsChanged={handleSettingsChange} />
+               <SettingsView settings={settings} onSettingsChanged={handleSettingsChange} onClearHistory={handleClearChatHistory} />
             </div>
              <div className={`${view === 'tips' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24`}>
               <PlaceholderView title="Dicas" />

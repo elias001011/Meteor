@@ -1,6 +1,8 @@
 
 
 
+
+
 import type { AppSettings, ExportData } from '../types';
 
 const SETTINGS_KEY = 'meteor_settings';
@@ -13,6 +15,7 @@ const DEFAULT_SETTINGS: AppSettings = {
     weatherSource: 'auto',
     startupBehavior: 'idle',
     aiCustomInstructions: '',
+    saveChatHistory: false, // Default to NOT saving history
     startupSection: 'weather',
     themeColor: 'purple',
     dynamicTheme: false,
