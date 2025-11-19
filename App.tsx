@@ -5,11 +5,12 @@ import AiView from './components/ai/AiView';
 import MapView from './components/map/MapView';
 import BottomNav from './components/layout/BottomNav';
 import Header from './components/layout/Header';
-import type { ChatMessage, View, CitySearchResult, AllWeatherData, GroundingSource, SearchResultItem, DataSource, AppSettings, AppTheme } from './types';
+import type { ChatMessage, View, CitySearchResult, AllWeatherData, GroundingSource, SearchResultItem, DataSource, AppSettings, AppTheme, AppNotification } from './types';
 import { streamChatResponse } from './services/geminiService';
 import { getSearchResults } from './services/searchService';
 import { fetchAllWeatherData } from './services/weatherService';
 import { getSettings, saveSettings } from './services/settingsService';
+import { scheduleNotifications, checkAndTriggerRuntime, getNotifications, addNotification, markAllAsRead, deleteAllNotifications } from './services/notificationService';
 import DesktopWeather from './components/weather/DesktopWeather';
 import PlaceholderView from './components/common/PlaceholderView';
 import MobileAiControls from './components/ai/MobileAiControls';
@@ -17,6 +18,7 @@ import SettingsView from './components/settings/SettingsView';
 import { Content } from '@google/genai';
 import ErrorPopup from './components/common/ErrorPopup';
 import DataSourceModal from './components/common/DataSourceModal';
+import NotificationCenter from './components/common/NotificationCenter';
 import { ThemeProvider } from './components/context/ThemeContext';
 
 // Rain animation component defined locally
@@ -72,6 +74,10 @@ const App: React.FC = () => {
   const [currentCityInfo, setCurrentCityInfo] = useState<{name: string, country: string} | null>(null);
   const [isDataSourceModalOpen, setIsDataSourceModalOpen] = useState(false);
   
+  // Notifications State
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
+  
   // Synced with Settings.weatherSource but allows temporary override via Modal
   const [preferredDataSource, setPreferredDataSource] = useState<DataSource | 'auto'>('auto');
   
@@ -103,8 +109,12 @@ const App: React.FC = () => {
             }
         }
     }
-  }, []); // Dependencies must be empty to run only once on mount. 
-  // Note: `settings` is initialized with `getSettings()` so `settings.saveChatHistory` is correct on first render.
+    // Load notifications list
+    setNotifications(getNotifications());
+    
+    // Initial Schedule of Offline Notifications
+    scheduleNotifications(settings.notificationConfig);
+  }, []);
 
   // Save chat history when messages update
   useEffect(() => {
@@ -121,12 +131,38 @@ const App: React.FC = () => {
   const handleSettingsChange = (newSettings: AppSettings) => {
     saveSettings(newSettings); // Persist to localStorage
     setSettings(newSettings); // Update state
+    
+    // Reschedule offline notifications whenever settings change
+    scheduleNotifications(newSettings.notificationConfig);
   };
   
   const handleClearChatHistory = useCallback(() => {
       setMessages([DEFAULT_WELCOME_MSG]);
       localStorage.removeItem('chat_history');
   }, []);
+
+  // Runtime Notification Checker (Fallback for devices without Offline Triggers)
+  // Now passes current weather data to optimize API calls (Smart Reuse)
+  useEffect(() => {
+      const checkRuntime = () => {
+          // We cast weatherInfo to AllWeatherData if weatherData is present
+          const currentData: AllWeatherData | undefined = weatherData ? (weatherInfo as AllWeatherData) : undefined;
+          
+          checkAndTriggerRuntime(settings.notificationConfig, currentData, (newNotif) => {
+              // If history is enabled, we add to list and update state
+              const updated = addNotification(newNotif, settings.notificationConfig.historyEnabled);
+              setNotifications(updated);
+          });
+      };
+      
+      // Check every minute
+      const interval = setInterval(checkRuntime, 60000);
+      
+      // Also check immediately on mount/change
+      checkRuntime();
+
+      return () => clearInterval(interval);
+  }, [settings.notificationConfig, weatherInfo]);
 
   // Dynamic Theme Logic
   useEffect(() => {
@@ -428,6 +464,8 @@ const App: React.FC = () => {
 
   const isRaining = weatherData?.condition?.toLowerCase().includes('chuv');
 
+  // Filter unread based on history enabled, although generally if disabled we clear notifications
+  const unreadNotifications = settings.notificationConfig.historyEnabled ? notifications.filter(n => !n.read).length : 0;
 
   return (
     <ThemeProvider theme={activeTheme} transparencyMode={settings.transparencyMode}>
@@ -436,7 +474,14 @@ const App: React.FC = () => {
             <RainAnimation intensity={settings.rainAnimation.intensity} />
         )}
         
-        <Header activeView={view} setView={setView} showClock={settings.showClock} />
+        <Header 
+            activeView={view} 
+            setView={setView} 
+            showClock={settings.showClock} 
+            unreadCount={unreadNotifications}
+            onOpenNotifications={() => setIsNotificationCenterOpen(true)}
+        />
+        
         {appError && <ErrorPopup message={appError} onClose={() => setAppError(null)} />}
         
         <DataSourceModal 
@@ -445,6 +490,20 @@ const App: React.FC = () => {
           currentSource={dataSource}
           preferredSource={preferredDataSource}
           onSourceChange={handleDataSourceChange}
+        />
+
+        <NotificationCenter 
+            isOpen={isNotificationCenterOpen}
+            onClose={() => setIsNotificationCenterOpen(false)}
+            notifications={notifications}
+            onMarkAllRead={() => {
+                const updated = markAllAsRead();
+                setNotifications(updated);
+            }}
+            onDeleteAll={() => {
+                const updated = deleteAllNotifications();
+                setNotifications(updated);
+            }}
         />
 
         <main className="relative z-10 flex-1 pt-16 overflow-hidden">

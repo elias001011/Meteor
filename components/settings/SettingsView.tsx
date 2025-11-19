@@ -4,7 +4,10 @@ import type { AppSettings, View, DataSource, AppTheme, TransparencyMode, ClockDi
 import { getSettings, saveSettings, exportAppData, importAppData, resetSettings, resetCache, resetAllData } from '../../services/settingsService';
 import CitySelectionModal from '../common/CitySelectionModal';
 import ImportModal from './ImportModal';
+import PwaInfoModal from '../common/PwaInfoModal';
 import { useTheme } from '../context/ThemeContext';
+import { InfoIcon, BellIcon } from '../icons';
+import { supportsOfflineNotifications, triggerTestNotification } from '../../services/notificationService';
 
 interface SettingsViewProps {
     settings: AppSettings;
@@ -15,23 +18,33 @@ interface SettingsViewProps {
 const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged, onClearHistory }) => {
     const [showCityModal, setShowCityModal] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
+    const [showPwaModal, setShowPwaModal] = useState(false);
     const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+    const [cityModalMode, setCityModalMode] = useState<'startup' | 'notification'>('startup');
+    const [showNotifInfo, setShowNotifInfo] = useState(false);
+    const [isOfflineSupported, setIsOfflineSupported] = useState(false);
     
-    // Use Theme Context to get dynamic styles for headings/buttons
     const { classes } = useTheme();
-
-    // Fullscreen state
     const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
 
     useEffect(() => {
         const handleFsChange = () => setIsFullscreen(!!document.fullscreenElement);
         document.addEventListener('fullscreenchange', handleFsChange);
+        // Check offline support on mount
+        setIsOfflineSupported(supportsOfflineNotifications());
         return () => document.removeEventListener('fullscreenchange', handleFsChange);
     }, []);
 
     const handleSave = (updatedSettings: Partial<AppSettings>) => {
         const newSettings = { ...settings, ...updatedSettings };
         onSettingsChanged(newSettings);
+    };
+    
+    const handleTestNotification = async () => {
+        const sent = await triggerTestNotification();
+        if (sent) setFeedbackMessage("Notificação de teste enviada!");
+        else setFeedbackMessage("Permissão negada ou bloqueada.");
+        setTimeout(() => setFeedbackMessage(null), 3000);
     };
 
     const toggleFullscreen = () => {
@@ -61,7 +74,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
                 setFeedbackMessage("Cache limpo.");
                 break;
             case 'history':
-                onClearHistory(); // Use the prop function
+                onClearHistory();
                 setFeedbackMessage("Histórico da IA limpo.");
                 break;
             case 'all':
@@ -98,17 +111,167 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
         { id: 'glass', label: 'Vidro' }
     ];
     
+    const daysOfWeek = [
+        { id: 0, label: 'D' }, { id: 1, label: 'S' }, { id: 2, label: 'T' }, { id: 3, label: 'Q' },
+        { id: 4, label: 'Q' }, { id: 5, label: 'S' }, { id: 6, label: 'S' }
+    ];
+
     return (
         <div className="p-6 max-w-3xl mx-auto space-y-8 pb-32">
             <h2 className="text-2xl font-bold text-white flex items-center gap-2">
                 Ajustes do Meteor
             </h2>
+            
+            {/* PWA Banner */}
+            <div className="bg-blue-900/30 border border-blue-500/30 p-4 rounded-xl flex items-center justify-between">
+                <div>
+                    <h3 className="text-blue-300 font-bold text-sm">Melhor experiência</h3>
+                    <p className="text-blue-100/70 text-xs">Instale o App para notificações offline.</p>
+                </div>
+                <button 
+                    onClick={() => setShowPwaModal(true)}
+                    className="text-blue-300 hover:text-white text-sm font-bold underline"
+                >
+                    Saber mais
+                </button>
+            </div>
 
             {feedbackMessage && (
-                <div className="bg-green-500/20 text-green-300 p-3 rounded-lg text-center font-medium border border-green-500/50">
+                <div className="bg-green-500/20 text-green-300 p-3 rounded-lg text-center font-medium border border-green-500/50 sticky top-0 z-50 backdrop-blur-md">
                     {feedbackMessage}
                 </div>
             )}
+
+            {/* --- NOTIFICATIONS --- */}
+             <section className="bg-gray-800/50 rounded-2xl p-5 border border-gray-700/50">
+                <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                         <h3 className={`text-lg font-semibold ${classes.text}`}>Notificações</h3>
+                         <button onClick={() => setShowNotifInfo(!showNotifInfo)} className="text-gray-400 hover:text-white">
+                             <InfoIcon className="w-4 h-4" />
+                         </button>
+                    </div>
+                    <button 
+                        onClick={() => {
+                            handleSave({ notificationConfig: { ...settings.notificationConfig, enabled: !settings.notificationConfig.enabled } });
+                            if (!settings.notificationConfig.enabled && Notification.permission !== 'granted') {
+                                Notification.requestPermission();
+                            }
+                        }}
+                        className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${settings.notificationConfig.enabled ? classes.bg : 'bg-gray-600'}`}
+                    >
+                        <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.notificationConfig.enabled ? 'translate-x-6' : 'translate-x-0'}`} />
+                    </button>
+                </div>
+                
+                {/* Status Badge */}
+                <div className="mb-4 flex items-center gap-2">
+                     <div className={`w-2 h-2 rounded-full ${isOfflineSupported ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+                     <p className="text-xs text-gray-400">
+                        {isOfflineSupported ? 'Modo Offline Ativo (Android)' : 'Modo Runtime (App deve estar aberto)'}
+                     </p>
+                </div>
+                
+                {showNotifInfo && (
+                    <div className="mb-4 bg-blue-900/20 border border-blue-500/30 p-3 rounded-lg text-xs text-gray-300 animate-in fade-in">
+                        <p className="mb-2"><strong>Como funciona:</strong> Se "Offline" estiver ativo, o Android entrega a notificação mesmo com o app fechado. Se "Runtime", o app verifica a hora enquanto você o usa.</p>
+                        <p><strong>Economia Inteligente:</strong> Se a cidade da notificação for a mesma que você está vendo na tela, usamos os dados já carregados (incluindo One Call). Se for diferente, usamos Open-Meteo (Grátis).</p>
+                    </div>
+                )}
+                
+                <div className={`space-y-4 transition-all duration-300 ${settings.notificationConfig.enabled ? 'opacity-100' : 'opacity-50 pointer-events-none grayscale'}`}>
+                    <div>
+                        <label className="text-sm text-gray-300 mb-1 block">Horário da Notificação</label>
+                        <input 
+                            type="time" 
+                            value={settings.notificationConfig.time}
+                            onChange={(e) => handleSave({ notificationConfig: { ...settings.notificationConfig, time: e.target.value } })}
+                            className={`bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:ring-2 outline-none ${classes.ring}`}
+                        />
+                    </div>
+                    
+                    <div>
+                        <label className="text-sm text-gray-300 mb-2 block">Dias da Semana</label>
+                        <div className="flex gap-2">
+                            {daysOfWeek.map(day => (
+                                <button
+                                    key={day.id}
+                                    onClick={() => {
+                                        const current = settings.notificationConfig.days;
+                                        const newDays = current.includes(day.id) 
+                                            ? current.filter(d => d !== day.id)
+                                            : [...current, day.id];
+                                        handleSave({ notificationConfig: { ...settings.notificationConfig, days: newDays } });
+                                    }}
+                                    className={`w-8 h-8 rounded-full text-sm font-bold transition-colors ${settings.notificationConfig.days.includes(day.id) ? `${classes.bg} text-white` : 'bg-gray-700 text-gray-400'}`}
+                                >
+                                    {day.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    
+                    <div className="bg-gray-900/50 p-3 rounded-lg border border-gray-700/30">
+                         <div className="flex items-center justify-between mb-1">
+                            <div>
+                                <p className="text-sm text-gray-400">Local do Clima:</p>
+                                <p className="font-medium text-white truncate max-w-[150px]">
+                                    {settings.notificationConfig.location ? `${settings.notificationConfig.location.name}` : 'Minha Localização (GPS)'}
+                                </p>
+                            </div>
+                            <button 
+                                onClick={() => {
+                                    setCityModalMode('notification');
+                                    setShowCityModal(true);
+                                }}
+                                className={`${classes.text} text-sm hover:underline font-bold`}
+                            >
+                                Alterar
+                            </button>
+                        </div>
+                        <p className="text-[10px] text-gray-500 mt-2">
+                            * Fonte automática: Reutilização ou Open-Meteo.
+                        </p>
+                    </div>
+
+                    {/* Notification History Toggle */}
+                    <div className="flex items-center justify-between pt-2 border-t border-gray-700/30">
+                        <div className="flex flex-col">
+                            <span className="text-gray-300 text-sm">Histórico de Notificações</span>
+                            <span className="text-xs text-gray-500">Salvar lista e exibir ícone de sino no topo.</span>
+                        </div>
+                        <button 
+                            onClick={() => handleSave({ notificationConfig: { ...settings.notificationConfig, historyEnabled: !settings.notificationConfig.historyEnabled } })}
+                            className={`w-10 h-5 rounded-full p-0.5 transition-colors duration-300 ${settings.notificationConfig.historyEnabled ? classes.bg : 'bg-gray-600'}`}
+                        >
+                            <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.notificationConfig.historyEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                        </button>
+                    </div>
+
+                    {/* Separate Alerts Toggle */}
+                     <div className="flex items-center justify-between pt-2 border-t border-gray-700/30">
+                        <div className="flex flex-col">
+                            <span className="text-gray-300 text-sm">Alertas Separados</span>
+                            <span className="text-xs text-gray-500">Enviar segunda notificação para alertas severos (Se disponível na fonte ativa).</span>
+                        </div>
+                        <button 
+                            onClick={() => handleSave({ notificationConfig: { ...settings.notificationConfig, separateAlerts: !settings.notificationConfig.separateAlerts } })}
+                            className={`w-10 h-5 rounded-full p-0.5 transition-colors duration-300 ${settings.notificationConfig.separateAlerts ? classes.bg : 'bg-gray-600'}`}
+                        >
+                            <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.notificationConfig.separateAlerts ? 'translate-x-5' : 'translate-x-0'}`} />
+                        </button>
+                    </div>
+                    
+                     <button 
+                        onClick={handleTestNotification}
+                        className="w-full mt-4 flex items-center justify-center gap-2 bg-gray-700 hover:bg-gray-600 text-white py-2 rounded-lg text-sm font-medium transition-colors"
+                    >
+                        <BellIcon className="w-4 h-4" />
+                        Testar Notificação Agora
+                    </button>
+
+                </div>
+            </section>
 
             {/* --- CUSTOMIZATION --- */}
              <section className="bg-gray-800/50 rounded-2xl p-5 border border-gray-700/50">
@@ -326,7 +489,10 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
                             onChange={(e) => {
                                 const val = e.target.value as any;
                                 handleSave({ startupBehavior: val });
-                                if (val === 'specific_location') setShowCityModal(true);
+                                if (val === 'specific_location') {
+                                    setCityModalMode('startup');
+                                    setShowCityModal(true);
+                                }
                             }}
                             className={`bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:ring-2 outline-none ${classes.ring}`}
                         >
@@ -346,7 +512,10 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
                                 </p>
                             </div>
                             <button 
-                                onClick={() => setShowCityModal(true)}
+                                onClick={() => {
+                                    setCityModalMode('startup');
+                                    setShowCityModal(true);
+                                }}
                                 className={`${classes.text} text-sm hover:underline`}
                             >
                                 Alterar
@@ -393,12 +562,12 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
                     <div className="flex flex-col gap-2">
                         <label className="text-sm text-gray-300">Instruções Personalizadas</label>
                         <p className="text-xs text-gray-500 mb-2">
-                            Tudo o que você escrever aqui será enviado para a IA como uma "regra" de comportamento extra. Ex: "Seja sarcástico", "Fale sempre em rimas", "Responda como um meteorologista técnico".
+                            Tudo o que você escrever aqui será enviado para a IA como uma "regra" de comportamento extra.
                         </p>
                         <textarea 
                             value={settings.aiCustomInstructions}
                             onChange={(e) => handleSave({ aiCustomInstructions: e.target.value })}
-                            placeholder="Digite suas instruções personalizadas para a IA..."
+                            placeholder="Digite suas instruções personalizadas..."
                             rows={4}
                             className={`bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:ring-2 outline-none resize-none ${classes.ring}`}
                         />
@@ -441,15 +610,18 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
                 isOpen={showCityModal}
                 onClose={() => {
                     setShowCityModal(false);
-                    // PROTECTION: Revert if specific location was selected but not set
-                    if (!settings.specificLocation) {
+                    if (cityModalMode === 'startup' && !settings.specificLocation) {
                         handleSave({ startupBehavior: 'idle' });
-                        setFeedbackMessage("Nenhuma localização selecionada. Configuração revertida para Tela Inicial.");
+                        setFeedbackMessage("Nenhuma localização selecionada. Configuração revertida.");
                         setTimeout(() => setFeedbackMessage(null), 4000);
                     }
                 }}
                 onSelect={(city) => {
-                    handleSave({ specificLocation: city });
+                    if (cityModalMode === 'startup') {
+                        handleSave({ specificLocation: city });
+                    } else {
+                        handleSave({ notificationConfig: { ...settings.notificationConfig, location: city } });
+                    }
                     setShowCityModal(false);
                 }}
             />
@@ -459,10 +631,15 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
                 onClose={() => setShowImportModal(false)}
                 onImport={handleImport}
             />
+            
+            <PwaInfoModal 
+                isOpen={showPwaModal}
+                onClose={() => setShowPwaModal(false)}
+            />
 
             <div className="text-center pt-8 pb-4">
                 <p className="text-xs text-gray-500">
-                    Versão 2.1. Desenvolvido por{' '}
+                    Versão 2.5. Desenvolvido por{' '}
                     <a 
                         href="https://www.instagram.com/elias_jrnunes/" 
                         target="_blank" 

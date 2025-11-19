@@ -1,4 +1,5 @@
 
+
 export type View = 'weather' | 'ai' | 'map' | 'news' | 'settings' | 'tips' | 'info';
 
 export interface WeatherData {
@@ -24,6 +25,8 @@ export interface WeatherData {
   rain_1h?: number;
   snow_1h?: number;
   dew_point?: number;
+  lat?: number;
+  lon?: number;
 }
 
 export interface AirQualityData {
@@ -102,6 +105,35 @@ export interface SearchResultItem {
     snippet: string;
 }
 
+// --- NOTIFICATIONS TYPES ---
+
+export interface NotificationConfig {
+    enabled: boolean;
+    historyEnabled: boolean; // Se false, não salva no histórico nem mostra o sino
+    time: string; // "08:00"
+    days: number[]; // 0 (Sun) - 6 (Sat)
+    location?: CitySearchResult; // If undefined, uses current location
+    separateAlerts?: boolean; // Se true, envia notificação extra para alertas severos
+}
+
+export interface AppNotification {
+    id: string;
+    title: string;
+    body: string;
+    timestamp: number;
+    read: boolean;
+    type: 'weather_daily' | 'alert' | 'system';
+}
+
+// Experimental Notification Trigger Types (Android/Chrome)
+export interface TimestampTrigger {
+    timestamp: number;
+}
+
+export interface NotificationOptionsExperimental extends NotificationOptions {
+    showTrigger?: TimestampTrigger;
+}
+
 // --- SETTINGS TYPES ---
 
 export type StartupBehavior = 'last_location' | 'idle' | 'specific_location' | 'custom_section';
@@ -129,11 +161,14 @@ export interface AppSettings {
         enabled: boolean;
         intensity: 'low' | 'high';
     };
+    // Notification Settings
+    notificationConfig: NotificationConfig;
 }
 
 export interface ExportData {
     settings: AppSettings;
     chatHistory: ChatMessage[]; // Placeholder for structure
     weatherCache: Record<string, any>; // Raw cache dump
+    notifications: AppNotification[]; // Export notifications too
     timestamp: number;
 }
