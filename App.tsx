@@ -472,7 +472,8 @@ const App: React.FC = () => {
       chatInputText, setChatInputText,
       isListening, onToggleListening: handleToggleListening,
       isSearchEnabled, onToggleSearch: handleToggleSearch,
-      userName: settings.userName
+      userName: settings.userName,
+      setMessages: setMessages 
   };
 
   const isRaining = weatherData?.condition?.toLowerCase().includes('chuv');

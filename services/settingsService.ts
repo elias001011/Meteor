@@ -1,23 +1,23 @@
 
-
 import type { AppSettings, ExportData } from '../types';
 
 const SETTINGS_KEY = 'meteor_settings';
 const WEATHER_CACHE_PREFIX = 'weather_data_';
-const AI_USAGE_KEY = 'meteor_ai_usage'; // Key used in geminiService.ts
+// Key pattern for AI usage: meteor_ai_usage_YYYY-MM-DD
+const AI_USAGE_PREFIX = 'meteor_ai_usage_';
 
 const DEFAULT_SETTINGS: AppSettings = {
     showClock: true,
-    clockDisplayMode: 'always', // Default to showing it always
+    clockDisplayMode: 'always',
     startFullscreen: false,
     weatherSource: 'auto',
-    startupBehavior: 'idle',
-    saveChatHistory: false, // Default to NOT saving history
+    startupBehavior: 'idle', // 'idle', 'last_location', 'specific_location', 'custom_section'
+    saveChatHistory: false,
     startupSection: 'weather',
     themeColor: 'purple',
     dynamicTheme: false,
-    transparencyMode: 'glass', // Default to Glass
-    showScrollbars: false, // Default to OFF for a cleaner, mobile-first UI
+    transparencyMode: 'glass',
+    showScrollbars: false,
     rainAnimation: {
         enabled: true,
         intensity: 'low'
@@ -36,13 +36,11 @@ export const getSettings = (): AppSettings => {
         // --- START MIGRATION LOGIC ---
         let migratedSettings = { ...parsed };
 
-        // 1. Migrate legacy `glassEffectEnabled` (boolean) to `transparencyMode`
         if (typeof parsed.glassEffectEnabled === 'boolean') {
             migratedSettings.transparencyMode = parsed.glassEffectEnabled ? 'glass' : 'off';
             delete migratedSettings.glassEffectEnabled;
         }
 
-        // 2. Migrate from legacy `transparencyLevel: 'none'|'low'|'high'` to `transparencyMode`
         if (typeof parsed.transparencyLevel === 'string') {
              if (parsed.transparencyLevel === 'none') migratedSettings.transparencyMode = 'off';
              else if (parsed.transparencyLevel === 'low') migratedSettings.transparencyMode = 'low';
@@ -50,7 +48,6 @@ export const getSettings = (): AppSettings => {
              delete migratedSettings.transparencyLevel;
         }
         
-        // 3. Migrate from even older legacy `enableTransparency`
         if (typeof migratedSettings.transparencyMode === 'undefined' && typeof parsed.enableTransparency === 'boolean') {
              migratedSettings.transparencyMode = parsed.enableTransparency ? 'glass' : 'off';
              delete migratedSettings.enableTransparency;
@@ -92,7 +89,6 @@ export const exportAppData = (): void => {
         }
     }
 
-    // Include chat history in export if it exists
     let chatHistory = [];
     try {
         const storedChat = localStorage.getItem('chat_history');
@@ -101,7 +97,6 @@ export const exportAppData = (): void => {
         }
     } catch (e) {}
 
-    // Include last known location to preserve state
     let lastCoords = null;
     try {
         const storedCoords = localStorage.getItem('last_coords');
@@ -137,7 +132,6 @@ export const importAppData = (
         const data: ExportData & { lastCoords?: any } = JSON.parse(jsonContent);
 
         if (options.importSettings && data.settings) {
-            // Merge imported settings with defaults to ensure compatibility
             const mergedSettings = { 
                 ...DEFAULT_SETTINGS, 
                 ...data.settings,
@@ -150,14 +144,12 @@ export const importAppData = (
         }
 
         if (options.importCache && data.weatherCache) {
-            // Clear existing weather cache first
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
                 if (key && key.startsWith(WEATHER_CACHE_PREFIX)) {
                     localStorage.removeItem(key);
                 }
             }
-            // Restore
             Object.entries(data.weatherCache).forEach(([key, value]) => {
                 localStorage.setItem(key, JSON.stringify(value));
             });
@@ -167,7 +159,6 @@ export const importAppData = (
             localStorage.setItem('chat_history', JSON.stringify(data.chatHistory));
         }
 
-        // Restore last coords if present in the backup
         if (data.lastCoords) {
             localStorage.setItem('last_coords', JSON.stringify(data.lastCoords));
         }
@@ -196,11 +187,14 @@ export const resetCache = () => {
 
 export const resetAllData = () => {
     // Preserve AI Usage limit to survive factory reset
-    const aiUsage = localStorage.getItem(AI_USAGE_KEY);
+    const today = new Date().toISOString().split('T')[0];
+    const usageKey = `${AI_USAGE_PREFIX}${today}`;
+    const aiUsage = localStorage.getItem(usageKey);
     
     localStorage.clear();
     
+    // Restore AI usage after clear to prevent bypass
     if (aiUsage) {
-        localStorage.setItem(AI_USAGE_KEY, aiUsage);
+        localStorage.setItem(usageKey, aiUsage);
     }
 };

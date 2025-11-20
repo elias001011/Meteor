@@ -1,5 +1,4 @@
 
-
 import React, { useState } from 'react';
 import type { ChatMessage } from '../../types';
 import { LinkIcon, CopyIcon, VolumeIcon, InfoIcon, CheckIcon, RefreshCwIcon } from '../icons';
@@ -7,23 +6,24 @@ import { useTheme } from '../context/ThemeContext';
 
 interface MessageBubbleProps {
   message: ChatMessage;
+  onRegenerate?: () => void;
 }
 
-const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
+const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onRegenerate }) => {
   const isModel = message.role === 'model';
   const { classes } = useTheme();
   const [isCopied, setIsCopied] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
 
-  // Cleaner to remove LaTeX/Math artifacts if the model ignores instructions
+  // Stronger regex cleaning
   const cleanText = (raw: string) => {
       return raw
-        .replace(/\$|\\text\{|\}|\\circ/g, '') // Remove $, \text{}, } and \circ
-        .replace(/:\*/g, ':'); // Fix hanging colon+asterisk
+        .replace(/\$|\\text\{|\}|\\circ/g, '') // Math junk
+        .replace(/\*\*(.*?):\*/g, '**$1:**') // Fix "**Title:*" -> "**Title:**"
+        .replace(/:\*/g, ':'); // Catch remaining ":*"
   };
 
-  // Formatter for markdown-like syntax
   const renderFormattedText = (rawText: string) => {
     const text = cleanText(rawText);
     const parts = text.split(/(\*\*.*?\*\*|\*.*?\*|`.*?`)/g);
@@ -36,7 +36,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   };
 
   const handleCopy = () => {
-      navigator.clipboard.writeText(message.text);
+      navigator.clipboard.writeText(cleanText(message.text));
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 2000);
   };
@@ -56,13 +56,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
       }
   };
 
-  if (message.role === 'system') return null; // Don't show system/debug messages in chat flow
+  if (message.role === 'system') return null;
 
   return (
     <div className={`flex items-end gap-2 mb-4 ${isModel ? 'justify-start' : 'justify-end'}`}>
       
-      {/* Icon Removed as requested */}
-
       <div className="flex flex-col max-w-[95%] sm:max-w-[85%]">
         <div
           className={`relative px-5 py-3.5 rounded-2xl shadow-sm text-base leading-relaxed ${
@@ -87,13 +85,17 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
                 <button onClick={handleSpeak} className={`p-1.5 hover:bg-gray-700 rounded-full transition-colors ${isSpeaking ? 'text-green-400 animate-pulse' : 'text-gray-500 hover:text-white'}`} title="Ler em voz alta">
                     <VolumeIcon className="w-4 h-4" />
                 </button>
+                {onRegenerate && (
+                     <button onClick={onRegenerate} className="p-1.5 text-gray-500 hover:text-white hover:bg-gray-700 rounded-full transition-colors" title="Regerar resposta">
+                        <RefreshCwIcon className="w-4 h-4" />
+                    </button>
+                )}
                 <button onClick={() => setShowInfo(!showInfo)} className={`p-1.5 hover:bg-gray-700 rounded-full transition-colors ${showInfo ? 'text-cyan-400' : 'text-gray-500 hover:text-white'}`} title="Informações da Resposta">
                     <InfoIcon className="w-4 h-4" />
                 </button>
             </div>
         )}
         
-        {/* Info Popup */}
         {showInfo && message.metadata && (
             <div className="mt-2 p-3 bg-gray-800/90 border border-gray-700 rounded-xl text-xs text-gray-400 animate-fade-in">
                 <p><strong className="text-gray-300">Modelo:</strong> {message.metadata.model}</p>
@@ -110,7 +112,6 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             </div>
         )}
 
-        {/* Sources Section - Only show if web search was active */}
         {message.sources && message.sources.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
             <div className="w-full text-xs text-gray-500 font-semibold uppercase mb-1">Fontes Consultadas</div>
