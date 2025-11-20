@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { SunriseIcon, SunsetIcon, SunIcon } from '../icons';
+import { useTheme } from '../context/ThemeContext';
 
 interface SunriseSunsetProps {
   sunrise: number;
@@ -11,6 +12,7 @@ interface SunriseSunsetProps {
 const SunriseSunset: React.FC<SunriseSunsetProps> = ({ sunrise, sunset, timezoneOffset = 0 }) => {
     const [sunPercentage, setSunPercentage] = useState(0);
     const [currentTimeLabel, setCurrentTimeLabel] = useState('');
+    const { cardClass } = useTheme();
 
     // Helper to format time with timezone offset
     const formatTime = (timestamp: number) => {
@@ -64,13 +66,14 @@ const SunriseSunset: React.FC<SunriseSunsetProps> = ({ sunrise, sunset, timezone
 
 
     return (
-        <div className="bg-gray-800 rounded-3xl p-4">
-            <h3 className="text-sm text-gray-400 mb-4 px-2">Nascer e Pôr do Sol (Local)</h3>
-            <div className="relative w-full max-w-sm mx-auto h-28 flex items-end justify-center">
+        <div className={`rounded-3xl p-5 ${cardClass} animate-enter delay-200`}>
+            <h3 className="text-sm font-medium text-gray-300 mb-6 px-1 uppercase tracking-wide">Ciclo Solar</h3>
+            <div className="relative w-full max-w-sm mx-auto h-32 flex items-end justify-center overflow-hidden">
                 
                 <svg className="absolute bottom-6 w-full h-auto" viewBox="0 0 200 100">
-                    <path d="M 10 90 A 90 90 0 0 1 190 90" fill="none" stroke="rgba(107, 114, 128, 0.5)" strokeWidth="2" strokeDasharray="4 4"/>
-                    <path d="M 10 90 A 90 90 0 0 1 190 90" fill="none" stroke="#facc15" strokeWidth="2" strokeLinecap="round" style={{ strokeDasharray: pathLength, strokeDashoffset: pathOffset, transition: 'stroke-dashoffset 1s ease-in-out' }}/>
+                    <path d="M 10 90 A 90 90 0 0 1 190 90" fill="none" stroke="rgba(255, 255, 255, 0.1)" strokeWidth="2" strokeDasharray="4 4"/>
+                    {/* Sun Path with Glow */}
+                    <path d="M 10 90 A 90 90 0 0 1 190 90" fill="none" stroke="#facc15" strokeWidth="3" strokeLinecap="round" style={{ strokeDasharray: pathLength, strokeDashoffset: pathOffset, transition: 'stroke-dashoffset 1s ease-in-out', filter: 'drop-shadow(0 0 4px rgba(250, 204, 21, 0.5))' }}/>
                 </svg>
 
                 <div 
@@ -78,20 +81,28 @@ const SunriseSunset: React.FC<SunriseSunsetProps> = ({ sunrise, sunset, timezone
                     style={{ left: `${sunX}%`, bottom: `${sunY}%`, transform: 'translateX(-50%) translateY(50%)' }}
                 >
                     <div className="relative flex flex-col items-center">
-                        <SunIcon className="w-6 h-6 text-yellow-400"/>
-                        <span className="text-xs font-mono bg-gray-900/50 px-1 rounded mt-1">{currentTimeLabel}</span>
+                        <div className="bg-yellow-400/20 p-2 rounded-full backdrop-blur-sm">
+                             <SunIcon className="w-6 h-6 text-yellow-400 fill-yellow-400"/>
+                        </div>
+                        <span className="text-xs font-mono bg-black/60 border border-white/10 px-2 py-0.5 rounded text-white mt-1 shadow-lg">{currentTimeLabel}</span>
                     </div>
                 </div>
             </div>
             
-            <div className="flex justify-between items-center w-full max-w-sm mx-auto mt-1">
-                <div className="flex items-center gap-2">
-                    <SunriseIcon className="w-5 h-5 text-gray-400" />
-                    <span className="font-bold">{formatTime(sunrise)}</span>
+            <div className="flex justify-between items-center w-full max-w-sm mx-auto mt-2 px-4">
+                <div className="flex flex-col items-start">
+                     <div className="flex items-center gap-2 text-gray-400">
+                        <SunriseIcon className="w-4 h-4" />
+                        <span className="text-xs uppercase">Nascer</span>
+                    </div>
+                    <span className="font-bold text-lg">{formatTime(sunrise)}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                    <SunsetIcon className="w-5 h-5 text-gray-400" />
-                    <span className="font-bold">{formatTime(sunset)}</span>
+                <div className="flex flex-col items-end">
+                     <div className="flex items-center gap-2 text-gray-400">
+                        <SunsetIcon className="w-4 h-4" />
+                        <span className="text-xs uppercase">Pôr</span>
+                    </div>
+                    <span className="font-bold text-lg">{formatTime(sunset)}</span>
                 </div>
             </div>
         </div>

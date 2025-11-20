@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import WeatherView from './components/weather/WeatherView';
 import AiView from './components/ai/AiView';
@@ -17,7 +18,7 @@ import SettingsView from './components/settings/SettingsView';
 import { Content } from '@google/genai';
 import ErrorPopup from './components/common/ErrorPopup';
 import DataSourceModal from './components/common/DataSourceModal';
-import { ThemeProvider } from './components/context/ThemeContext';
+import { ThemeProvider, useTheme } from './components/context/ThemeContext';
 
 // Rain animation component defined locally
 const RainAnimation: React.FC<{ intensity: 'low' | 'high' }> = ({ intensity }) => {
@@ -48,6 +49,165 @@ const DEFAULT_WELCOME_MSG: ChatMessage = {
     text: 'Olá! Sou a IA do Meteor. Como posso ajudar você hoje?',
 };
 
+// Separate component to access theme context
+const AppContent: React.FC<{
+    settings: AppSettings;
+    handleSettingsChange: (s: AppSettings) => void;
+    handleClearChatHistory: () => void;
+    view: View;
+    setView: (v: View) => void;
+    // ... other props passed down ...
+    messages: ChatMessage[];
+    isSending: boolean;
+    chatInputText: string;
+    setChatInputText: (t: string) => void;
+    isListening: boolean;
+    onToggleListening: () => void;
+    isSearchEnabled: boolean;
+    onToggleSearch: () => void;
+    handleSendMessage: (t: string, c?: boolean) => void;
+    weatherInfo: Partial<AllWeatherData>;
+    weatherStatus: 'idle' | 'loading' | 'success' | 'error';
+    weatherError: string | null;
+    currentCoords: { lat: number; lon: number } | null;
+    currentCityInfo: { name: string; country: string } | null;
+    preferredDataSource: DataSource | 'auto';
+    handleFetchWeather: (coords: { lat: number; lon: number }, cityInfo?: { name: string; country: string }, source?: DataSource | 'auto') => void;
+    handleCitySelect: (city: CitySearchResult) => void;
+    fetchUserLocationWeather: () => void;
+    dataSource: DataSource | undefined;
+    lastUpdated: number | undefined;
+    handleDataSourceChange: (s: DataSource | 'auto') => void;
+    isDataSourceModalOpen: boolean;
+    setIsDataSourceModalOpen: (o: boolean) => void;
+    appError: string | null;
+    setAppError: (e: string | null) => void;
+}> = (props) => {
+    const { appBackgroundClass, classes } = useTheme();
+    const { settings, view, weatherInfo, weatherStatus, appError } = props;
+    const isRaining = weatherInfo.weatherData?.condition?.toLowerCase().includes('chuv');
+
+    const weatherProps = {
+        status: weatherStatus,
+        error: props.weatherError,
+        weatherData: weatherInfo.weatherData,
+        airQualityData: weatherInfo.airQualityData,
+        hourlyForecast: weatherInfo.hourlyForecast || [],
+        dailyForecast: weatherInfo.dailyForecast || [],
+        alerts: weatherInfo.alerts || [],
+        dataSource: weatherInfo.dataSource,
+        lastUpdated: weatherInfo.lastUpdated,
+        clockDisplayMode: settings.clockDisplayMode,
+        onCitySelect: props.handleCitySelect,
+        onGeolocate: props.fetchUserLocationWeather,
+        onRetry: () => {
+            if (props.currentCoords) {
+                props.handleFetchWeather(props.currentCoords, props.currentCityInfo || undefined, props.preferredDataSource)
+            } else {
+                // Reset to idle logic handled in parent or by passing setter
+            }
+        },
+        onDataSourceInfoClick: () => props.setIsDataSourceModalOpen(true),
+    };
+
+    const aiViewProps = {
+        messages: props.messages,
+        onSendMessage: (text: string) => props.handleSendMessage(text, false),
+        isSending: props.isSending,
+        chatInputText: props.chatInputText,
+        setChatInputText: props.setChatInputText,
+        isListening: props.isListening,
+        onToggleListening: props.onToggleListening,
+        isSearchEnabled: props.isSearchEnabled,
+        onToggleSearch: props.onToggleSearch
+    };
+
+    return (
+        <div className={`relative text-white min-h-screen font-sans flex flex-col h-screen overflow-hidden transition-colors duration-500 ${appBackgroundClass}`}>
+            {view === 'weather' && isRaining && settings.rainAnimation.enabled && (
+                <RainAnimation intensity={settings.rainAnimation.intensity} />
+            )}
+
+            <Header 
+                activeView={view} 
+                setView={props.setView} 
+                showClock={settings.showClock} 
+                borderEffect={settings.borderEffect}
+            />
+            
+            {appError && <ErrorPopup message={appError} onClose={() => props.setAppError(null)} />}
+
+            <DataSourceModal
+                isOpen={props.isDataSourceModalOpen}
+                onClose={() => props.setIsDataSourceModalOpen(false)}
+                currentSource={props.dataSource || null}
+                preferredSource={props.preferredDataSource}
+                onSourceChange={props.handleDataSourceChange}
+            />
+
+            <main className="relative z-10 flex-1 h-full overflow-hidden">
+                {/* --- DESKTOP VIEW --- */}
+                <div className="hidden lg:block h-full overflow-y-auto pt-16">
+                    {view === 'weather' && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 h-full animate-enter">
+                            <div className="overflow-y-auto pr-2 space-y-6">
+                                <DesktopWeather {...weatherProps} />
+                            </div>
+                            <div className="h-full rounded-3xl overflow-hidden shadow-2xl border border-white/10">
+                                <MapView lat={props.currentCoords?.lat} lon={props.currentCoords?.lon} theme={settings.mapTheme} />
+                            </div>
+                        </div>
+                    )}
+                    {view === 'ai' && <div className="h-full animate-enter"><AiView {...aiViewProps} /></div>}
+                    {view === 'map' && (
+                        <div className="h-full animate-enter">
+                            <MapView lat={props.currentCoords?.lat} lon={props.currentCoords?.lon} theme={settings.mapTheme} />
+                        </div>
+                    )}
+                    {view === 'news' && <div className="animate-enter"><PlaceholderView title="Notícias" /></div>}
+                    {view === 'settings' && <div className="animate-enter"><SettingsView settings={settings} onSettingsChanged={props.handleSettingsChange} onClearHistory={props.handleClearChatHistory} /></div>}
+                    {view === 'tips' && <div className="animate-enter"><PlaceholderView title="Dicas" /></div>}
+                    {view === 'info' && <div className="animate-enter"><PlaceholderView title="Informações" /></div>}
+                </div>
+
+                {/* --- MOBILE VIEW --- */}
+                <div className="lg:hidden h-full">
+                    <div className={`${view === 'weather' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24 pt-16 animate-enter`}>
+                        <WeatherView {...weatherProps} />
+                    </div>
+                    <div className={`${view === 'ai' ? 'block' : 'hidden'} h-full animate-enter pt-16`}>
+                        <AiView {...aiViewProps} />
+                    </div>
+                    <div className={`${view === 'map' ? 'block' : 'hidden'} h-full pb-24 pt-16 animate-enter`}>
+                        <MapView lat={props.currentCoords?.lat} lon={props.currentCoords?.lon} theme={settings.mapTheme} />
+                    </div>
+                    <div className={`${view === 'news' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24 pt-16 animate-enter`}>
+                        <PlaceholderView title="Notícias" />
+                    </div>
+                    <div className={`${view === 'settings' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24 pt-16 animate-enter`}>
+                        <SettingsView settings={settings} onSettingsChanged={props.handleSettingsChange} onClearHistory={props.handleClearChatHistory} />
+                    </div>
+                    <div className={`${view === 'tips' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24 pt-16 animate-enter`}>
+                        <PlaceholderView title="Dicas" />
+                    </div>
+                    <div className={`${view === 'info' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24 pt-16 animate-enter`}>
+                        <PlaceholderView title="Informações" />
+                    </div>
+                </div>
+            </main>
+
+            <div className="lg:hidden">
+                <BottomNav activeView={view} setView={props.setView} />
+                <MobileAiControls
+                    isVisible={view === 'ai'}
+                    onSendMessage={(text) => props.handleSendMessage(text, false)}
+                    isSending={props.isSending}
+                    {...aiViewProps}
+                />
+            </div>
+        </div>
+    );
+}
 
 const App: React.FC = () => {
   const [view, setView] = useState<View>('weather');
@@ -78,7 +238,7 @@ const App: React.FC = () => {
   // Dynamic Theme State
   const [activeTheme, setActiveTheme] = useState<AppTheme>(settings.themeColor);
 
-  const { weatherData, airQualityData, hourlyForecast, dailyForecast, alerts, dataSource, lastUpdated } = weatherInfo;
+  const { weatherData, dataSource, lastUpdated } = weatherInfo;
 
   useEffect(() => {
     if (settings.showScrollbars) {
@@ -162,7 +322,7 @@ const App: React.FC = () => {
   useEffect(() => {
       const metaThemeColor = document.querySelector('meta[name="theme-color"]');
       if (metaThemeColor) {
-          metaThemeColor.setAttribute('content', '#131B2E');
+          metaThemeColor.setAttribute('content', '#0f172a');
       }
   }, []);
 
@@ -322,7 +482,7 @@ const App: React.FC = () => {
         parts: [{ text: msg.text }]
     }));
 
-    // Create formatted time context (e.g., "Segunda-feira, 20 de Novembro de 2025, 14:30")
+    // Create formatted time context
     const timeContext = new Date().toLocaleString('pt-BR', { 
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
     });
@@ -348,17 +508,12 @@ const App: React.FC = () => {
                 if (fullText.includes('[SEARCH_REQUIRED]')) {
                     console.log("AUTO-SEARCH TRIGGERED by AI");
                     
-                    // Remove the stealth command from the current text buffer so user doesn't see it
-                    // (Although we are about to reset, it's good practice)
-                    
                     // Fetch search results invisible to user
                     const newResults = await getSearchResults(query);
                     
-                    // NOTE: We do NOT enable isSearchEnabled visually. It's a one-off internal search.
-                    
                     // Recursive call with results
                     await performChatRequest(newResults);
-                    return; // Exit this loop and this execution context, the recursive call handles the rest
+                    return; // Exit this loop and this execution context
                 }
 
                 setMessages(prev => {
@@ -429,111 +584,40 @@ const App: React.FC = () => {
     setIsSearchEnabled(prev => !prev);
   };
 
-  const weatherProps = {
-    status: weatherStatus,
-    error: weatherError,
-    weatherData, airQualityData, hourlyForecast, dailyForecast, alerts, dataSource, lastUpdated,
-    clockDisplayMode: settings.clockDisplayMode,
-    onCitySelect: handleCitySelect,
-    onGeolocate: fetchUserLocationWeather,
-    onRetry: () => {
-        if (currentCoords) {
-            handleFetchWeather(currentCoords, currentCityInfo || undefined, preferredDataSource)
-        } else {
-            setWeatherStatus('idle');
-            setWeatherError(null);
-        }
-    },
-    onDataSourceInfoClick: () => setIsDataSourceModalOpen(true),
-  };
-  
-  const aiViewProps = {
-      messages, onSendMessage: (text: string) => handleSendMessage(text, false), isSending,
-      chatInputText, setChatInputText,
-      isListening, onToggleListening: handleToggleListening,
-      isSearchEnabled, onToggleSearch: handleToggleSearch
-  };
-
-  const isRaining = weatherData?.condition?.toLowerCase().includes('chuv');
-
-
   return (
-    <ThemeProvider theme={activeTheme} transparencyMode={settings.transparencyMode}>
-      <div className="relative bg-gray-900 text-white min-h-screen font-sans flex flex-col h-screen overflow-hidden">
-        {view === 'weather' && isRaining && settings.rainAnimation.enabled && (
-            <RainAnimation intensity={settings.rainAnimation.intensity} />
-        )}
-        
-        <Header activeView={view} setView={setView} showClock={settings.showClock} />
-        {appError && <ErrorPopup message={appError} onClose={() => setAppError(null)} />}
-        
-        <DataSourceModal 
-          isOpen={isDataSourceModalOpen}
-          onClose={() => setIsDataSourceModalOpen(false)}
-          currentSource={dataSource}
-          preferredSource={preferredDataSource}
-          onSourceChange={handleDataSourceChange}
-        />
-
-        <main className="relative z-10 flex-1 pt-16 overflow-hidden">
-          {/* --- DESKTOP VIEW --- */}
-          <div className="hidden lg:block h-full overflow-y-auto">
-            {view === 'weather' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 h-full">
-                <div className="overflow-y-auto pr-2 space-y-6">
-                  <DesktopWeather {...weatherProps} />
-                </div>
-                <div className="h-full rounded-3xl overflow-hidden">
-                  <MapView lat={currentCoords?.lat} lon={currentCoords?.lon} />
-                </div>
-              </div>
-            )}
-            {view === 'ai' && <AiView {...aiViewProps} />}
-            {view === 'map' && (
-              <MapView lat={currentCoords?.lat} lon={currentCoords?.lon} />
-            )}
-            {view === 'news' && <PlaceholderView title="Notícias" />}
-            {view === 'settings' && <SettingsView settings={settings} onSettingsChanged={handleSettingsChange} onClearHistory={handleClearChatHistory} />}
-            {view === 'tips' && <PlaceholderView title="Dicas" />}
-            {view === 'info' && <PlaceholderView title="Informações" />}
-          </div>
-          
-          {/* --- MOBILE VIEW --- */}
-          <div className="lg:hidden h-full">
-            <div className={`${view === 'weather' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24`}>
-              <WeatherView {...weatherProps} />
-            </div>
-            <div className={`${view === 'ai' ? 'block' : 'hidden'} h-full`}>
-              <AiView {...aiViewProps} />
-            </div>
-            <div className={`${view === 'map' ? 'block' : 'hidden'} h-full pb-24`}>
-               <MapView lat={currentCoords?.lat} lon={currentCoords?.lon} />
-            </div>
-            <div className={`${view === 'news' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24`}>
-              <PlaceholderView title="Notícias" />
-            </div>
-             <div className={`${view === 'settings' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24`}>
-               <SettingsView settings={settings} onSettingsChanged={handleSettingsChange} onClearHistory={handleClearChatHistory} />
-            </div>
-             <div className={`${view === 'tips' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24`}>
-              <PlaceholderView title="Dicas" />
-            </div>
-             <div className={`${view === 'info' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24`}>
-              <PlaceholderView title="Informações" />
-            </div>
-          </div>
-        </main>
-        
-        <div className="lg:hidden">
-          <BottomNav activeView={view} setView={setView} />
-          <MobileAiControls 
-              isVisible={view === 'ai'} 
-              onSendMessage={handleSendMessage} 
-              isSending={isSending} 
-              {...aiViewProps}
-          />
-        </div>
-      </div>
+    <ThemeProvider theme={activeTheme} transparencyMode={settings.transparencyMode} backgroundMode={settings.backgroundMode}>
+      <AppContent 
+        settings={settings}
+        handleSettingsChange={handleSettingsChange}
+        handleClearChatHistory={handleClearChatHistory}
+        view={view}
+        setView={setView}
+        messages={messages}
+        isSending={isSending}
+        chatInputText={chatInputText}
+        setChatInputText={setChatInputText}
+        isListening={isListening}
+        onToggleListening={handleToggleListening}
+        isSearchEnabled={isSearchEnabled}
+        onToggleSearch={handleToggleSearch}
+        handleSendMessage={handleSendMessage}
+        weatherInfo={weatherInfo}
+        weatherStatus={weatherStatus}
+        weatherError={weatherError}
+        currentCoords={currentCoords}
+        currentCityInfo={currentCityInfo}
+        preferredDataSource={preferredDataSource}
+        handleFetchWeather={handleFetchWeather}
+        handleCitySelect={handleCitySelect}
+        fetchUserLocationWeather={fetchUserLocationWeather}
+        dataSource={dataSource}
+        lastUpdated={lastUpdated}
+        handleDataSourceChange={handleDataSourceChange}
+        isDataSourceModalOpen={isDataSourceModalOpen}
+        setIsDataSourceModalOpen={setIsDataSourceModalOpen}
+        appError={appError}
+        setAppError={setAppError}
+      />
     </ThemeProvider>
   );
 };

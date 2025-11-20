@@ -109,6 +109,9 @@ export type StartupBehavior = 'last_location' | 'idle' | 'specific_location' | '
 export type AppTheme = 'cyan' | 'blue' | 'purple' | 'emerald' | 'rose' | 'amber';
 export type TransparencyMode = 'off' | 'low' | 'glass';
 export type ClockDisplayMode = 'always' | 'different_zone' | 'never';
+export type BackgroundMode = 'gradient' | 'solid';
+export type MapTheme = 'light' | 'dark';
+export type BorderEffectMode = 'none' | 'top' | 'bottom';
 
 export interface AppSettings {
     showClock: boolean; // System clock in header
@@ -122,7 +125,10 @@ export interface AppSettings {
     // Visual Customization
     themeColor: AppTheme;
     dynamicTheme: boolean; 
-    transparencyMode: TransparencyMode; // Replaces glassEffectEnabled
+    transparencyMode: TransparencyMode;
+    backgroundMode: BackgroundMode; 
+    borderEffect: BorderEffectMode; // LED-like border effect position
+    mapTheme: MapTheme;
     showScrollbars: boolean;
     rainAnimation: {
         enabled: boolean;

@@ -20,7 +20,7 @@ const AiView: React.FC<AiViewProps> = (props) => {
   const { messages, onSendMessage, isSending, ...chatInputProps } = props;
   
   return (
-    <div className="flex flex-col h-full bg-gray-900">
+    <div className="flex flex-col h-full">
         <div className="flex-1 overflow-y-auto lg:pb-24 pb-40">
           <ChatHistory messages={messages} />
         </div>

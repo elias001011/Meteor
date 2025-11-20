@@ -10,7 +10,7 @@ interface DailyForecastProps {
 }
 
 const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data, timezoneOffset = 0 }) => {
-  const { classes } = useTheme();
+  const { classes, cardClass } = useTheme();
   
   const getDayLabel = (dt: number) => {
     // Apply offset to get the target location's day
@@ -36,13 +36,13 @@ const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data, timezoneOf
   };
 
   return (
-    <div className="bg-gray-800 rounded-3xl p-4">
-      <h3 className="text-sm text-gray-400 mb-2 px-2">Próximos Dias</h3>
+    <div className={`rounded-3xl p-5 ${cardClass} animate-enter delay-300`}>
+      <h3 className="text-sm font-medium text-gray-300 mb-3 px-2 uppercase tracking-wide">Próximos Dias</h3>
       <div className="space-y-1">
         {data.map((item, index) => (
-          <div key={index} className="grid grid-cols-4 items-center p-2 rounded-lg hover:bg-gray-700/50">
-            <span className="font-medium">{getDayLabel(item.dt)}</span>
-            <div className={`flex justify-center items-center gap-1 text-xs ${classes.text}`}>
+          <div key={index} className="grid grid-cols-4 items-center p-3 rounded-xl hover:bg-white/5 transition-colors group">
+            <span className="font-medium text-gray-200 group-hover:text-white">{getDayLabel(item.dt)}</span>
+            <div className={`flex justify-center items-center gap-1 text-xs ${classes.text} font-medium`}>
                 {typeof item.pop === 'number' && item.pop > 0.05 && (
                     <>
                         <UmbrellaIcon className="w-4 h-4" />
@@ -51,7 +51,7 @@ const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data, timezoneOf
                 )}
             </div>
             <span className="text-2xl text-center">{item.conditionIcon}</span>
-            <span className="font-bold text-right">{Math.round(item.temperature)}°C</span>
+            <span className="font-bold text-right text-lg">{Math.round(item.temperature)}°</span>
           </div>
         ))}
       </div>

@@ -9,13 +9,13 @@ interface AdditionalInfoProps {
 }
 
 const InfoItem: React.FC<{ icon: React.ReactNode; label: string; value: string | number }> = ({ icon, label, value }) => (
-    <div className="flex items-center gap-3">
-        <div className="bg-gray-700/50 rounded-full p-2">
+    <div className="flex items-center gap-3 p-2 rounded-xl transition-colors hover:bg-white/5">
+        <div className="bg-white/10 rounded-full p-2 shadow-inner">
             {icon}
         </div>
         <div>
-            <p className="text-gray-400 text-sm">{label}</p>
-            <p className="font-bold">{value}</p>
+            <p className="text-gray-400 text-xs font-medium uppercase tracking-wide">{label}</p>
+            <p className="font-bold text-lg text-slate-100">{value}</p>
         </div>
     </div>
 );
@@ -26,7 +26,7 @@ const degreesToCardinal = (deg: number): string => {
 };
 
 const AdditionalInfo: React.FC<AdditionalInfoProps> = ({ data }) => {
-  const { classes } = useTheme();
+  const { classes, cardClass } = useTheme();
 
   const formatTime = (timestamp: number) => {
       // Shift by timezone offset to get local time
@@ -42,11 +42,11 @@ const AdditionalInfo: React.FC<AdditionalInfoProps> = ({ data }) => {
 
   const getUviInfo = (uvi: number) => {
     const uviValue = Math.round(uvi);
-    if (uviValue <= 2) return { level: 'Baixo', value: `${uviValue} de 11+` };
-    if (uviValue <= 5) return { level: 'Moderado', value: `${uviValue} de 11+` };
-    if (uviValue <= 7) return { level: 'Alto', value: `${uviValue} de 11+` };
-    if (uviValue <= 10) return { level: 'Muito Alto', value: `${uviValue} de 11+` };
-    return { level: 'Extremo', value: `${uviValue} de 11+` };
+    if (uviValue <= 2) return { level: 'Baixo', value: `${uviValue}` };
+    if (uviValue <= 5) return { level: 'Moderado', value: `${uviValue}` };
+    if (uviValue <= 7) return { level: 'Alto', value: `${uviValue}` };
+    if (uviValue <= 10) return { level: 'Muito Alto', value: `${uviValue}` };
+    return { level: 'Extremo', value: `${uviValue}` };
   };
   
   const uviInfo = typeof data.uvi === 'number' && !isNaN(data.uvi) ? getUviInfo(data.uvi) : null;
@@ -54,8 +54,8 @@ const AdditionalInfo: React.FC<AdditionalInfoProps> = ({ data }) => {
   const iconClass = `w-5 h-5 ${classes.text}`;
 
   return (
-    <div className="bg-gray-800 rounded-3xl p-4">
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+    <div className={`rounded-3xl p-5 ${cardClass} animate-enter delay-100`}>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-4 gap-x-6">
             <InfoItem icon={<SunriseIcon className={iconClass} />} label="Nascer do Sol" value={formatTime(data.sunrise)} />
             <InfoItem icon={<SunsetIcon className={iconClass} />} label="Pôr do Sol" value={formatTime(data.sunset)} />
             <InfoItem icon={<WindIcon className={iconClass} />} label="Vento" value={`${data.windSpeed} km/h${windDirection}`} />
