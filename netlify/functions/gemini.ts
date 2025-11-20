@@ -12,7 +12,7 @@ const buildContextualContent = (
     
     systemInstruction += `1. **MEMÓRIA E CONTEXTO (PRIORIDADE MÁXIMA)**:\n`;
     systemInstruction += `   - Você recebe o HISTÓRICO da conversa. Antes de responder, LEIA-O.\n`;
-    systemInstruction += `   - Se o usuário perguntar "o que eu disse antes?", "qual minha primeira mensagem?", ou retomar um assunto anterior, USE O HISTÓRICO. NÃO FAÇA BUSCA NA WEB para isso.\n`;
+    systemInstruction += `   - Se o usuário perguntar "o que eu disse antes?", "qual minha primeira mensagem?", ou retomar um assunto anterior, USE O HISTÓRICO. NÃO FAÇA BUSCA NA WEB para isso. Confie na sua memória de contexto fornecida.\n`;
     
     systemInstruction += `2. **CONTEXTO TEMPORAL**:\n`;
     systemInstruction += `   - Agora é: **${timeContext}**.\n`;
@@ -20,20 +20,21 @@ const buildContextualContent = (
     
     systemInstruction += `3. **AUTO-BUSCA INTELIGENTE ([SEARCH_REQUIRED])**:\n`;
     systemInstruction += `   - Avalie a pergunta. Você precisa de dados externos (Notícias, placar de jogos, eventos futuros, fatos obscuros) que NÃO estão no histórico e nem no clima?\n`;
-    systemInstruction += `   - SIM: Responda APENAS: [SEARCH_REQUIRED]\n`;
-    systemInstruction += `   - NÃO (ou se for pergunta pessoal/conversa): Responda normalmente.\n`;
-    systemInstruction += `   - **IMPORTANTE**: Se já recebeu "Resultados da Pesquisa na Web", NÃO peça busca novamente para o mesmo assunto.\n`;
+    systemInstruction += `   - Se a resposta para "Preciso de dados externos?" for SIM, e você NÃO tem esses dados no contexto atual:\n`;
+    systemInstruction += `   - Responda APENAS E EXATAMENTE: [SEARCH_REQUIRED]\n`;
+    systemInstruction += `   - NÃO use [SEARCH_REQUIRED] para perguntas sobre o histórico da conversa ou perguntas pessoais.\n`;
+    systemInstruction += `   - **IMPORTANTE**: Se já recebeu "Resultados da Pesquisa na Web" abaixo, NÃO peça busca novamente para o mesmo assunto. Use os dados fornecidos.\n`;
     
     systemInstruction += `4. **IDENTIDADE E TOM**:\n`;
     systemInstruction += `   - Você é a IA do Meteor. Direta, útil e simpática.\n`;
-    systemInstruction += `   - Não use frases robóticas como "Com base nos resultados fornecidos". Apenas responda a pergunta naturalmente usando a informação.\n`;
+    systemInstruction += `   - INTEGRAÇÃO NATURAL: Ao usar resultados da web, não diga "Com base nos resultados...". Apenas responda a pergunta naturalmente como se você já soubesse.\n`;
     
     const content: Content[] = [{
         role: 'user',
         parts: [{ text: systemInstruction }]
     }, {
         role: 'model',
-        parts: [{ text: `Entendido. Data atual: ${timeContext}. Vou priorizar o histórico de chat para perguntas pessoais e usar [SEARCH_REQUIRED] apenas para dados externos que me faltam.` }]
+        parts: [{ text: `Entendido. Data atual: ${timeContext}. Priorizarei o histórico para memória e usarei [SEARCH_REQUIRED] apenas para dados externos faltantes. Responderei de forma natural.` }]
     }];
 
     if (weatherInfo && weatherInfo.weatherData) {
@@ -52,7 +53,7 @@ const buildContextualContent = (
         searchContextText += searchResults.map((r: any) => `[${r.title}]: ${r.snippet}`).join('\n\n');
         
         content.push({ role: 'user', parts: [{ text: searchContextText }]});
-        content.push({ role: 'model', parts: [{ text: "Recebi os resultados da web. Vou sintetizar a resposta." }]});
+        content.push({ role: 'model', parts: [{ text: "Recebi os resultados da web. Vou responder a pergunta do usuário usando essas informações de forma natural." }]});
     }
 
     return content;

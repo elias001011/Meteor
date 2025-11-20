@@ -1,6 +1,4 @@
 
-
-
 import React from 'react';
 import ChatInput from './ChatInput';
 
@@ -34,7 +32,6 @@ const MobileAiControls: React.FC<MobileAiControlsProps> = (props) => {
                     onToggleSearch={chatInputProps.onToggleSearch}
                 />
             </div>
-            <p className="text-center text-xs text-gray-500 mt-2 px-2">A IA pode cometer erros.</p>
         </div>
     );
 };
