@@ -1,7 +1,9 @@
+
 import type { AppSettings, ExportData } from '../types';
 
 const SETTINGS_KEY = 'meteor_settings';
 const WEATHER_CACHE_PREFIX = 'weather_data_';
+const AI_USAGE_KEY = 'meteor_ai_usage'; // Key used in geminiService.ts
 
 const DEFAULT_SETTINGS: AppSettings = {
     showClock: true,
@@ -193,5 +195,12 @@ export const resetCache = () => {
 };
 
 export const resetAllData = () => {
+    // Preserve AI Usage limit to survive factory reset
+    const aiUsage = localStorage.getItem(AI_USAGE_KEY);
+    
     localStorage.clear();
+    
+    if (aiUsage) {
+        localStorage.setItem(AI_USAGE_KEY, aiUsage);
+    }
 };

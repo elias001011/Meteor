@@ -322,7 +322,7 @@ const App: React.FC = () => {
         parts: [{ text: msg.text }]
     }));
 
-    // Create formatted time context (e.g., "Segunda-feira, 12 de Maio de 2025, 14:30")
+    // Create formatted time context (e.g., "Segunda-feira, 20 de Novembro de 2025, 14:30")
     const timeContext = new Date().toLocaleString('pt-BR', { 
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
     });
@@ -348,14 +348,17 @@ const App: React.FC = () => {
                 if (fullText.includes('[SEARCH_REQUIRED]')) {
                     console.log("AUTO-SEARCH TRIGGERED by AI");
                     
-                    // IMPORTANT: Don't show this text to user. Reset the model message.
+                    // Remove the stealth command from the current text buffer so user doesn't see it
+                    // (Although we are about to reset, it's good practice)
+                    
                     // Fetch search results invisible to user
                     const newResults = await getSearchResults(query);
-                    // Note: We do NOT enable the search toggle visually here anymore.
+                    
+                    // NOTE: We do NOT enable isSearchEnabled visually. It's a one-off internal search.
                     
                     // Recursive call with results
                     await performChatRequest(newResults);
-                    return; // Exit this loop, the recursive call handles the rest
+                    return; // Exit this loop and this execution context, the recursive call handles the rest
                 }
 
                 setMessages(prev => {
