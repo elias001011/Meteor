@@ -1,6 +1,7 @@
 
+
 import React, { createContext, useContext } from 'react';
-import type { AppTheme, TransparencyMode } from '../../types';
+import type { AppTheme, TransparencyMode, BackgroundMode } from '../../types';
 
 interface ThemeClasses {
     text: string;
@@ -17,7 +18,10 @@ interface ThemeContextProps {
     theme: AppTheme;
     transparencyMode: TransparencyMode;
     classes: ThemeClasses;
-    glassClass: string; // Helper for transparency
+    glassClass: string; // For generic overlays
+    cardClass: string; // For main content containers (The "Glass" look)
+    headerClass: string; // Specifically for the top navigation
+    appBackgroundClass: string; // The main app background
 }
 
 const THEME_DEFINITIONS: Record<AppTheme, ThemeClasses> = {
@@ -87,34 +91,56 @@ const ThemeContext = createContext<ThemeContextProps>({
     theme: 'purple',
     transparencyMode: 'glass',
     classes: THEME_DEFINITIONS.purple,
-    glassClass: 'bg-gray-900/50 backdrop-blur-xl'
+    glassClass: 'bg-black/40 backdrop-blur-xl border border-white/10',
+    cardClass: 'bg-white/5 backdrop-blur-lg border border-white/5',
+    headerClass: 'bg-[#131B2E]/70 backdrop-blur-md border-b border-white/5',
+    appBackgroundClass: 'bg-slate-900'
 });
 
 export const ThemeProvider: React.FC<{ 
     theme: AppTheme, 
     transparencyMode: TransparencyMode,
+    backgroundMode?: BackgroundMode,
     children: React.ReactNode 
-}> = ({ theme, transparencyMode, children }) => {
+}> = ({ theme, transparencyMode, backgroundMode = 'gradient', children }) => {
     
     const currentClasses = THEME_DEFINITIONS[theme] || THEME_DEFINITIONS.purple;
     
-    // Define class based on mode
+    // Generic overlay glass (modals, nav bars)
     let glassClass = '';
+    // Card container glass (weather widgets, settings sections)
+    let cardClass = '';
+    // Header specific style - Needs to be strictly controlled by transparencyMode
+    let headerClass = '';
+
     switch (transparencyMode) {
         case 'off':
-            glassClass = 'bg-gray-800'; // Solid, completely opaque
+            glassClass = 'bg-slate-900 border border-gray-700'; 
+            cardClass = 'bg-slate-800 border border-gray-700';
+            headerClass = 'bg-[#0f172a] border-b border-gray-800'; // Solid dark
             break;
         case 'low':
-            glassClass = 'bg-gray-800/95'; // Very slight transparency, no blur (replaces old 'off')
+            glassClass = 'bg-slate-900/95 border border-white/10'; 
+            cardClass = 'bg-slate-800/80 border border-white/5';
+            headerClass = 'bg-[#0f172a]/90 backdrop-blur-sm border-b border-white/5';
             break;
         case 'glass':
         default:
-            glassClass = 'bg-gray-800/50 backdrop-blur-xl'; // Full glass effect
+            // Elegant, premium glass feel
+            glassClass = 'bg-black/40 backdrop-blur-2xl border border-white/10 shadow-2xl'; 
+            cardClass = 'bg-white/5 backdrop-blur-md border border-white/10 shadow-lg hover:bg-white/10 transition-colors duration-300';
+            // Header gets transparency ONLY in glass/low modes
+            headerClass = 'bg-[#0f172a]/70 backdrop-blur-md border-b border-white/5';
             break;
     }
+    
+    // Background Logic
+    const appBackgroundClass = backgroundMode === 'solid' 
+        ? 'bg-[#0f172a]' // Slate 900 solid
+        : 'bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#1e293b] via-[#0f172a] to-black bg-fixed'; // The original premium gradient
 
     return (
-        <ThemeContext.Provider value={{ theme, transparencyMode, classes: currentClasses, glassClass }}>
+        <ThemeContext.Provider value={{ theme, transparencyMode, classes: currentClasses, glassClass, cardClass, headerClass, appBackgroundClass }}>
             {children}
         </ThemeContext.Provider>
     );

@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import type { WeatherData, ClockDisplayMode } from '../../types';
+import { useTheme } from '../context/ThemeContext';
 
 interface CurrentWeatherProps {
   data: WeatherData;
@@ -9,6 +10,7 @@ interface CurrentWeatherProps {
 
 const CurrentWeather: React.FC<CurrentWeatherProps> = ({ data, clockDisplayMode }) => {
   const [formattedLocalTime, setFormattedLocalTime] = useState('');
+  const { cardClass } = useTheme();
 
   useEffect(() => {
       // Function to calculate local time in the target city
@@ -54,22 +56,28 @@ const CurrentWeather: React.FC<CurrentWeatherProps> = ({ data, clockDisplayMode 
   };
 
   return (
-    <div className="relative rounded-3xl p-6 text-white overflow-hidden bg-gray-800">
-        <img 
-            key={data.imageUrl}
-            src={data.imageUrl} 
-            alt="Weather background" 
-            className="absolute inset-0 w-full h-full object-cover opacity-40 z-0 transition-opacity duration-500" />
-        <div className="relative z-10 flex flex-col justify-between h-full">
+    <div className={`relative rounded-3xl p-6 text-white overflow-hidden ${cardClass} animate-enter`}>
+        {/* Image with gradient overlay for readability */}
+        <div className="absolute inset-0 z-0">
+             <img 
+                key={data.imageUrl}
+                src={data.imageUrl} 
+                alt="Weather background" 
+                className="w-full h-full object-cover opacity-40 transition-opacity duration-500" 
+            />
+             <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+        </div>
+
+        <div className="relative z-10 flex flex-col justify-between h-full min-h-[200px]">
             <div className="flex justify-between items-start">
                 <div>
-                    <h2 className="text-2xl font-bold">{data.city}</h2>
-                    <div className="flex items-center gap-2 text-sm text-gray-300">
-                        <span>{formattedDate}</span>
+                    <h2 className="text-3xl font-bold tracking-tight drop-shadow-lg">{data.city}</h2>
+                    <div className="flex items-center gap-2 text-sm text-gray-200 font-medium drop-shadow-md">
+                        <span className="capitalize">{formattedDate}</span>
                     </div>
                 </div>
                 {shouldShowClock() && (
-                    <div className="bg-black/40 backdrop-blur-sm px-3 py-1 rounded-lg border border-white/10">
+                    <div className="bg-black/30 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 shadow-lg">
                         <span className="text-sm font-mono text-white font-medium tracking-wide">
                             {formattedLocalTime} <span className="text-xs text-gray-400">Local</span>
                         </span>
@@ -77,11 +85,11 @@ const CurrentWeather: React.FC<CurrentWeatherProps> = ({ data, clockDisplayMode 
                 )}
             </div>
             <div className="text-right mt-8">
-                <p className="text-7xl font-bold">{Math.round(data.temperature)}°C</p>
+                <p className="text-8xl font-bold tracking-tighter drop-shadow-xl">{Math.round(data.temperature)}°</p>
                 {typeof data.feels_like === 'number' && (
-                    <p className="text-md -mt-1 text-gray-300">Sensação {Math.round(data.feels_like)}°C</p>
+                    <p className="text-md text-gray-200 font-medium drop-shadow-md">Sensação {Math.round(data.feels_like)}°C</p>
                 )}
-                <p className="text-lg capitalize">{data.condition}</p>
+                <p className="text-xl capitalize font-semibold text-white drop-shadow-md mt-1">{data.condition}</p>
             </div>
         </div>
     </div>

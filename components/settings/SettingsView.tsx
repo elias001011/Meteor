@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import type { AppSettings, View, DataSource, AppTheme, TransparencyMode, ClockDisplayMode } from '../../types';
+import type { AppSettings, View, DataSource, AppTheme, TransparencyMode, ClockDisplayMode, BackgroundMode, MapTheme, BorderEffectMode } from '../../types';
 import { getSettings, saveSettings, exportAppData, importAppData, resetSettings, resetCache, resetAllData } from '../../services/settingsService';
 import CitySelectionModal from '../common/CitySelectionModal';
 import ImportModal from './ImportModal';
+import ChangelogModal from './ChangelogModal';
 import { useTheme } from '../context/ThemeContext';
-import { XIcon, LightbulbIcon } from '../icons';
+import { XIcon, LightbulbIcon, SparklesIcon, ChevronLeftIcon } from '../icons';
 
 interface SettingsViewProps {
     settings: AppSettings;
@@ -15,13 +16,14 @@ interface SettingsViewProps {
 const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged, onClearHistory }) => {
     const [showCityModal, setShowCityModal] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
+    const [showChangelogModal, setShowChangelogModal] = useState(false);
     const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
     
     // State for PWA Banner
     const [showPwaBanner, setShowPwaBanner] = useState(true);
     
     // Use Theme Context to get dynamic styles for headings/buttons
-    const { classes } = useTheme();
+    const { classes, cardClass } = useTheme();
 
     // Fullscreen state
     const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
@@ -109,30 +111,49 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
     ];
 
     const transparencyOptions: { id: TransparencyMode, label: string }[] = [
-        { id: 'off', label: 'Desativado' },
-        { id: 'low', label: 'Ligado' },
-        { id: 'glass', label: 'Vidro' }
+        { id: 'off', label: 'Sólido' },
+        { id: 'low', label: 'Híbrido' },
+        { id: 'glass', label: 'Vidro (Glass)' }
     ];
     
+    const backgroundOptions: { id: BackgroundMode, label: string }[] = [
+        { id: 'gradient', label: 'Elegante (Gradiente)' },
+        { id: 'solid', label: 'Minimalista (Sólido)' }
+    ];
+    
+    const mapThemeOptions: { id: MapTheme, label: string }[] = [
+        { id: 'light', label: 'Claro' },
+        { id: 'dark', label: 'Escuro' }
+    ];
+    
+    const borderEffectOptions: { id: BorderEffectMode, label: string }[] = [
+        { id: 'none', label: 'Desligado' },
+        { id: 'top', label: 'Topo' },
+        { id: 'bottom', label: 'Base' }
+    ];
+
+    // Consistent Select Style
+    const selectStyle = `w-full bg-gray-900/50 border border-gray-600/50 rounded-xl px-4 py-3 text-white focus:ring-2 outline-none ${classes.ring} appearance-none cursor-pointer hover:bg-gray-900/80 transition-colors`;
+
     return (
-        <div className="p-6 max-w-3xl mx-auto space-y-8 pb-32">
-            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+        <div className="p-6 max-w-3xl mx-auto space-y-8 pb-32 animate-enter">
+            <h2 className="text-3xl font-bold text-white flex items-center gap-3 tracking-tight">
                 Ajustes do Meteor
             </h2>
 
             {/* PWA Banner Prompt */}
             {showPwaBanner && !window.matchMedia('(display-mode: standalone)').matches && (
-                <div className="bg-gradient-to-r from-blue-900/60 to-cyan-900/60 border border-blue-500/30 p-4 rounded-2xl flex items-start justify-between gap-4 shadow-lg animate-fade-in">
+                <div className="bg-gradient-to-r from-blue-900/80 to-cyan-900/80 backdrop-blur-md border border-blue-500/30 p-5 rounded-3xl flex items-start justify-between gap-4 shadow-lg animate-enter">
                     <div className="flex gap-4">
-                        <div className="p-2 bg-blue-500/20 rounded-full h-fit text-blue-400">
+                        <div className="p-3 bg-blue-500/20 rounded-full h-fit text-blue-400 shadow-inner">
                             <LightbulbIcon className="w-6 h-6" />
                         </div>
                         <div>
-                            <h4 className="font-bold text-white">Instale o Meteor</h4>
-                            <p className="text-sm text-gray-300 mt-1">
+                            <h4 className="font-bold text-white text-lg">Instale o Meteor</h4>
+                            <p className="text-sm text-gray-200 mt-1 leading-relaxed">
                                 O aplicativo funciona muito melhor quando instalado como PWA. Você ganha tela cheia, melhor desempenho e acesso offline.
                             </p>
-                            <p className="text-xs text-blue-300 mt-2">
+                            <p className="text-xs text-cyan-300 mt-2 font-medium">
                                 Toque em "Compartilhar" e depois em "Adicionar à Tela de Início" (iOS) ou "Instalar App" (Android).
                             </p>
                         </div>
@@ -147,42 +168,44 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
             )}
 
             {feedbackMessage && (
-                <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-green-500/90 backdrop-blur-md text-white px-6 py-3 rounded-full font-medium shadow-xl border border-green-400/50 animate-fade-in-down text-center whitespace-nowrap">
+                <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-emerald-600/90 backdrop-blur-md text-white px-6 py-3 rounded-full font-medium shadow-xl border border-emerald-400/50 animate-enter text-center whitespace-nowrap">
                     {feedbackMessage}
                 </div>
             )}
 
             {/* --- CUSTOMIZATION --- */}
-             <section className="bg-gray-800/50 rounded-2xl p-5 border border-gray-700/50">
-                <h3 className={`text-lg font-semibold ${classes.text} mb-4`}>Personalização</h3>
-                <div className="space-y-6">
+             <section className={`rounded-3xl p-6 ${cardClass}`}>
+                <h3 className={`text-lg font-bold ${classes.text} mb-6 flex items-center gap-2`}>
+                    Personalização
+                </h3>
+                <div className="space-y-8">
                     
                     {/* Dynamic Theme Toggle */}
-                    <div className="flex items-center justify-between pb-4 border-b border-gray-700/30">
-                        <div className="flex flex-col">
-                            <span className="text-gray-300">Tema Dinâmico</span>
-                            <span className="text-xs text-gray-500">Muda a cor com base no clima e na hora do dia.</span>
+                    <div className="flex items-center justify-between pb-6 border-b border-white/5">
+                        <div className="flex flex-col gap-1">
+                            <span className="text-white font-medium">Tema Dinâmico</span>
+                            <span className="text-xs text-gray-400">Muda a cor com base no clima e na hora do dia.</span>
                         </div>
                         <button 
                             onClick={() => handleSave({ dynamicTheme: !settings.dynamicTheme })}
-                            className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${settings.dynamicTheme ? classes.bg : 'bg-gray-600'}`}
+                            className={`w-14 h-8 rounded-full p-1 transition-colors duration-300 ${settings.dynamicTheme ? classes.bg : 'bg-gray-600/50'}`}
                         >
-                            <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.dynamicTheme ? 'translate-x-6' : 'translate-x-0'}`} />
+                            <div className={`w-6 h-6 rounded-full bg-white shadow-md transform transition-transform duration-300 ${settings.dynamicTheme ? 'translate-x-6' : 'translate-x-0'}`} />
                         </button>
                     </div>
 
                     {/* Theme Color */}
                     <div className={`transition-opacity duration-300 ${settings.dynamicTheme ? 'opacity-50 pointer-events-none grayscale' : 'opacity-100'}`}>
-                        <label className="text-sm text-gray-300 mb-3 block">
+                        <label className="text-sm font-medium text-gray-300 mb-4 block">
                             Cor do Tema {settings.dynamicTheme && '(Controlado pela IA)'}
                         </label>
-                        <div className="flex flex-wrap gap-3">
+                        <div className="flex flex-wrap gap-4">
                             {themes.map((theme) => (
                                 <button
                                     key={theme.id}
                                     onClick={() => handleSave({ themeColor: theme.id })}
                                     disabled={settings.dynamicTheme}
-                                    className={`w-10 h-10 rounded-full ${theme.color} transition-transform hover:scale-110 focus:outline-none ring-2 ring-offset-2 ring-offset-gray-800 ${settings.themeColor === theme.id ? `ring-white scale-110` : 'ring-transparent'}`}
+                                    className={`w-12 h-12 rounded-full ${theme.color} transition-transform hover:scale-110 focus:outline-none ring-2 ring-offset-2 ring-offset-transparent ${settings.themeColor === theme.id ? `ring-white scale-110 shadow-lg` : 'ring-transparent opacity-70 hover:opacity-100'}`}
                                     aria-label={`Selecionar tema ${theme.name}`}
                                     title={theme.name}
                                 />
@@ -190,22 +213,90 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
                         </div>
                     </div>
 
+                    {/* Background Mode */}
+                    <div>
+                        <div className="flex flex-col mb-3 gap-1">
+                            <span className="text-white font-medium">Estilo do Fundo</span>
+                            <span className="text-xs text-gray-400">Escolha entre a aparência padrão ou minimalista.</span>
+                        </div>
+                        <div className="flex bg-black/20 rounded-xl p-1 border border-white/5">
+                            {backgroundOptions.map((option) => (
+                                <button
+                                    key={option.id}
+                                    onClick={() => handleSave({ backgroundMode: option.id })}
+                                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
+                                        settings.backgroundMode === option.id 
+                                            ? 'bg-white/10 text-white shadow-sm border border-white/10' 
+                                            : 'text-gray-400 hover:text-white hover:bg-white/5'
+                                    }`}
+                                >
+                                    {option.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    
+                     {/* Border Effect (LED) Selector */}
+                     <div>
+                        <div className="flex flex-col mb-3 gap-1">
+                            <span className="text-white font-medium">Efeito LED (Borda)</span>
+                            <span className="text-xs text-gray-400">Adiciona um brilho colorido no topo ou na base da tela.</span>
+                        </div>
+                        <div className="flex bg-black/20 rounded-xl p-1 border border-white/5">
+                            {borderEffectOptions.map((option) => (
+                                <button
+                                    key={option.id}
+                                    onClick={() => handleSave({ borderEffect: option.id })}
+                                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
+                                        settings.borderEffect === option.id 
+                                            ? 'bg-white/10 text-white shadow-sm border border-white/10' 
+                                            : 'text-gray-400 hover:text-white hover:bg-white/5'
+                                    }`}
+                                >
+                                    {option.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
                     {/* Visual Effects */}
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                         <div>
-                            <div className="flex flex-col mb-2">
-                                <span className="text-gray-300">Transparência</span>
-                                <span className="text-xs text-gray-500">Controle os efeitos visuais da interface.</span>
+                            <div className="flex flex-col mb-3 gap-1">
+                                <span className="text-white font-medium">Transparência (Efeito Vidro)</span>
+                                <span className="text-xs text-gray-400">Controle a intensidade dos efeitos visuais na interface.</span>
                             </div>
-                            <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-700/50">
+                            <div className="flex bg-black/20 rounded-xl p-1 border border-white/5">
                                 {transparencyOptions.map((option) => (
                                     <button
                                         key={option.id}
                                         onClick={() => handleSave({ transparencyMode: option.id })}
-                                        className={`flex-1 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                                        className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
                                             settings.transparencyMode === option.id 
-                                                ? 'bg-gray-700 text-white shadow-md' 
-                                                : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
+                                                ? 'bg-white/10 text-white shadow-sm border border-white/10' 
+                                                : 'text-gray-400 hover:text-white hover:bg-white/5'
+                                        }`}
+                                    >
+                                        {option.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        
+                        {/* Map Theme */}
+                        <div>
+                            <div className="flex flex-col mb-3 gap-1">
+                                <span className="text-white font-medium">Tema do Mapa</span>
+                            </div>
+                            <div className="flex bg-black/20 rounded-xl p-1 border border-white/5">
+                                {mapThemeOptions.map((option) => (
+                                    <button
+                                        key={option.id}
+                                        onClick={() => handleSave({ mapTheme: option.id })}
+                                        className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
+                                            settings.mapTheme === option.id 
+                                                ? 'bg-white/10 text-white shadow-sm border border-white/10' 
+                                                : 'text-gray-400 hover:text-white hover:bg-white/5'
                                         }`}
                                     >
                                         {option.label}
@@ -214,10 +305,10 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
                             </div>
                         </div>
 
-                        <div className="flex items-center justify-between pt-4 border-t border-gray-700/30">
-                            <div className="flex flex-col">
-                                <span className="text-gray-300">Animação de Chuva</span>
-                                <span className="text-xs text-gray-500">Mostrar gotas na tela quando chover.</span>
+                        <div className="flex items-center justify-between pt-6 border-t border-white/5">
+                            <div className="flex flex-col gap-1">
+                                <span className="text-white font-medium">Animação de Chuva</span>
+                                <span className="text-xs text-gray-400">Mostrar gotas na tela quando chover.</span>
                             </div>
                              <button 
                                 onClick={() => handleSave({ 
@@ -226,25 +317,25 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
                                         enabled: !settings.rainAnimation.enabled 
                                     } 
                                 })}
-                                className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${settings.rainAnimation.enabled ? classes.bg : 'bg-gray-600'}`}
+                                className={`w-14 h-8 rounded-full p-1 transition-colors duration-300 ${settings.rainAnimation.enabled ? classes.bg : 'bg-gray-600/50'}`}
                             >
-                                <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.rainAnimation.enabled ? 'translate-x-6' : 'translate-x-0'}`} />
+                                <div className={`w-6 h-6 rounded-full bg-white shadow-md transform transition-transform duration-300 ${settings.rainAnimation.enabled ? 'translate-x-6' : 'translate-x-0'}`} />
                             </button>
                         </div>
 
                         {settings.rainAnimation.enabled && (
-                             <div className="flex items-center justify-between bg-gray-900/50 p-3 rounded-lg animate-fade-in">
-                                <span className="text-sm text-gray-400">Intensidade da Chuva</span>
-                                <div className="flex bg-gray-800 rounded-lg p-1">
+                             <div className="flex items-center justify-between bg-white/5 p-3 rounded-xl animate-enter">
+                                <span className="text-sm text-gray-300 font-medium pl-1">Intensidade da Chuva</span>
+                                <div className="flex bg-black/20 rounded-lg p-1">
                                     <button 
                                         onClick={() => handleSave({ rainAnimation: { ...settings.rainAnimation, intensity: 'low' } })}
-                                        className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${settings.rainAnimation.intensity === 'low' ? 'bg-gray-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                                        className={`px-4 py-1.5 rounded-md text-xs font-medium transition-all ${settings.rainAnimation.intensity === 'low' ? 'bg-white/10 text-white shadow-sm' : 'text-gray-400 hover:text-white'}`}
                                     >
                                         Baixa
                                     </button>
                                     <button 
                                         onClick={() => handleSave({ rainAnimation: { ...settings.rainAnimation, intensity: 'high' } })}
-                                        className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${settings.rainAnimation.intensity === 'high' ? 'bg-gray-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                                        className={`px-4 py-1.5 rounded-md text-xs font-medium transition-all ${settings.rainAnimation.intensity === 'high' ? 'bg-white/10 text-white shadow-sm' : 'text-gray-400 hover:text-white'}`}
                                     >
                                         Alta
                                     </button>
@@ -252,16 +343,16 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
                             </div>
                         )}
 
-                        <div className="flex items-center justify-between pt-4 border-t border-gray-700/30">
-                            <div className="flex flex-col">
-                                <span className="text-gray-300">Exibir Barras de Rolagem</span>
-                                <span className="text-xs text-gray-500">Pode ser útil em desktops para navegar.</span>
+                        <div className="flex items-center justify-between pt-6 border-t border-white/5">
+                            <div className="flex flex-col gap-1">
+                                <span className="text-white font-medium">Barras de Rolagem</span>
+                                <span className="text-xs text-gray-400">Pode ser útil em desktops.</span>
                             </div>
                             <button 
                                 onClick={() => handleSave({ showScrollbars: !settings.showScrollbars })}
-                                className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${settings.showScrollbars ? classes.bg : 'bg-gray-600'}`}
+                                className={`w-14 h-8 rounded-full p-1 transition-colors duration-300 ${settings.showScrollbars ? classes.bg : 'bg-gray-600/50'}`}
                             >
-                                <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.showScrollbars ? 'translate-x-6' : 'translate-x-0'}`} />
+                                <div className={`w-6 h-6 rounded-full bg-white shadow-md transform transition-transform duration-300 ${settings.showScrollbars ? 'translate-x-6' : 'translate-x-0'}`} />
                             </button>
                         </div>
                     </div>
@@ -270,53 +361,53 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
             </section>
 
             {/* --- GENERAL --- */}
-            <section className="bg-gray-800/50 rounded-2xl p-5 border border-gray-700/50">
-                <h3 className={`text-lg font-semibold ${classes.text} mb-4`}>Geral</h3>
-                <div className="space-y-4">
-                    <div className="space-y-2">
+            <section className={`rounded-3xl p-6 ${cardClass}`}>
+                <h3 className={`text-lg font-bold ${classes.text} mb-6`}>Geral</h3>
+                <div className="space-y-6">
+                    <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                            <span className="text-gray-300">Modo Tela Cheia (Agora)</span>
+                            <span className="text-white font-medium">Modo Tela Cheia (Agora)</span>
                             <button 
                                 onClick={toggleFullscreen}
-                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isFullscreen ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30' : 'bg-gray-700 hover:bg-gray-600 text-white'}`}
+                                className={`px-5 py-2 rounded-xl text-sm font-bold transition-all shadow-lg ${isFullscreen ? 'bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500/30' : 'bg-white/10 hover:bg-white/20 text-white border border-white/10'}`}
                             >
                                 {isFullscreen ? 'Sair' : 'Ativar'}
                             </button>
                         </div>
-                         <div className="flex items-center justify-between pt-2 border-t border-gray-700/30">
-                            <div className="flex flex-col">
-                                <span className="text-gray-300">Sempre iniciar em tela cheia</span>
-                                <span className="text-xs text-gray-500">Entrará automaticamente ao tocar na tela.</span>
+                         <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                            <div className="flex flex-col gap-1">
+                                <span className="text-white font-medium">Sempre iniciar em tela cheia</span>
+                                <span className="text-xs text-gray-400">Entrará automaticamente ao tocar na tela.</span>
                             </div>
                             <button 
                                 onClick={() => handleSave({ startFullscreen: !settings.startFullscreen })}
-                                className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${settings.startFullscreen ? classes.bg : 'bg-gray-600'}`}
+                                className={`w-14 h-8 rounded-full p-1 transition-colors duration-300 ${settings.startFullscreen ? classes.bg : 'bg-gray-600/50'}`}
                             >
-                                <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.startFullscreen ? 'translate-x-6' : 'translate-x-0'}`} />
+                                <div className={`w-6 h-6 rounded-full bg-white shadow-md transform transition-transform duration-300 ${settings.startFullscreen ? 'translate-x-6' : 'translate-x-0'}`} />
                             </button>
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-between">
-                        <span className="text-gray-300">Relógio do Sistema (Topo)</span>
+                    <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                        <span className="text-white font-medium">Relógio do Sistema (Topo)</span>
                         <button 
                             onClick={() => handleSave({ showClock: !settings.showClock })}
-                            className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${settings.showClock ? classes.bg : 'bg-gray-600'}`}
+                            className={`w-14 h-8 rounded-full p-1 transition-colors duration-300 ${settings.showClock ? classes.bg : 'bg-gray-600/50'}`}
                         >
-                            <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.showClock ? 'translate-x-6' : 'translate-x-0'}`} />
+                            <div className={`w-6 h-6 rounded-full bg-white shadow-md transform transition-transform duration-300 ${settings.showClock ? 'translate-x-6' : 'translate-x-0'}`} />
                         </button>
                     </div>
 
-                    <div className="flex flex-col gap-2 pt-2 border-t border-gray-700/30">
-                        <label className="text-sm text-gray-300">Horário Local da Cidade</label>
+                    <div className="flex flex-col gap-3 pt-4 border-t border-white/5">
+                        <label className="text-sm font-medium text-gray-300">Horário Local da Cidade</label>
                         <select 
                             value={settings.clockDisplayMode}
                             onChange={(e) => handleSave({ clockDisplayMode: e.target.value as ClockDisplayMode })}
-                            className={`bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:ring-2 outline-none ${classes.ring}`}
+                            className={selectStyle}
                         >
-                            <option value="always">Sempre mostrar</option>
-                            <option value="different_zone">Apenas se o fuso for diferente do meu</option>
-                            <option value="never">Nunca mostrar</option>
+                            <option value="always" className="bg-gray-800 text-white">Sempre mostrar</option>
+                            <option value="different_zone" className="bg-gray-800 text-white">Apenas se o fuso for diferente do meu</option>
+                            <option value="never" className="bg-gray-800 text-white">Nunca mostrar</option>
                         </select>
                         <p className="text-xs text-gray-500">
                             Define quando o horário da cidade visualizada aparece no card principal.
@@ -326,19 +417,19 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
             </section>
 
              {/* --- DATA SOURCE --- */}
-             <section className="bg-gray-800/50 rounded-2xl p-5 border border-gray-700/50">
-                <h3 className={`text-lg font-semibold ${classes.text} mb-4`}>Dados Meteorológicos</h3>
-                <div className="flex flex-col gap-2">
-                    <label className="text-sm text-gray-300">Fonte de Dados Preferida</label>
+             <section className={`rounded-3xl p-6 ${cardClass}`}>
+                <h3 className={`text-lg font-bold ${classes.text} mb-6`}>Dados Meteorológicos</h3>
+                <div className="flex flex-col gap-3">
+                    <label className="text-sm font-medium text-gray-300">Fonte de Dados Preferida</label>
                     <select 
                         value={settings.weatherSource}
                         onChange={(e) => handleSave({ weatherSource: e.target.value as DataSource | 'auto' })}
-                        className={`bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:ring-2 outline-none ${classes.ring}`}
+                        className={selectStyle}
                     >
-                        <option value="auto">Automático (Recomendado)</option>
-                        <option value="onecall">OpenWeather (OneCall/Pro)</option>
-                        <option value="free">OpenWeather (Padrão/Gratuito)</option>
-                        <option value="open-meteo">Open-Meteo (Open Source)</option>
+                        <option value="auto" className="bg-gray-800 text-white">Automático (Recomendado)</option>
+                        <option value="onecall" className="bg-gray-800 text-white">OpenWeather (OneCall/Pro)</option>
+                        <option value="free" className="bg-gray-800 text-white">OpenWeather (Padrão/Gratuito)</option>
+                        <option value="open-meteo" className="bg-gray-800 text-white">Open-Meteo (Open Source)</option>
                     </select>
                     <p className="text-xs text-gray-500">
                         Define de onde o Meteor deve tentar buscar os dados primeiro. O modo Automático gerencia limites e falhas automaticamente.
@@ -347,11 +438,11 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
             </section>
 
             {/* --- STARTUP --- */}
-            <section className="bg-gray-800/50 rounded-2xl p-5 border border-gray-700/50">
-                <h3 className={`text-lg font-semibold ${classes.text} mb-4`}>Inicialização</h3>
-                <div className="space-y-4">
-                    <div className="flex flex-col gap-2">
-                        <label className="text-sm text-gray-300">Visualização ao abrir o app</label>
+            <section className={`rounded-3xl p-6 ${cardClass}`}>
+                <h3 className={`text-lg font-bold ${classes.text} mb-6`}>Inicialização</h3>
+                <div className="space-y-6">
+                    <div className="flex flex-col gap-3">
+                        <label className="text-sm font-medium text-gray-300">Visualização ao abrir o app</label>
                         <select 
                             value={settings.startupBehavior}
                             onChange={(e) => {
@@ -359,26 +450,26 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
                                 handleSave({ startupBehavior: val });
                                 if (val === 'specific_location') setShowCityModal(true);
                             }}
-                            className={`bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:ring-2 outline-none ${classes.ring}`}
+                            className={selectStyle}
                         >
-                            <option value="idle">Tela Inicial (Boas-vindas)</option>
-                            <option value="last_location">Última Localização</option>
-                            <option value="specific_location">Localização Específica</option>
-                            <option value="custom_section">Seção Personalizada</option>
+                            <option value="idle" className="bg-gray-800 text-white">Tela Inicial (Boas-vindas)</option>
+                            <option value="last_location" className="bg-gray-800 text-white">Última Localização</option>
+                            <option value="specific_location" className="bg-gray-800 text-white">Localização Específica</option>
+                            <option value="custom_section" className="bg-gray-800 text-white">Seção Personalizada</option>
                         </select>
                     </div>
 
                     {settings.startupBehavior === 'specific_location' && (
-                        <div className="flex items-center justify-between bg-gray-900/50 p-3 rounded-lg">
+                        <div className="flex items-center justify-between bg-white/5 p-4 rounded-xl border border-white/5">
                             <div>
                                 <p className="text-sm text-gray-400">Local Definido:</p>
-                                <p className="font-medium text-white">
+                                <p className="font-bold text-white text-lg">
                                     {settings.specificLocation ? `${settings.specificLocation.name}, ${settings.specificLocation.country}` : 'Nenhum selecionado'}
                                 </p>
                             </div>
                             <button 
                                 onClick={() => setShowCityModal(true)}
-                                className={`${classes.text} text-sm hover:underline`}
+                                className={`${classes.text} text-sm hover:underline font-medium`}
                             >
                                 Alterar
                             </button>
@@ -386,18 +477,18 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
                     )}
 
                     {settings.startupBehavior === 'custom_section' && (
-                        <div className="flex flex-col gap-2">
-                             <label className="text-sm text-gray-300">Seção Padrão</label>
+                        <div className="flex flex-col gap-3">
+                             <label className="text-sm font-medium text-gray-300">Seção Padrão</label>
                              <select 
                                 value={settings.startupSection || 'weather'}
                                 onChange={(e) => handleSave({ startupSection: e.target.value as View })}
-                                className={`bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:ring-2 outline-none ${classes.ring}`}
+                                className={selectStyle}
                             >
-                                <option value="map">Mapa</option>
-                                <option value="ai">IA</option>
-                                <option value="news">Notícias</option>
-                                <option value="tips">Dicas</option>
-                                <option value="info">Informações</option>
+                                <option value="map" className="bg-gray-800 text-white">Mapa</option>
+                                <option value="ai" className="bg-gray-800 text-white">IA</option>
+                                <option value="news" className="bg-gray-800 text-white">Notícias</option>
+                                <option value="tips" className="bg-gray-800 text-white">Dicas</option>
+                                <option value="info" className="bg-gray-800 text-white">Informações</option>
                             </select>
                         </div>
                     )}
@@ -405,44 +496,49 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
             </section>
             
              {/* --- DATA MANAGEMENT --- */}
-             <section className="bg-gray-800/50 rounded-2xl p-5 border border-gray-700/50">
-                <h3 className={`text-lg font-semibold ${classes.text} mb-4`}>Gerenciamento de Dados</h3>
-                <div className="space-y-4">
-                     <div className="flex items-center justify-between pb-4 border-b border-gray-700/30">
-                        <div className="flex flex-col">
-                            <span className="text-gray-300">Salvar Histórico de Chat</span>
-                            <span className="text-xs text-gray-500">Manter conversas após recarregar.</span>
+             <section className={`rounded-3xl p-6 ${cardClass}`}>
+                <h3 className={`text-lg font-bold ${classes.text} mb-6`}>Gerenciamento de Dados</h3>
+                <div className="space-y-6">
+                     <div className="flex items-center justify-between pb-6 border-b border-white/5">
+                        <div className="flex flex-col gap-1">
+                            <span className="text-white font-medium">Salvar Histórico de Chat</span>
+                            <span className="text-xs text-gray-400">Manter conversas após recarregar.</span>
                         </div>
                         <button 
                             onClick={() => handleSave({ saveChatHistory: !settings.saveChatHistory })}
-                            className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${settings.saveChatHistory ? classes.bg : 'bg-gray-600'}`}
+                            className={`w-14 h-8 rounded-full p-1 transition-colors duration-300 ${settings.saveChatHistory ? classes.bg : 'bg-gray-600/50'}`}
                         >
-                            <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.saveChatHistory ? 'translate-x-6' : 'translate-x-0'}`} />
+                            <div className={`w-6 h-6 rounded-full bg-white shadow-md transform transition-transform duration-300 ${settings.saveChatHistory ? 'translate-x-6' : 'translate-x-0'}`} />
                         </button>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                        <button onClick={handleExport} className="bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-xl font-medium transition-colors">
-                            Exportar Dados
+                        <button onClick={handleExport} className="bg-white/5 hover:bg-white/10 border border-white/10 text-white py-4 rounded-xl font-medium transition-colors flex items-center justify-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Exportar
                         </button>
-                        <button onClick={() => setShowImportModal(true)} className="bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-xl font-medium transition-colors">
-                            Importar Dados
+                        <button onClick={() => setShowImportModal(true)} className="bg-white/5 hover:bg-white/10 border border-white/10 text-white py-4 rounded-xl font-medium transition-colors flex items-center justify-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            Importar
                         </button>
                     </div>
 
-                    <div className="border-t border-gray-700/50 pt-4 space-y-3">
-                        <h4 className="text-red-400 text-sm font-bold uppercase tracking-wider mb-2">Zona de Perigo</h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <button onClick={() => handleReset('settings')} className="border border-red-500/30 text-red-300 hover:bg-red-500/10 py-2 rounded-lg text-sm transition-colors">
+                    <div className="border-t border-white/5 pt-6 space-y-4">
+                        <h4 className="text-red-400 text-sm font-bold uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            Zona de Perigo
+                        </h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <button onClick={() => handleReset('settings')} className="border border-red-500/30 text-red-300 hover:bg-red-500/10 py-3 rounded-xl text-sm transition-colors">
                                 Resetar Configurações
                             </button>
-                            <button onClick={() => handleReset('cache')} className="border border-red-500/30 text-red-300 hover:bg-red-500/10 py-2 rounded-lg text-sm transition-colors">
+                            <button onClick={() => handleReset('cache')} className="border border-red-500/30 text-red-300 hover:bg-red-500/10 py-3 rounded-xl text-sm transition-colors">
                                 Limpar Cache (API)
                             </button>
-                            <button onClick={() => handleReset('history')} className="border border-red-500/30 text-red-300 hover:bg-red-500/10 py-2 rounded-lg text-sm transition-colors">
+                            <button onClick={() => handleReset('history')} className="border border-red-500/30 text-red-300 hover:bg-red-500/10 py-3 rounded-xl text-sm transition-colors">
                                 Limpar Histórico IA
                             </button>
-                            <button onClick={() => handleReset('all')} className="bg-red-500/80 hover:bg-red-600 text-white py-2 rounded-lg text-sm font-bold transition-colors shadow-lg shadow-red-900/20">
+                            <button onClick={() => handleReset('all')} className="bg-red-500/80 hover:bg-red-600 text-white py-3 rounded-xl text-sm font-bold transition-colors shadow-lg shadow-red-900/20 border border-red-400/50">
                                 Resetar Tudo (Fábrica)
                             </button>
                         </div>
@@ -472,19 +568,35 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
                 onClose={() => setShowImportModal(false)}
                 onImport={handleImport}
             />
+            
+            <ChangelogModal 
+                isOpen={showChangelogModal}
+                onClose={() => setShowChangelogModal(false)}
+            />
 
-            <div className="text-center pt-8 pb-4">
-                <p className="text-xs text-gray-500">
-                    Versão 2.5. Desenvolvido por{' '}
-                    <a 
-                        href="https://www.instagram.com/elias_jrnunes/" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className={`${classes.text} hover:underline`}
-                    >
-                        @elias_jrnunes
-                    </a>.
-                </p>
+            {/* Enhanced Footer */}
+            <div className="pt-6 pb-4">
+                <button 
+                    onClick={() => setShowChangelogModal(true)}
+                    className={`w-full group relative overflow-hidden rounded-2xl border border-white/10 bg-gray-900/40 hover:bg-gray-900/80 transition-all duration-300 p-4 text-left flex items-center justify-between hover:shadow-lg hover:border-${classes.text.split('-')[1]}-500/30`}
+                >
+                    <div className="flex items-center gap-4 relative z-10">
+                        <div className={`p-3 rounded-full bg-gradient-to-br ${classes.gradient} shadow-lg`}>
+                            <SparklesIcon className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                            <p className="text-xs text-gray-400 font-medium uppercase tracking-wider mb-0.5">Meteor App</p>
+                            <p className="text-white font-bold">Versão 2.0.0</p>
+                            <p className="text-xs text-gray-500 mt-0.5 group-hover:text-gray-300 transition-colors">Desenvolvido por @elias_jrnunes</p>
+                        </div>
+                    </div>
+                    <div className="relative z-10 bg-white/5 p-2 rounded-full text-gray-400 group-hover:text-white transition-colors group-hover:translate-x-1 transform duration-300">
+                        <ChevronLeftIcon className="w-5 h-5 rotate-180" />
+                    </div>
+                    
+                    {/* Glow effect on hover */}
+                    <div className={`absolute inset-0 bg-gradient-to-r ${classes.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-500`} />
+                </button>
             </div>
         </div>
     );

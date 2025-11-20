@@ -1,8 +1,7 @@
 
 
-
 <!DOCTYPE html>
-<html lang="en" class="bg-gray-900 text-white">
+<html lang="en" class="h-full">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -12,7 +11,7 @@
     <!-- PWA Tags -->
     <link rel="manifest" href="/manifest.json" />
     <!-- Matches the Header background color for a seamless PWA look -->
-    <meta name="theme-color" content="#131B2E" />
+    <meta name="theme-color" content="#0f172a" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -26,6 +25,10 @@
       /* Leaflet CSS Reset to fix conflicts with Tailwind's preflight styles */
       .leaflet-popup-content-wrapper, .leaflet-popup-tip {
         box-sizing: content-box !important;
+        background-color: rgba(15, 23, 42, 0.9) !important;
+        backdrop-filter: blur(10px);
+        color: white !important;
+        border: 1px solid rgba(255, 255, 255, 0.1);
       }
       /* Hide scrollbars by default for a cleaner, mobile-first look */
       html {
@@ -43,18 +46,18 @@
       }
       html.show-scrollbars ::-webkit-scrollbar {
           display: block;
-          width: 8px;
-          height: 8px;
+          width: 6px;
+          height: 6px;
       }
       html.show-scrollbars ::-webkit-scrollbar-track {
           background: transparent;
       }
       html.show-scrollbars ::-webkit-scrollbar-thumb {
-          background-color: rgba(107, 114, 128, 0.5);
-          border-radius: 4px;
+          background-color: rgba(255, 255, 255, 0.1);
+          border-radius: 10px;
       }
       html.show-scrollbars ::-webkit-scrollbar-thumb:hover {
-          background-color: rgba(156, 163, 175, 0.5);
+          background-color: rgba(255, 255, 255, 0.3);
       }
        /* Rain Animation */
       .raindrop {
@@ -74,6 +77,40 @@
               transform: translateY(110vh);
           }
       }
+
+      /* Global Animations */
+      @keyframes fadeInUp {
+          from {
+              opacity: 0;
+              transform: translateY(20px);
+          }
+          to {
+              opacity: 1;
+              transform: translateY(0);
+          }
+      }
+      @keyframes popIn {
+          from {
+              opacity: 0;
+              transform: scale(0.95) translateY(10px);
+          }
+          to {
+              opacity: 1;
+              transform: scale(1) translateY(0);
+          }
+      }
+
+      .animate-enter {
+          animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+      .animate-enter-pop {
+          animation: popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+      
+      /* Staggered delays for children */
+      .delay-100 { animation-delay: 100ms; }
+      .delay-200 { animation-delay: 200ms; }
+      .delay-300 { animation-delay: 300ms; }
     </style>
   <script type="importmap">
 {
@@ -93,8 +130,8 @@
 }
 </script>
 </head>
-  <body class="bg-gray-900">
-    <div id="root"></div>
+  <body class="h-full text-slate-100 selection:bg-cyan-500/30">
+    <div id="root" class="h-full"></div>
     <script type="module" src="/index.tsx"></script>
   </body>
 </html>

@@ -1,8 +1,7 @@
 
 
-
 import React from 'react';
-import type { View } from '../../types';
+import type { View, BorderEffectMode } from '../../types';
 import { SparklesIcon } from '../icons';
 import DesktopNav from './DesktopNav';
 import Clock from '../common/Clock';
@@ -12,17 +11,15 @@ interface HeaderProps {
     activeView: View;
     setView: (view: View) => void;
     showClock: boolean;
+    borderEffect: BorderEffectMode;
 }
 
-const Header: React.FC<HeaderProps> = ({ activeView, setView, showClock }) => {
-  const { classes } = useTheme();
+const Header: React.FC<HeaderProps> = ({ activeView, setView, showClock, borderEffect }) => {
+  const { classes, headerClass } = useTheme();
 
-  // Using a solid, specific background color to seamlessly blend with the app background 
-  // while matching the PWA status bar color.
-  // #131B2E is very close to bg-gray-900 (#111827) but just distinct enough.
   return (
-    <header className={`fixed top-0 left-0 right-0 z-40 border-b transition-all duration-300 bg-[#131B2E] ${classes.borderFaded}`}>
-      <div className="w-full px-4 sm:px-6 h-16 flex items-center justify-between">
+    <header className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${headerClass}`}>
+      <div className="w-full px-4 sm:px-6 h-16 flex items-center justify-between relative">
         <div className="flex items-center gap-2">
             <SparklesIcon className={`w-6 h-6 ${classes.text}`} />
             <h1 className="text-xl font-bold text-white tracking-wider">Meteor</h1>
@@ -37,6 +34,26 @@ const Header: React.FC<HeaderProps> = ({ activeView, setView, showClock }) => {
 
         {/* Desktop Nav */}
         <DesktopNav activeView={activeView} setView={setView} showClock={showClock} />
+        
+        {/* --- LED BORDER EFFECT --- */}
+        {borderEffect === 'bottom' && (
+            <div 
+                className={`absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r ${classes.gradient}`}
+                style={{ 
+                    boxShadow: `0 1px 8px -1px ${classes.hex}`,
+                    opacity: 0.8
+                }}
+            />
+        )}
+        {borderEffect === 'top' && (
+            <div 
+                className={`absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r ${classes.gradient}`}
+                style={{ 
+                    boxShadow: `0 0 15px 1px ${classes.hex}`,
+                    opacity: 0.9
+                }}
+            />
+        )}
       </div>
     </header>
   );
