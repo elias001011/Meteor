@@ -83,7 +83,11 @@ const handler: Handler = async (event: HandlerEvent) => {
         const effectiveTimeContext = timeContext || new Date().toLocaleString('pt-BR');
 
         const ai = new GoogleGenAI({ apiKey });
-        const model = 'gemini-flash-lite-latest';
+        
+        // Configuration for Model Fallback
+        // 1. Primary: Gemini Flash Lite (Fastest/Cheapest)
+        // 2. Fallback: Gemini 2.0 Flash Lite (Higher RPM limit, good backup). 
+        const modelsToTry = ['gemini-flash-lite-latest', 'gemini-2.0-flash-lite-preview-02-05'];
         
         const contextualContent = buildContextualContent(weatherContext, searchResults, effectiveTimeContext);
         
@@ -93,8 +97,28 @@ const handler: Handler = async (event: HandlerEvent) => {
             { role: 'user', parts: [{ text: prompt }] }
         ];
         
-        const result = await ai.models.generateContent({ model, contents });
-        const text = result.text;
+        let text = '';
+        let lastError = null;
+
+        // Try models in sequence
+        for (const model of modelsToTry) {
+            try {
+                console.log(`Meteor AI: Tentando gerar resposta com modelo: ${model}`);
+                const result = await ai.models.generateContent({ model, contents });
+                text = result.text;
+                
+                if (text) break; // Success, stop trying
+            } catch (error) {
+                console.warn(`Meteor AI: Falha no modelo ${model}.`, error);
+                lastError = error;
+                // Continue to next model in loop
+            }
+        }
+
+        if (!text) {
+            console.error("Meteor AI: Todos os modelos falharam.", lastError);
+            throw lastError || new Error("Falha em todos os modelos de IA disponíveis.");
+        }
 
         return {
             statusCode: 200,
@@ -105,10 +129,10 @@ const handler: Handler = async (event: HandlerEvent) => {
         };
 
     } catch (error) {
-        console.error("Erro na função Gemini:", error);
+        console.error("Erro na função Gemini (Fatal):", error);
         return {
             statusCode: 500,
-            body: JSON.stringify({ message: "Ocorreu um erro ao processar sua solicitação na IA." }),
+            body: JSON.stringify({ message: "Ocorreu um erro ao processar sua solicitação na IA. Tente novamente mais tarde." }),
         };
     }
 };
