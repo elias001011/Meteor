@@ -60,20 +60,11 @@ export interface GroundingSource {
     title: string;
 }
 
-export interface AiMetadata {
-    model: string;
-    timestamp: number;
-    latencyMs?: number;
-    commandsExecuted?: string[];
-}
-
 export interface ChatMessage {
     id: string;
-    role: 'user' | 'model' | 'system'; // System role for tool outputs
+    role: 'user' | 'model';
     text: string;
     sources?: GroundingSource[];
-    metadata?: AiMetadata;
-    isError?: boolean;
 }
 
 export interface CitySearchResult {
@@ -128,9 +119,6 @@ export interface AppSettings {
     specificLocation?: CitySearchResult; // Used if startupBehavior is 'specific_location'
     startupSection?: View; // Used if startupBehavior is 'custom_section'
     saveChatHistory: boolean;
-    // AI Preferences
-    userName?: string;
-    aiInstructions?: string;
     // Visual Customization
     themeColor: AppTheme;
     dynamicTheme: boolean; 

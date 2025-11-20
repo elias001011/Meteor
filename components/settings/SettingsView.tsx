@@ -1,50 +1,75 @@
-
-import React, { useState } from 'react';
-import type { AppSettings, AppTheme } from '../../types';
+import React, { useState, useEffect } from 'react';
+import type { AppSettings, View, DataSource, AppTheme, TransparencyMode, ClockDisplayMode } from '../../types';
 import { getSettings, saveSettings, exportAppData, importAppData, resetSettings, resetCache, resetAllData } from '../../services/settingsService';
 import CitySelectionModal from '../common/CitySelectionModal';
 import ImportModal from './ImportModal';
 import { useTheme } from '../context/ThemeContext';
-import { SettingsIcon, RobotIcon, EyeIcon, DatabaseIcon, AlertTriangleIcon } from '../icons';
+import { XIcon, LightbulbIcon } from '../icons';
 
 interface SettingsViewProps {
     settings: AppSettings;
     onSettingsChanged: (newSettings: AppSettings) => void;
-    onClearHistory: () => void;
+    onClearHistory: () => void; // New prop for immediate clearing
 }
 
 const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged, onClearHistory }) => {
     const [showCityModal, setShowCityModal] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
     const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+    
+    // State for PWA Banner
+    const [showPwaBanner, setShowPwaBanner] = useState(true);
+    
+    // Use Theme Context to get dynamic styles for headings/buttons
     const { classes } = useTheme();
-    const [activeTab, setActiveTab] = useState<'ai' | 'visual' | 'data'>('ai');
+
+    // Fullscreen state
+    const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
+
+    useEffect(() => {
+        const handleFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+        document.addEventListener('fullscreenchange', handleFsChange);
+        return () => document.removeEventListener('fullscreenchange', handleFsChange);
+    }, []);
 
     const handleSave = (updatedSettings: Partial<AppSettings>) => {
         const newSettings = { ...settings, ...updatedSettings };
         onSettingsChanged(newSettings);
     };
 
+    const toggleFullscreen = () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => {
+                console.error(`Error attempting to enable fullscreen: ${err.message}`);
+            });
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    };
+
     const handleReset = (type: 'settings' | 'cache' | 'history' | 'all') => {
-        if (!confirm("Tem certeza? Esta ação não pode ser desfeita.")) return;
-        
+        if (!confirm("Tem certeza? Esta ação é irreversível.")) return;
+
         switch (type) {
-            case 'settings': 
-                resetSettings(); 
-                onSettingsChanged(getSettings()); 
-                setFeedbackMessage("Configurações restauradas."); 
+            case 'settings':
+                resetSettings();
+                const defaultSettings = getSettings();
+                onSettingsChanged(defaultSettings);
+                setFeedbackMessage("Configurações resetadas.");
                 break;
-            case 'cache': 
-                resetCache(); 
-                setFeedbackMessage("Cache do clima limpo."); 
+            case 'cache':
+                resetCache();
+                setFeedbackMessage("Cache limpo.");
                 break;
-            case 'history': 
-                onClearHistory(); 
-                setFeedbackMessage("Memória da IA apagada."); 
+            case 'history':
+                onClearHistory(); // Use the prop function
+                setFeedbackMessage("Histórico da IA limpo.");
                 break;
-            case 'all': 
-                resetAllData(); 
-                window.location.reload(); 
+            case 'all':
+                resetAllData();
+                window.location.reload();
                 break;
         }
         setTimeout(() => setFeedbackMessage(null), 3000);
@@ -53,15 +78,18 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
     const handleExport = () => {
         try {
             exportAppData();
+            // Visual feedback is crucial for UX
             setFeedbackMessage("Backup salvo nos downloads!");
             setTimeout(() => setFeedbackMessage(null), 3000);
         } catch (e) {
+            console.error(e);
             setFeedbackMessage("Erro ao exportar dados.");
         }
     };
 
     const handleImport = (content: string, options: any) => {
-        if (importAppData(content, options)) {
+        const success = importAppData(content, options);
+        if (success) {
             setFeedbackMessage("Dados importados com sucesso! Recarregando...");
             setTimeout(() => window.location.reload(), 1500);
         } else {
@@ -80,267 +108,384 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
         { id: 'amber', name: 'Solar', color: 'bg-amber-500' },
     ];
 
-    const TabButton = ({ id, label }: { id: 'ai' | 'visual' | 'data', label: string }) => (
-        <button 
-            onClick={() => setActiveTab(id)} 
-            className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
-                activeTab === id 
-                ? `${classes.bg} text-white shadow-lg shadow-black/20` 
-                : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'
-            }`}
-        >
-            {label}
-        </button>
-    );
-
+    const transparencyOptions: { id: TransparencyMode, label: string }[] = [
+        { id: 'off', label: 'Desativado' },
+        { id: 'low', label: 'Ligado' },
+        { id: 'glass', label: 'Vidro' }
+    ];
+    
     return (
-        <div className="p-6 max-w-3xl mx-auto space-y-6 pb-32 animate-fade-in">
-            <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                    <SettingsIcon className={`w-7 h-7 ${classes.text}`} /> Ajustes
-                </h2>
-                <span className="px-2 py-1 rounded border border-gray-700 bg-gray-800 text-[10px] font-mono text-gray-400">v3.0</span>
-            </div>
+        <div className="p-6 max-w-3xl mx-auto space-y-8 pb-32">
+            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                Ajustes do Meteor
+            </h2>
 
-            {feedbackMessage && (
-                <div className={`fixed top-24 left-1/2 -translate-x-1/2 z-50 ${classes.bg} text-white px-6 py-3 rounded-full font-medium shadow-xl animate-fade-in-down flex items-center gap-2`}>
-                    <div className="w-2 h-2 bg-white rounded-full animate-pulse"/> {feedbackMessage}
-                </div>
-            )}
-
-            {/* Styled Tabs */}
-            <div className="p-1.5 bg-gray-900/80 rounded-xl border border-gray-700/50 flex gap-1">
-                <TabButton id="ai" label="IA & Chat" />
-                <TabButton id="visual" label="Visual" />
-                <TabButton id="data" label="Sistema" />
-            </div>
-
-            {/* --- AI TAB --- */}
-            {activeTab === 'ai' && (
-             <section className="space-y-6 animate-fade-in">
-                 <div className={`bg-gray-800/50 rounded-2xl p-6 border ${classes.borderFaded}`}>
-                    <h3 className={`text-lg font-semibold text-white mb-5 flex items-center gap-2`}>
-                        <RobotIcon className={`w-5 h-5 ${classes.text}`}/> Identidade e Memória
-                    </h3>
-                    <div className="space-y-5">
-                        <div className="space-y-2">
-                            <label className="text-sm text-gray-300 font-medium">Como devo te chamar?</label>
-                            <input 
-                                type="text" 
-                                value={settings.userName || ''}
-                                onChange={(e) => handleSave({ userName: e.target.value })}
-                                placeholder="Ex: Elias"
-                                className={`w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:ring-2 outline-none transition-all ${classes.ring}`}
-                            />
+            {/* PWA Banner Prompt */}
+            {showPwaBanner && !window.matchMedia('(display-mode: standalone)').matches && (
+                <div className="bg-gradient-to-r from-blue-900/60 to-cyan-900/60 border border-blue-500/30 p-4 rounded-2xl flex items-start justify-between gap-4 shadow-lg animate-fade-in">
+                    <div className="flex gap-4">
+                        <div className="p-2 bg-blue-500/20 rounded-full h-fit text-blue-400">
+                            <LightbulbIcon className="w-6 h-6" />
                         </div>
-                         <div className="space-y-2">
-                            <label className="text-sm text-gray-300 font-medium">Instruções Personalizadas</label>
-                            <p className="text-xs text-gray-500">Defina a personalidade ou regras para a IA (ex: "Seja breve", "Responda com rimas").</p>
-                            <textarea 
-                                value={settings.aiInstructions || ''}
-                                onChange={(e) => handleSave({ aiInstructions: e.target.value })}
-                                placeholder="Instruções do sistema..."
-                                rows={3}
-                                className={`w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:ring-2 outline-none transition-all ${classes.ring} resize-none`}
-                            />
-                        </div>
-                        
-                        <div className="flex items-center justify-between pt-4 border-t border-gray-700/30">
-                            <div>
-                                <span className="text-gray-300 font-medium block">Salvar Histórico de Chat</span>
-                                <span className="text-xs text-gray-500">Permite continuar conversas anteriores ao reabrir o app.</span>
-                            </div>
-                            <button 
-                                onClick={() => handleSave({ saveChatHistory: !settings.saveChatHistory })} 
-                                className={`w-12 h-7 rounded-full p-1 transition-colors duration-300 ${settings.saveChatHistory ? classes.bg : 'bg-gray-700'}`}
-                            >
-                                <div className={`w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.saveChatHistory ? 'translate-x-5' : 'translate-x-0'}`} />
-                            </button>
+                        <div>
+                            <h4 className="font-bold text-white">Instale o Meteor</h4>
+                            <p className="text-sm text-gray-300 mt-1">
+                                O aplicativo funciona muito melhor quando instalado como PWA. Você ganha tela cheia, melhor desempenho e acesso offline.
+                            </p>
+                            <p className="text-xs text-blue-300 mt-2">
+                                Toque em "Compartilhar" e depois em "Adicionar à Tela de Início" (iOS) ou "Instalar App" (Android).
+                            </p>
                         </div>
                     </div>
+                    <button 
+                        onClick={() => setShowPwaBanner(false)} 
+                        className="text-gray-400 hover:text-white transition-colors p-1"
+                    >
+                        <XIcon className="w-5 h-5" />
+                    </button>
                 </div>
-            </section>
             )}
 
-            {/* --- VISUAL TAB --- */}
-            {activeTab === 'visual' && (
-             <section className="space-y-6 animate-fade-in">
-                <div className={`bg-gray-800/50 rounded-2xl p-6 border ${classes.borderFaded}`}>
-                    <h3 className={`text-lg font-semibold text-white mb-5 flex items-center gap-2`}>
-                        <EyeIcon className={`w-5 h-5 ${classes.text}`}/> Personalização
-                    </h3>
-                    <div className="space-y-6">
-                        <div className="flex items-center justify-between pb-4 border-b border-gray-700/30">
-                            <div className="flex flex-col">
-                                <span className="text-gray-300 font-medium">Tema Dinâmico</span>
-                                <span className="text-xs text-gray-500">Adapta as cores com base no clima atual.</span>
-                            </div>
-                            <button 
-                                onClick={() => handleSave({ dynamicTheme: !settings.dynamicTheme })} 
-                                className={`w-12 h-7 rounded-full p-1 transition-colors duration-300 ${settings.dynamicTheme ? classes.bg : 'bg-gray-700'}`}
-                            >
-                                <div className={`w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.dynamicTheme ? 'translate-x-5' : 'translate-x-0'}`} />
-                            </button>
-                        </div>
+            {feedbackMessage && (
+                <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-green-500/90 backdrop-blur-md text-white px-6 py-3 rounded-full font-medium shadow-xl border border-green-400/50 animate-fade-in-down text-center whitespace-nowrap">
+                    {feedbackMessage}
+                </div>
+            )}
 
-                        <div className={`transition-all duration-300 ${settings.dynamicTheme ? 'opacity-50 pointer-events-none grayscale' : 'opacity-100'}`}>
-                            <label className="text-sm text-gray-300 mb-3 block font-medium">Cor do Tema (Manual)</label>
-                            <div className="flex flex-wrap gap-4">
-                                {themes.map((theme) => (
+            {/* --- CUSTOMIZATION --- */}
+             <section className="bg-gray-800/50 rounded-2xl p-5 border border-gray-700/50">
+                <h3 className={`text-lg font-semibold ${classes.text} mb-4`}>Personalização</h3>
+                <div className="space-y-6">
+                    
+                    {/* Dynamic Theme Toggle */}
+                    <div className="flex items-center justify-between pb-4 border-b border-gray-700/30">
+                        <div className="flex flex-col">
+                            <span className="text-gray-300">Tema Dinâmico</span>
+                            <span className="text-xs text-gray-500">Muda a cor com base no clima e na hora do dia.</span>
+                        </div>
+                        <button 
+                            onClick={() => handleSave({ dynamicTheme: !settings.dynamicTheme })}
+                            className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${settings.dynamicTheme ? classes.bg : 'bg-gray-600'}`}
+                        >
+                            <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.dynamicTheme ? 'translate-x-6' : 'translate-x-0'}`} />
+                        </button>
+                    </div>
+
+                    {/* Theme Color */}
+                    <div className={`transition-opacity duration-300 ${settings.dynamicTheme ? 'opacity-50 pointer-events-none grayscale' : 'opacity-100'}`}>
+                        <label className="text-sm text-gray-300 mb-3 block">
+                            Cor do Tema {settings.dynamicTheme && '(Controlado pela IA)'}
+                        </label>
+                        <div className="flex flex-wrap gap-3">
+                            {themes.map((theme) => (
+                                <button
+                                    key={theme.id}
+                                    onClick={() => handleSave({ themeColor: theme.id })}
+                                    disabled={settings.dynamicTheme}
+                                    className={`w-10 h-10 rounded-full ${theme.color} transition-transform hover:scale-110 focus:outline-none ring-2 ring-offset-2 ring-offset-gray-800 ${settings.themeColor === theme.id ? `ring-white scale-110` : 'ring-transparent'}`}
+                                    aria-label={`Selecionar tema ${theme.name}`}
+                                    title={theme.name}
+                                />
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Visual Effects */}
+                    <div className="space-y-4">
+                        <div>
+                            <div className="flex flex-col mb-2">
+                                <span className="text-gray-300">Transparência</span>
+                                <span className="text-xs text-gray-500">Controle os efeitos visuais da interface.</span>
+                            </div>
+                            <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-700/50">
+                                {transparencyOptions.map((option) => (
                                     <button
-                                        key={theme.id}
-                                        onClick={() => handleSave({ themeColor: theme.id })}
-                                        disabled={settings.dynamicTheme}
-                                        className={`w-12 h-12 rounded-full ${theme.color} transition-transform hover:scale-110 focus:outline-none ring-2 ring-offset-2 ring-offset-gray-800 ${settings.themeColor === theme.id ? `ring-white scale-110 shadow-lg` : 'ring-transparent opacity-70 hover:opacity-100'}`}
-                                        aria-label={`Selecionar tema ${theme.name}`}
-                                    />
+                                        key={option.id}
+                                        onClick={() => handleSave({ transparencyMode: option.id })}
+                                        className={`flex-1 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                                            settings.transparencyMode === option.id 
+                                                ? 'bg-gray-700 text-white shadow-md' 
+                                                : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
+                                        }`}
+                                    >
+                                        {option.label}
+                                    </button>
                                 ))}
                             </div>
                         </div>
 
-                        <div className="space-y-5 pt-2">
-                             <div className="flex items-center justify-between">
-                                <div>
-                                    <span className="text-gray-300 font-medium block">Efeito Glass (Transparência)</span>
-                                    <span className="text-xs text-gray-500">Nível de desfoque e transparência dos painéis.</span>
-                                </div>
-                                <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-700/50">
-                                    {[{id:'off', l:'Off'}, {id:'low', l:'Min'}, {id:'glass', l:'Max'}].map((o) => (
-                                        <button 
-                                            key={o.id} 
-                                            onClick={() => handleSave({ transparencyMode: o.id as any })} 
-                                            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${settings.transparencyMode === o.id ? `bg-gray-700 text-white shadow border border-gray-600` : 'text-gray-500 hover:text-white'}`}
-                                        >
-                                            {o.l}
-                                        </button>
-                                    ))}
-                                </div>
+                        <div className="flex items-center justify-between pt-4 border-t border-gray-700/30">
+                            <div className="flex flex-col">
+                                <span className="text-gray-300">Animação de Chuva</span>
+                                <span className="text-xs text-gray-500">Mostrar gotas na tela quando chover.</span>
                             </div>
-
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <span className="text-gray-300 font-medium block">Animação de Chuva</span>
-                                    <span className="text-xs text-gray-500">Mostra gotas caindo na tela.</span>
-                                </div>
-                                <button 
-                                    onClick={() => handleSave({ rainAnimation: { ...settings.rainAnimation, enabled: !settings.rainAnimation.enabled } })} 
-                                    className={`w-12 h-7 rounded-full p-1 transition-colors duration-300 ${settings.rainAnimation.enabled ? classes.bg : 'bg-gray-700'}`}
-                                >
-                                    <div className={`w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.rainAnimation.enabled ? 'translate-x-5' : 'translate-x-0'}`} />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-            )}
-
-            {/* --- DATA/SYSTEM TAB --- */}
-            {activeTab === 'data' && (
-            <section className="space-y-6 animate-fade-in">
-                <div className={`bg-gray-800/50 rounded-2xl p-6 border ${classes.borderFaded}`}>
-                    <h3 className={`text-lg font-semibold text-white mb-5 flex items-center gap-2`}>
-                        <DatabaseIcon className={`w-5 h-5 ${classes.text}`}/> Dados e Inicialização
-                    </h3>
-                    <div className="space-y-6">
-                         <div className="flex flex-col gap-2">
-                            <span className="text-gray-300 text-sm font-medium">Comportamento ao iniciar:</span>
-                            <select 
-                                value={settings.startupBehavior} 
-                                onChange={(e) => handleSave({ startupBehavior: e.target.value as any })} 
-                                className={`bg-gray-900 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white outline-none focus:ring-2 ${classes.ring}`}
+                             <button 
+                                onClick={() => handleSave({ 
+                                    rainAnimation: { 
+                                        ...settings.rainAnimation, 
+                                        enabled: !settings.rainAnimation.enabled 
+                                    } 
+                                })}
+                                className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${settings.rainAnimation.enabled ? classes.bg : 'bg-gray-600'}`}
                             >
-                                <option value="idle">Mostrar tela de boas-vindas</option>
-                                <option value="last_location">Carregar última localização</option>
-                                <option value="specific_location">Carregar cidade fixa...</option>
-                                <option value="custom_section">Ir direto para uma seção...</option>
-                            </select>
-
-                            {settings.startupBehavior === 'specific_location' && (
-                                <button onClick={() => setShowCityModal(true)} className={`mt-1 text-xs hover:underline text-left font-medium ml-1 ${classes.text}`}>
-                                    📍 {settings.specificLocation ? `${settings.specificLocation.name}, ${settings.specificLocation.country}` : 'Selecionar cidade padrão'}
-                                </button>
-                            )}
-
-                             {settings.startupBehavior === 'custom_section' && (
-                                <select 
-                                    value={settings.startupSection || 'weather'} 
-                                    onChange={(e) => handleSave({ startupSection: e.target.value as any })} 
-                                    className={`mt-1 bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-gray-300 outline-none focus:border-gray-500`}
-                                >
-                                    <option value="weather">Previsão do Tempo</option>
-                                    <option value="map">Mapa</option>
-                                    <option value="ai">Assistente IA</option>
-                                    <option value="news">Notícias</option>
-                                </select>
-                            )}
-                        </div>
-
-                        <div className="pt-4 border-t border-gray-700/30">
-                             <div className="flex flex-col gap-2">
-                                <span className="text-gray-300 text-sm font-medium">Fonte de Dados Principal</span>
-                                <select 
-                                    value={settings.weatherSource} 
-                                    onChange={(e) => handleSave({ weatherSource: e.target.value as any })} 
-                                    className={`bg-gray-900 border border-gray-700 rounded-xl px-3 py-3 text-sm text-white outline-none focus:ring-2 ${classes.ring}`}
-                                >
-                                    <option value="auto">Automático (Inteligente)</option>
-                                    <option value="onecall">OpenWeather OneCall (Premium)</option>
-                                    <option value="free">OpenWeather Standard (Gratuito)</option>
-                                    <option value="open-meteo">Open-Meteo (Open Source)</option>
-                                </select>
-                                <p className="text-[10px] text-gray-500 ml-1">O sistema usa fallbacks automáticos caso a fonte principal falhe.</p>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4 pt-2">
-                            <button onClick={handleExport} className="bg-gray-900 hover:bg-gray-800 text-gray-300 py-3 rounded-xl text-sm transition-colors font-medium border border-gray-700 flex items-center justify-center gap-2">
-                                ⬇ Exportar Backup
-                            </button>
-                            <button onClick={() => setShowImportModal(true)} className="bg-gray-900 hover:bg-gray-800 text-gray-300 py-3 rounded-xl text-sm transition-colors font-medium border border-gray-700 flex items-center justify-center gap-2">
-                                ⬆ Restaurar Backup
+                                <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.rainAnimation.enabled ? 'translate-x-6' : 'translate-x-0'}`} />
                             </button>
                         </div>
-                        
-                        <div className="pt-6 mt-4 border-t border-red-500/20">
-                             <h4 className="text-red-400 text-sm font-bold mb-4 flex items-center gap-2 uppercase tracking-wide">
-                                <AlertTriangleIcon className="w-4 h-4"/> Zona de Perigo
-                             </h4>
-                             <div className="space-y-3">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <button onClick={() => handleReset('settings')} className="text-red-300 bg-red-500/5 hover:bg-red-500/10 border border-red-500/20 rounded-lg py-3 text-xs transition-colors">Resetar Ajustes</button>
-                                    <button onClick={() => handleReset('cache')} className="text-red-300 bg-red-500/5 hover:bg-red-500/10 border border-red-500/20 rounded-lg py-3 text-xs transition-colors">Limpar Cache Clima</button>
-                                    <button onClick={() => handleReset('history')} className="text-red-300 bg-red-500/5 hover:bg-red-500/10 border border-red-500/20 rounded-lg py-3 text-xs transition-colors">Apagar Memória IA</button>
-                                    <button onClick={() => handleReset('all')} className="text-white bg-red-600/90 hover:bg-red-500 rounded-lg py-3 text-xs transition-colors font-bold shadow-lg shadow-red-900/20 sm:col-span-1">
-                                        FORMATAR TUDO
+
+                        {settings.rainAnimation.enabled && (
+                             <div className="flex items-center justify-between bg-gray-900/50 p-3 rounded-lg animate-fade-in">
+                                <span className="text-sm text-gray-400">Intensidade da Chuva</span>
+                                <div className="flex bg-gray-800 rounded-lg p-1">
+                                    <button 
+                                        onClick={() => handleSave({ rainAnimation: { ...settings.rainAnimation, intensity: 'low' } })}
+                                        className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${settings.rainAnimation.intensity === 'low' ? 'bg-gray-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                                    >
+                                        Baixa
+                                    </button>
+                                    <button 
+                                        onClick={() => handleSave({ rainAnimation: { ...settings.rainAnimation, intensity: 'high' } })}
+                                        className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${settings.rainAnimation.intensity === 'high' ? 'bg-gray-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                                    >
+                                        Alta
                                     </button>
                                 </div>
-                                <p className="text-[10px] text-gray-500 text-center pt-2">
-                                    A formatação apaga todas as preferências, históricos e caches locais.<br/>
-                                    <span className="text-gray-400 font-semibold">Nota:</span> O limite diário de uso da IA não será resetado.
+                            </div>
+                        )}
+
+                        <div className="flex items-center justify-between pt-4 border-t border-gray-700/30">
+                            <div className="flex flex-col">
+                                <span className="text-gray-300">Exibir Barras de Rolagem</span>
+                                <span className="text-xs text-gray-500">Pode ser útil em desktops para navegar.</span>
+                            </div>
+                            <button 
+                                onClick={() => handleSave({ showScrollbars: !settings.showScrollbars })}
+                                className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${settings.showScrollbars ? classes.bg : 'bg-gray-600'}`}
+                            >
+                                <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.showScrollbars ? 'translate-x-6' : 'translate-x-0'}`} />
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            {/* --- GENERAL --- */}
+            <section className="bg-gray-800/50 rounded-2xl p-5 border border-gray-700/50">
+                <h3 className={`text-lg font-semibold ${classes.text} mb-4`}>Geral</h3>
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <span className="text-gray-300">Modo Tela Cheia (Agora)</span>
+                            <button 
+                                onClick={toggleFullscreen}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isFullscreen ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30' : 'bg-gray-700 hover:bg-gray-600 text-white'}`}
+                            >
+                                {isFullscreen ? 'Sair' : 'Ativar'}
+                            </button>
+                        </div>
+                         <div className="flex items-center justify-between pt-2 border-t border-gray-700/30">
+                            <div className="flex flex-col">
+                                <span className="text-gray-300">Sempre iniciar em tela cheia</span>
+                                <span className="text-xs text-gray-500">Entrará automaticamente ao tocar na tela.</span>
+                            </div>
+                            <button 
+                                onClick={() => handleSave({ startFullscreen: !settings.startFullscreen })}
+                                className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${settings.startFullscreen ? classes.bg : 'bg-gray-600'}`}
+                            >
+                                <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.startFullscreen ? 'translate-x-6' : 'translate-x-0'}`} />
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                        <span className="text-gray-300">Relógio do Sistema (Topo)</span>
+                        <button 
+                            onClick={() => handleSave({ showClock: !settings.showClock })}
+                            className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${settings.showClock ? classes.bg : 'bg-gray-600'}`}
+                        >
+                            <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.showClock ? 'translate-x-6' : 'translate-x-0'}`} />
+                        </button>
+                    </div>
+
+                    <div className="flex flex-col gap-2 pt-2 border-t border-gray-700/30">
+                        <label className="text-sm text-gray-300">Horário Local da Cidade</label>
+                        <select 
+                            value={settings.clockDisplayMode}
+                            onChange={(e) => handleSave({ clockDisplayMode: e.target.value as ClockDisplayMode })}
+                            className={`bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:ring-2 outline-none ${classes.ring}`}
+                        >
+                            <option value="always">Sempre mostrar</option>
+                            <option value="different_zone">Apenas se o fuso for diferente do meu</option>
+                            <option value="never">Nunca mostrar</option>
+                        </select>
+                        <p className="text-xs text-gray-500">
+                            Define quando o horário da cidade visualizada aparece no card principal.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+             {/* --- DATA SOURCE --- */}
+             <section className="bg-gray-800/50 rounded-2xl p-5 border border-gray-700/50">
+                <h3 className={`text-lg font-semibold ${classes.text} mb-4`}>Dados Meteorológicos</h3>
+                <div className="flex flex-col gap-2">
+                    <label className="text-sm text-gray-300">Fonte de Dados Preferida</label>
+                    <select 
+                        value={settings.weatherSource}
+                        onChange={(e) => handleSave({ weatherSource: e.target.value as DataSource | 'auto' })}
+                        className={`bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:ring-2 outline-none ${classes.ring}`}
+                    >
+                        <option value="auto">Automático (Recomendado)</option>
+                        <option value="onecall">OpenWeather (OneCall/Pro)</option>
+                        <option value="free">OpenWeather (Padrão/Gratuito)</option>
+                        <option value="open-meteo">Open-Meteo (Open Source)</option>
+                    </select>
+                    <p className="text-xs text-gray-500">
+                        Define de onde o Meteor deve tentar buscar os dados primeiro. O modo Automático gerencia limites e falhas automaticamente.
+                    </p>
+                </div>
+            </section>
+
+            {/* --- STARTUP --- */}
+            <section className="bg-gray-800/50 rounded-2xl p-5 border border-gray-700/50">
+                <h3 className={`text-lg font-semibold ${classes.text} mb-4`}>Inicialização</h3>
+                <div className="space-y-4">
+                    <div className="flex flex-col gap-2">
+                        <label className="text-sm text-gray-300">Visualização ao abrir o app</label>
+                        <select 
+                            value={settings.startupBehavior}
+                            onChange={(e) => {
+                                const val = e.target.value as any;
+                                handleSave({ startupBehavior: val });
+                                if (val === 'specific_location') setShowCityModal(true);
+                            }}
+                            className={`bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:ring-2 outline-none ${classes.ring}`}
+                        >
+                            <option value="idle">Tela Inicial (Boas-vindas)</option>
+                            <option value="last_location">Última Localização</option>
+                            <option value="specific_location">Localização Específica</option>
+                            <option value="custom_section">Seção Personalizada</option>
+                        </select>
+                    </div>
+
+                    {settings.startupBehavior === 'specific_location' && (
+                        <div className="flex items-center justify-between bg-gray-900/50 p-3 rounded-lg">
+                            <div>
+                                <p className="text-sm text-gray-400">Local Definido:</p>
+                                <p className="font-medium text-white">
+                                    {settings.specificLocation ? `${settings.specificLocation.name}, ${settings.specificLocation.country}` : 'Nenhum selecionado'}
                                 </p>
-                             </div>
+                            </div>
+                            <button 
+                                onClick={() => setShowCityModal(true)}
+                                className={`${classes.text} text-sm hover:underline`}
+                            >
+                                Alterar
+                            </button>
+                        </div>
+                    )}
+
+                    {settings.startupBehavior === 'custom_section' && (
+                        <div className="flex flex-col gap-2">
+                             <label className="text-sm text-gray-300">Seção Padrão</label>
+                             <select 
+                                value={settings.startupSection || 'weather'}
+                                onChange={(e) => handleSave({ startupSection: e.target.value as View })}
+                                className={`bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:ring-2 outline-none ${classes.ring}`}
+                            >
+                                <option value="map">Mapa</option>
+                                <option value="ai">IA</option>
+                                <option value="news">Notícias</option>
+                                <option value="tips">Dicas</option>
+                                <option value="info">Informações</option>
+                            </select>
+                        </div>
+                    )}
+                </div>
+            </section>
+            
+             {/* --- DATA MANAGEMENT --- */}
+             <section className="bg-gray-800/50 rounded-2xl p-5 border border-gray-700/50">
+                <h3 className={`text-lg font-semibold ${classes.text} mb-4`}>Gerenciamento de Dados</h3>
+                <div className="space-y-4">
+                     <div className="flex items-center justify-between pb-4 border-b border-gray-700/30">
+                        <div className="flex flex-col">
+                            <span className="text-gray-300">Salvar Histórico de Chat</span>
+                            <span className="text-xs text-gray-500">Manter conversas após recarregar.</span>
+                        </div>
+                        <button 
+                            onClick={() => handleSave({ saveChatHistory: !settings.saveChatHistory })}
+                            className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${settings.saveChatHistory ? classes.bg : 'bg-gray-600'}`}
+                        >
+                            <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${settings.saveChatHistory ? 'translate-x-6' : 'translate-x-0'}`} />
+                        </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <button onClick={handleExport} className="bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-xl font-medium transition-colors">
+                            Exportar Dados
+                        </button>
+                        <button onClick={() => setShowImportModal(true)} className="bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-xl font-medium transition-colors">
+                            Importar Dados
+                        </button>
+                    </div>
+
+                    <div className="border-t border-gray-700/50 pt-4 space-y-3">
+                        <h4 className="text-red-400 text-sm font-bold uppercase tracking-wider mb-2">Zona de Perigo</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <button onClick={() => handleReset('settings')} className="border border-red-500/30 text-red-300 hover:bg-red-500/10 py-2 rounded-lg text-sm transition-colors">
+                                Resetar Configurações
+                            </button>
+                            <button onClick={() => handleReset('cache')} className="border border-red-500/30 text-red-300 hover:bg-red-500/10 py-2 rounded-lg text-sm transition-colors">
+                                Limpar Cache (API)
+                            </button>
+                            <button onClick={() => handleReset('history')} className="border border-red-500/30 text-red-300 hover:bg-red-500/10 py-2 rounded-lg text-sm transition-colors">
+                                Limpar Histórico IA
+                            </button>
+                            <button onClick={() => handleReset('all')} className="bg-red-500/80 hover:bg-red-600 text-white py-2 rounded-lg text-sm font-bold transition-colors shadow-lg shadow-red-900/20">
+                                Resetar Tudo (Fábrica)
+                            </button>
                         </div>
                     </div>
                 </div>
             </section>
-            )}
-            
-            {/* Footer / Credits */}
-            <div className="mt-12 pt-6 border-t border-gray-800/50 text-center text-gray-600">
-                <div className="flex justify-center items-center gap-2 mb-3 opacity-30">
-                    <span className={`h-1.5 w-1.5 rounded-full ${classes.bg}`}></span>
-                    <span className="h-1.5 w-1.5 rounded-full bg-gray-600"></span>
-                    <span className={`h-1.5 w-1.5 rounded-full ${classes.bg}`}></span>
-                </div>
-                <p className="text-xs font-mono text-gray-500 mb-1">Meteor v3.0 (Stable Release)</p>
+
+            <CitySelectionModal 
+                isOpen={showCityModal}
+                onClose={() => {
+                    setShowCityModal(false);
+                    // PROTECTION: Revert if specific location was selected but not set
+                    if (!settings.specificLocation) {
+                        handleSave({ startupBehavior: 'idle' });
+                        setFeedbackMessage("Nenhuma localização selecionada. Configuração revertida para Tela Inicial.");
+                        setTimeout(() => setFeedbackMessage(null), 4000);
+                    }
+                }}
+                onSelect={(city) => {
+                    handleSave({ specificLocation: city });
+                    setShowCityModal(false);
+                }}
+            />
+
+            <ImportModal 
+                isOpen={showImportModal}
+                onClose={() => setShowImportModal(false)}
+                onImport={handleImport}
+            />
+
+            <div className="text-center pt-8 pb-4">
                 <p className="text-xs text-gray-500">
-                    Desenvolvido por <a href="https://instagram.com/elias_jrnunes" target="_blank" rel="noopener noreferrer" className={`${classes.text} hover:underline font-medium transition-colors`}>@elias_jrnunes</a>
+                    Versão 2.5. Desenvolvido por{' '}
+                    <a 
+                        href="https://www.instagram.com/elias_jrnunes/" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className={`${classes.text} hover:underline`}
+                    >
+                        @elias_jrnunes
+                    </a>.
                 </p>
             </div>
-
-            <CitySelectionModal isOpen={showCityModal} onClose={() => setShowCityModal(false)} onSelect={(city) => { handleSave({ specificLocation: city }); setShowCityModal(false); }} />
-            <ImportModal isOpen={showImportModal} onClose={() => setShowImportModal(false)} onImport={handleImport} />
         </div>
     );
 };
