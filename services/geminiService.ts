@@ -1,5 +1,5 @@
 
-import type { AllWeatherData, SearchResultItem, AppSettings } from '../types';
+import type { AllWeatherData, SearchResultItem } from '../types';
 import type { Content } from '@google/genai';
 
 /**
@@ -11,8 +11,7 @@ export async function* streamChatResponse(
     prompt: string, 
     history: Content[],
     weatherContext: Partial<AllWeatherData> | null,
-    searchResults: SearchResultItem[] | null,
-    settings?: AppSettings
+    searchResults: SearchResultItem[] | null
 ): AsyncGenerator<{ text: string }, void, unknown> {
   
   try {
@@ -25,9 +24,7 @@ export async function* streamChatResponse(
             prompt,
             history,
             weatherContext,
-            searchResults,
-            userName: settings?.userName,
-            userInstructions: settings?.aiCustomInstructions
+            searchResults
         }),
     });
 

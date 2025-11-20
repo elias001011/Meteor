@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import type { ChatMessage } from '../../types';
 import { LinkIcon } from '../icons';
@@ -12,6 +13,21 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   const isModel = message.role === 'model';
   const { classes } = useTheme();
 
+  // Simple formatter for **bold** and *italic* text from the model
+  const renderFormattedText = (text: string) => {
+    // This regex will find **bold** and *italic* text
+    const parts = text.split(/(\*\*.*?\*\*|\*.*?\*)/g);
+    return parts.map((part, index) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+            return <strong key={index}>{part.substring(2, part.length - 2)}</strong>;
+        }
+        if (part.startsWith('*') && part.endsWith('*')) {
+            return <em key={index}>{part.substring(1, part.length - 1)}</em>;
+        }
+        return part;
+    });
+  };
+
   return (
     <div className={`flex items-end ${isModel ? 'justify-start' : 'justify-end'}`}>
       <div className="flex flex-col">
@@ -22,7 +38,10 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
               : `${classes.bg} text-white rounded-br-none`
           }`}
         >
-          <div className="text-base whitespace-pre-wrap">{message.text}{!isModel && message.text.length === 0 ? '...' : ''}</div>
+          <div className="text-base whitespace-pre-wrap">
+            {isModel ? renderFormattedText(message.text) : message.text}
+            {!isModel && message.text.length === 0 ? '...' : ''}
+          </div>
         </div>
 
         {message.sources && message.sources.length > 0 && (

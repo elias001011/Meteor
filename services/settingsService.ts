@@ -4,13 +4,11 @@ const SETTINGS_KEY = 'meteor_settings';
 const WEATHER_CACHE_PREFIX = 'weather_data_';
 
 const DEFAULT_SETTINGS: AppSettings = {
-    userName: '',
     showClock: true,
     clockDisplayMode: 'always', // Default to showing it always
     startFullscreen: false,
     weatherSource: 'auto',
     startupBehavior: 'idle',
-    aiCustomInstructions: '',
     saveChatHistory: false, // Default to NOT saving history
     startupSection: 'weather',
     themeColor: 'purple',
