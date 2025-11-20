@@ -5,7 +5,7 @@ import AiView from './components/ai/AiView';
 import MapView from './components/map/MapView';
 import BottomNav from './components/layout/BottomNav';
 import Header from './components/layout/Header';
-import type { ChatMessage, View, CitySearchResult, AllWeatherData, GroundingSource, SearchResultItem, DataSource, AppSettings, AppTheme, AiMetadata } from './types';
+import type { ChatMessage, View, CitySearchResult, AllWeatherData, GroundingSource, SearchResultItem, DataSource, AppSettings, AppTheme } from './types';
 import { streamChatResponse } from './services/geminiService';
 import { getSearchResults } from './services/searchService';
 import { fetchAllWeatherData } from './services/weatherService';
@@ -119,10 +119,6 @@ const App: React.FC = () => {
   const handleSettingsChange = (newSettings: AppSettings) => {
     saveSettings(newSettings); // Persist to localStorage
     setSettings(newSettings); // Update state
-    // If user explicitly changes theme in settings, it should update immediately even if dynamic theme was on but toggled off
-    if (!newSettings.dynamicTheme) {
-        setActiveTheme(newSettings.themeColor);
-    }
   };
   
   const handleClearChatHistory = useCallback(() => {
@@ -133,6 +129,7 @@ const App: React.FC = () => {
   // Dynamic Theme Logic
   useEffect(() => {
       if (!settings.dynamicTheme) {
+          setActiveTheme(settings.themeColor);
           return;
       }
       if (!weatherData) {
@@ -314,100 +311,82 @@ const App: React.FC = () => {
       }
   }, [currentCoords, currentCityInfo, handleFetchWeather]);
 
-  // --- APP ACTIONS FOR AI ---
-  // Callbacks exposed to the AI to control the app
-  const appActions = {
-      setTheme: (color: string) => {
-          const validColors: AppTheme[] = ['cyan', 'blue', 'purple', 'emerald', 'rose', 'amber'];
-          if (validColors.includes(color as AppTheme)) {
-              // Force dynamic theme off if user explicitly asks AI to set a color
-              handleSettingsChange({ ...settings, themeColor: color as AppTheme, dynamicTheme: false });
-          }
-      }
-  };
-
   const sendQueryToModel = useCallback(async (query: string, initialSearchResults: SearchResultItem[] | null) => {
     setIsSending(true);
 
     const modelMessage: ChatMessage = { id: (Date.now() + 1).toString(), role: 'model', text: '', sources: [] };
     setMessages(prev => [...prev, modelMessage]);
     
-    // Pass entire message history
-    // The service will handle converting and sanitizing
-    const history = messages;
+    const history: Content[] = messages.slice(1).map(msg => ({ 
+        role: msg.role,
+        parts: [{ text: msg.text }]
+    }));
 
     // Create formatted time context (e.g., "Segunda-feira, 20 de Novembro de 2025, 14:30")
     const timeContext = new Date().toLocaleString('pt-BR', { 
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
     });
 
-    const stream = streamChatResponse(
-        query, 
-        history, 
-        weatherInfo, 
-        initialSearchResults, 
-        timeContext,
-        { userName: settings.userName, aiInstructions: settings.aiInstructions },
-        appActions
-    );
-    
-    let fullText = '';
-    let finalMetadata: AiMetadata | undefined;
-    const commandsExecuted: string[] = [];
-    const allSources: GroundingSource[] = [];
+    const performChatRequest = async (searchData: SearchResultItem[] | null) => {
+        const stream = streamChatResponse(query, history, weatherInfo, searchData, timeContext);
+        let fullText = '';
+        const allSources: GroundingSource[] = [];
 
-    if (initialSearchResults) {
-        initialSearchResults.forEach(result => {
-            if (!allSources.some(s => s.uri === result.link)) {
-                allSources.push({ uri: result.link, title: result.title });
+        if (searchData) {
+            searchData.forEach(result => {
+                if (!allSources.some(s => s.uri === result.link)) {
+                    allSources.push({ uri: result.link, title: result.title });
+                }
+            });
+        }
+
+        try {
+            for await (const chunk of stream) {
+                fullText += chunk.text;
+
+                // Check for stealth command [SEARCH_REQUIRED]
+                if (fullText.includes('[SEARCH_REQUIRED]')) {
+                    console.log("AUTO-SEARCH TRIGGERED by AI");
+                    
+                    // Remove the stealth command from the current text buffer so user doesn't see it
+                    // (Although we are about to reset, it's good practice)
+                    
+                    // Fetch search results invisible to user
+                    const newResults = await getSearchResults(query);
+                    
+                    // NOTE: We do NOT enable isSearchEnabled visually. It's a one-off internal search.
+                    
+                    // Recursive call with results
+                    await performChatRequest(newResults);
+                    return; // Exit this loop and this execution context, the recursive call handles the rest
+                }
+
+                setMessages(prev => {
+                    const newMessages = [...prev];
+                    const lastMessage = newMessages[newMessages.length - 1];
+                    if (lastMessage.role === 'model') {
+                        lastMessage.text = fullText;
+                        lastMessage.sources = [...allSources];
+                    }
+                    return newMessages;
+                });
             }
-        });
-    }
-
-    try {
-        for await (const chunk of stream) {
-            if (chunk.commandExecuted) {
-                commandsExecuted.push(chunk.commandExecuted);
-                // Update the "thinking" state in UI if needed, or just keep spinning
-                continue; 
-            }
-
-            fullText += chunk.text;
-            if (chunk.metadata) {
-                finalMetadata = chunk.metadata;
-            }
-
-            setMessages(prev => {
+        } catch (e) {
+            console.error("Error in chat stream", e);
+             setMessages(prev => {
                 const newMessages = [...prev];
                 const lastMessage = newMessages[newMessages.length - 1];
                 if (lastMessage.role === 'model') {
-                    lastMessage.text = fullText;
-                    lastMessage.sources = [...allSources]; // Keep accumulating sources if search happened
-                    if (finalMetadata) {
-                        lastMessage.metadata = {
-                            ...finalMetadata,
-                            commandsExecuted: commandsExecuted.length > 0 ? commandsExecuted : undefined
-                        };
-                    }
+                    lastMessage.text = "Desculpe, ocorreu um erro ao processar a resposta.";
                 }
                 return newMessages;
             });
         }
-    } catch (e) {
-        console.error("Error in chat stream", e);
-            setMessages(prev => {
-            const newMessages = [...prev];
-            const lastMessage = newMessages[newMessages.length - 1];
-            if (lastMessage.role === 'model') {
-                lastMessage.text = "Desculpe, ocorreu um erro ao processar a resposta.";
-                lastMessage.isError = true;
-            }
-            return newMessages;
-        });
-    } finally {
-        setIsSending(false);
-    }
-  }, [messages, weatherInfo, settings]);
+    };
+
+    await performChatRequest(initialSearchResults);
+    setIsSending(false);
+  }, [messages, weatherInfo]);
   
   const handleSendMessage = useCallback(async (text: string, isContinuation: boolean = false) => {
     if (!text.trim()) return;
@@ -425,6 +404,7 @@ const App: React.FC = () => {
       } catch (e) {
         console.error("Web search failed:", e);
       }
+      setIsSending(false);
     }
     
     sendQueryToModel(text, searchResults);
@@ -471,9 +451,7 @@ const App: React.FC = () => {
       messages, onSendMessage: (text: string) => handleSendMessage(text, false), isSending,
       chatInputText, setChatInputText,
       isListening, onToggleListening: handleToggleListening,
-      isSearchEnabled, onToggleSearch: handleToggleSearch,
-      userName: settings.userName,
-      setMessages: setMessages 
+      isSearchEnabled, onToggleSearch: handleToggleSearch
   };
 
   const isRaining = weatherData?.condition?.toLowerCase().includes('chuv');

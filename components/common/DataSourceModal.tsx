@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import type { DataSource } from '../../types';
 import { XIcon } from '../icons';
@@ -41,7 +40,7 @@ const DataSourceModal: React.FC<DataSourceModalProps> = ({
   onSourceChange,
 }) => {
   const [selectedSource, setSelectedSource] = useState<DataSource | 'auto'>(preferredSource);
-  const { classes, glassClass } = useTheme();
+  const { glassClass } = useTheme();
 
   useEffect(() => {
     setSelectedSource(preferredSource);
@@ -55,53 +54,46 @@ const DataSourceModal: React.FC<DataSourceModalProps> = ({
 
   return (
     <div 
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80] flex items-center justify-center lg:justify-start p-4 pb-28 lg:p-4 lg:pl-12 animate-fade-in" 
+        className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center lg:justify-start p-4 pb-28 lg:p-4 lg:pl-12" 
         onClick={onClose}
         role="dialog"
         aria-modal="true"
         aria-labelledby="dataSourceModalTitle"
     >
         <div 
-            className={`${glassClass} border border-gray-700/50 rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden`}
+            className={`${glassClass} border border-gray-700/50 rounded-2xl shadow-lg w-full max-w-md max-h-[90vh] flex flex-col`}
             onClick={e => e.stopPropagation()}
         >
-            <header className="flex items-center justify-between p-5 border-b border-gray-700/50 flex-shrink-0 bg-gray-900/50">
-                <h2 id="dataSourceModalTitle" className="text-lg font-bold text-white">Fontes de Dados</h2>
-                <button onClick={onClose} className="p-1.5 rounded-full hover:bg-gray-700 text-gray-400 hover:text-white transition-colors">
+            <header className="flex items-center justify-between p-4 border-b border-gray-700/50 flex-shrink-0">
+                <h2 id="dataSourceModalTitle" className="text-lg font-bold">Fontes de Dados do Clima</h2>
+                <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-700">
                     <XIcon className="w-5 h-5" />
                 </button>
             </header>
             
-            <main className="p-6 overflow-y-auto space-y-6 custom-scrollbar">
-                <div className="bg-gray-800/40 rounded-xl p-4 border border-gray-700/30">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">Fonte Ativa</h3>
-                    <p className={`text-lg font-bold ${classes.text}`}>{currentSource ? sourceDetails[currentSource as SourceKey].name : 'N/D'}</p>
-                    <p className="text-xs text-gray-400 mt-1">Esta é a API que está fornecendo os dados atuais na tela.</p>
+            <main className="p-6 overflow-y-auto space-y-6">
+                <div>
+                    <h3 className="text-sm font-semibold text-gray-400 mb-2">Fonte de Dados Ativa</h3>
+                    <p className="text-cyan-400 font-bold">{currentSource ? sourceDetails[currentSource as SourceKey].name : 'N/D'}</p>
+                    <p className="text-xs text-gray-500 mt-1">Esta é a fonte que forneceu os dados que você está vendo agora.</p>
                 </div>
                 
                 <div>
-                    <h3 className="text-sm font-bold text-white mb-3">Preferência de Fonte</h3>
+                    <h3 className="text-sm font-semibold text-gray-400 mb-3">Alterar Fonte Preferencial</h3>
                     <div className="space-y-3">
                         {Object.entries(sourceDetails).map(([key, { name, description }]) => (
-                            <label 
-                                key={key} 
-                                className={`flex items-start gap-3 p-4 bg-gray-900/80 rounded-xl cursor-pointer border-2 transition-all duration-200 ${
-                                    selectedSource === key ? classes.border + ' shadow-lg shadow-black/20' : 'border-transparent hover:bg-gray-800'
-                                }`}
-                            >
-                                <div className="pt-0.5">
-                                    <input 
-                                        type="radio" 
-                                        name="data-source"
-                                        value={key}
-                                        checked={selectedSource === key}
-                                        onChange={() => setSelectedSource(key as SourceKey)}
-                                        className={`form-radio h-5 w-5 bg-gray-800 border-gray-600 focus:ring-offset-0 ${classes.text} ${classes.ring}`}
-                                    />
-                                </div>
+                            <label key={key} className="flex items-start gap-3 p-3 bg-gray-900 rounded-lg cursor-pointer border-2 border-transparent has-[:checked]:border-cyan-500 transition-all">
+                                <input 
+                                    type="radio" 
+                                    name="data-source"
+                                    value={key}
+                                    checked={selectedSource === key}
+                                    onChange={() => setSelectedSource(key as SourceKey)}
+                                    className="mt-1 form-radio h-4 w-4 text-cyan-600 bg-gray-700 border-gray-600 focus:ring-cyan-500"
+                                />
                                 <div>
-                                    <p className={`font-semibold ${selectedSource === key ? 'text-white' : 'text-gray-300'}`}>{name}</p>
-                                    <p className="text-xs text-gray-500 mt-1 leading-relaxed">{description}</p>
+                                    <p className="font-semibold">{name}</p>
+                                    <p className="text-sm text-gray-400">{description}</p>
                                 </div>
                             </label>
                         ))}
@@ -109,13 +101,13 @@ const DataSourceModal: React.FC<DataSourceModalProps> = ({
                 </div>
             </main>
 
-            <footer className="p-5 bg-gray-900/80 border-t border-gray-700/50 flex-shrink-0 backdrop-blur-md">
+            <footer className="p-4 bg-gray-900/50 border-t border-gray-700/50 flex-shrink-0">
                  <button 
                     onClick={handleApply}
-                    className={`w-full ${classes.bg} ${classes.bgHover} text-white font-bold py-3.5 px-4 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg`}
+                    className="w-full bg-cyan-500 text-white font-bold py-2 px-4 rounded-full hover:bg-cyan-400 transition-colors disabled:bg-gray-600"
                     disabled={selectedSource === preferredSource}
                 >
-                    {selectedSource === preferredSource ? 'Sem alterações' : 'Aplicar e Recarregar'}
+                    Aplicar e Atualizar
                 </button>
             </footer>
         </div>
