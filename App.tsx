@@ -1,5 +1,4 @@
 
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import WeatherView from './components/weather/WeatherView';
 import AiView from './components/ai/AiView';
@@ -46,7 +45,7 @@ const RainAnimation: React.FC<{ intensity: 'low' | 'high' }> = ({ intensity }) =
 const DEFAULT_WELCOME_MSG: ChatMessage = {
     id: '1',
     role: 'model',
-    text: 'Olá! Sou a IA do Meteor. Posso ajudar com informações sobre o clima e buscar na web. O que você gostaria de saber?',
+    text: 'Olá! Sou a IA do Meteor. Como posso ajudar você hoje?',
 };
 
 
@@ -64,10 +63,6 @@ const App: React.FC = () => {
 
   // App Settings
   const [settings, setSettings] = useState<AppSettings>(getSettings());
-
-  // State for automatic search continuation
-  const [queryForSearch, setQueryForSearch] = useState<string | null>(null);
-  const justEnabledSearchRef = useRef(false);
 
   // Weather state
   const [weatherInfo, setWeatherInfo] = useState<Partial<AllWeatherData>>({});
@@ -108,13 +103,11 @@ const App: React.FC = () => {
             }
         }
     }
-  }, []); // Dependencies must be empty to run only once on mount. 
-  // Note: `settings` is initialized with `getSettings()` so `settings.saveChatHistory` is correct on first render.
+  }, []);
 
   // Save chat history when messages update
   useEffect(() => {
     if (settings.saveChatHistory) {
-        // Only save if we have more than just the default message or if the default message has changed
         if (messages.length > 1 || messages[0].text !== DEFAULT_WELCOME_MSG.text) {
              localStorage.setItem('chat_history', JSON.stringify(messages));
         }
@@ -135,13 +128,10 @@ const App: React.FC = () => {
 
   // Dynamic Theme Logic
   useEffect(() => {
-      // If dynamic theme is off, use fixed setting
       if (!settings.dynamicTheme) {
           setActiveTheme(settings.themeColor);
           return;
       }
-
-      // If no weather data yet, fallback to fixed setting
       if (!weatherData) {
           setActiveTheme(settings.themeColor);
           return;
@@ -153,7 +143,6 @@ const App: React.FC = () => {
       if (isNight) {
           setActiveTheme('purple');
       } else {
-          // Daytime Logic
           const condition = weatherData.condition?.toLowerCase() || '';
           const icon = weatherData.conditionIcon || '';
 
@@ -169,11 +158,10 @@ const App: React.FC = () => {
       }
   }, [settings.dynamicTheme, settings.themeColor, weatherData]);
 
-  // PWA Theme Color Update (Darker border)
+  // PWA Theme Color Update
   useEffect(() => {
       const metaThemeColor = document.querySelector('meta[name="theme-color"]');
       if (metaThemeColor) {
-          // Always use the specific dark background color (matches Header)
           metaThemeColor.setAttribute('content', '#131B2E');
       }
   }, []);
@@ -183,28 +171,21 @@ const App: React.FC = () => {
       const initApp = () => {
           const savedSettings = getSettings();
           setSettings(savedSettings);
-          setPreferredDataSource(savedSettings.weatherSource); // Sync source
+          setPreferredDataSource(savedSettings.weatherSource);
 
-          // Handle Fullscreen logic
           if (savedSettings.startFullscreen) {
              const enterFullscreen = async () => {
-                 // Check if we are already in fullscreen to avoid errors
                  if (!document.fullscreenElement) {
                      try {
                         await document.documentElement.requestFullscreen();
-                        // Only remove listeners if the request was successful
                         window.removeEventListener('click', enterFullscreen);
                         window.removeEventListener('touchend', enterFullscreen);
                         window.removeEventListener('keydown', enterFullscreen);
                      } catch (e) {
-                        // If blocked, keep listening for the next valid gesture
-                        console.log("Auto-fullscreen deferred, waiting for valid gesture.", e);
+                        console.log("Auto-fullscreen deferred.", e);
                      }
                  }
              };
-
-             // Browsers require user interaction for fullscreen. We attach listeners to common gestures.
-             // Using 'touchend' instead of 'touchstart' is more reliable on mobile browsers.
              window.addEventListener('click', enterFullscreen);
              window.addEventListener('touchend', enterFullscreen);
              window.addEventListener('keydown', enterFullscreen);
@@ -229,17 +210,13 @@ const App: React.FC = () => {
                    }
                }
           }
-          // 'idle' behavior is default
       };
-      
       initApp();
       // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Update preferredDataSource when settings change (e.g. from Settings View)
   useEffect(() => {
       setPreferredDataSource(settings.weatherSource);
-      // If we have active weather data, reload it with new source
       if (currentCoords && settings.weatherSource !== dataSource && weatherStatus === 'success') {
           handleFetchWeather(currentCoords, currentCityInfo || undefined, settings.weatherSource);
       }
@@ -269,8 +246,7 @@ const App: React.FC = () => {
       };
       
       recognition.onerror = (event: any) => {
-        console.error("Speech Recognition Error", event.error);
-        setAppError(`Erro de voz: ${event.error}. Verifique as permissões do microfone.`);
+        setAppError(`Erro de voz: ${event.error}`);
         setIsListening(false);
       };
 
@@ -288,7 +264,6 @@ const App: React.FC = () => {
     setCurrentCoords(coords);
     if(cityInfo) setCurrentCityInfo(cityInfo);
 
-    // Persist last location
     localStorage.setItem('last_coords', JSON.stringify(coords));
 
     try {
@@ -296,7 +271,7 @@ const App: React.FC = () => {
       setWeatherInfo(data);
       setWeatherStatus('success');
       if (data.fallbackStatus) {
-        setAppError("Aviso: A fonte de dados principal falhou. Usando uma fonte alternativa. Alguns dados (como alertas) podem não estar disponíveis.");
+        setAppError("Aviso: A fonte de dados principal falhou. Usando uma fonte alternativa.");
       }
     } catch (error) {
       console.error("Failed to fetch weather data:", error);
@@ -318,13 +293,12 @@ const App: React.FC = () => {
           handleFetchWeather({ lat: position.coords.latitude, lon: position.coords.longitude }, undefined, preferredDataSource);
         },
         (error) => {
-          console.warn(`Geolocation error: ${error.message}.`);
-          setWeatherError("Não foi possível obter sua localização. Verifique as permissões do seu navegador e tente novamente.");
+          setWeatherError("Não foi possível obter sua localização.");
           setWeatherStatus('error');
         }
       );
     } else {
-      setWeatherError("Geolocalização não é suportada neste navegador.");
+      setWeatherError("Geolocalização não é suportada.");
       setWeatherStatus('error');
     }
   }, [handleFetchWeather, preferredDataSource]);
@@ -337,7 +311,7 @@ const App: React.FC = () => {
       }
   }, [currentCoords, currentCityInfo, handleFetchWeather]);
 
-  const sendQueryToModel = useCallback(async (query: string, searchResults: SearchResultItem[] | null) => {
+  const sendQueryToModel = useCallback(async (query: string, initialSearchResults: SearchResultItem[] | null) => {
     setIsSending(true);
 
     const modelMessage: ChatMessage = { id: (Date.now() + 1).toString(), role: 'model', text: '', sources: [] };
@@ -348,48 +322,72 @@ const App: React.FC = () => {
         parts: [{ text: msg.text }]
     }));
 
-    const stream = streamChatResponse(query, history, weatherInfo, searchResults);
-    let fullText = '';
-    const allSources: GroundingSource[] = [];
+    // Create formatted time context (e.g., "Segunda-feira, 12 de Maio de 2025, 14:30")
+    const timeContext = new Date().toLocaleString('pt-BR', { 
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+    });
 
-    if (searchResults) {
-        searchResults.forEach(result => {
-            if (!allSources.some(s => s.uri === result.link)) {
-                allSources.push({ uri: result.link, title: result.title });
+    const performChatRequest = async (searchData: SearchResultItem[] | null) => {
+        const stream = streamChatResponse(query, history, weatherInfo, searchData, timeContext);
+        let fullText = '';
+        const allSources: GroundingSource[] = [];
+
+        if (searchData) {
+            searchData.forEach(result => {
+                if (!allSources.some(s => s.uri === result.link)) {
+                    allSources.push({ uri: result.link, title: result.title });
+                }
+            });
+        }
+
+        try {
+            for await (const chunk of stream) {
+                fullText += chunk.text;
+
+                // Check for stealth command [SEARCH_REQUIRED]
+                if (fullText.includes('[SEARCH_REQUIRED]')) {
+                    console.log("AUTO-SEARCH TRIGGERED by AI");
+                    
+                    // IMPORTANT: Don't show this text to user. Reset the model message.
+                    // Fetch search results invisible to user
+                    const newResults = await getSearchResults(query);
+                    setIsSearchEnabled(true); // Visually toggle the button so user knows search was used
+                    
+                    // Recursive call with results
+                    await performChatRequest(newResults);
+                    return; // Exit this loop, the recursive call handles the rest
+                }
+
+                setMessages(prev => {
+                    const newMessages = [...prev];
+                    const lastMessage = newMessages[newMessages.length - 1];
+                    if (lastMessage.role === 'model') {
+                        lastMessage.text = fullText;
+                        lastMessage.sources = [...allSources];
+                    }
+                    return newMessages;
+                });
             }
-        });
-    }
+        } catch (e) {
+            console.error("Error in chat stream", e);
+             setMessages(prev => {
+                const newMessages = [...prev];
+                const lastMessage = newMessages[newMessages.length - 1];
+                if (lastMessage.role === 'model') {
+                    lastMessage.text = "Desculpe, ocorreu um erro ao processar a resposta.";
+                }
+                return newMessages;
+            });
+        }
+    };
 
-    for await (const chunk of stream) {
-        fullText += chunk.text;
-
-        setMessages(prev => {
-            const newMessages = [...prev];
-            const lastMessage = newMessages[newMessages.length - 1];
-            if (lastMessage.role === 'model') {
-                lastMessage.text = fullText;
-                lastMessage.sources = [...allSources];
-            }
-            return newMessages;
-        });
-    }
-
-    // After getting the full response, check if we need to prompt for search
-    if (fullText.includes("ative a busca na web")) {
-        // The `query` parameter here is the user's original prompt that failed
-        setQueryForSearch(query);
-    } else {
-        // If the query was successful, clear any pending search query
-        setQueryForSearch(null);
-    }
-
+    await performChatRequest(initialSearchResults);
     setIsSending(false);
   }, [messages, weatherInfo]);
   
   const handleSendMessage = useCallback(async (text: string, isContinuation: boolean = false) => {
     if (!text.trim()) return;
 
-    // Only add a new user message to the chat if this is not an automatic continuation
     if (!isContinuation) {
         const userMessage: ChatMessage = { id: Date.now().toString(), role: 'user', text };
         setMessages(prev => [...prev, userMessage]);
@@ -397,36 +395,17 @@ const App: React.FC = () => {
     
     let searchResults: SearchResultItem[] | null = null;
     if (isSearchEnabled) {
-      setIsSending(true); // Show spinner for search
+      setIsSending(true); 
        try {
         searchResults = await getSearchResults(text);
       } catch (e) {
         console.error("Web search failed:", e);
-        setAppError("A busca na web falhou. Verifique sua conexão ou a configuração da API.");
       }
       setIsSending(false);
     }
     
     sendQueryToModel(text, searchResults);
   }, [isSearchEnabled, sendQueryToModel]);
-
-  const handleSendMessageRef = useRef(handleSendMessage);
-  useEffect(() => {
-    handleSendMessageRef.current = handleSendMessage;
-  }, [handleSendMessage]);
-
-  useEffect(() => {
-    // This effect runs after `isSearchEnabled` has been updated.
-    if (isSearchEnabled && justEnabledSearchRef.current && queryForSearch) {
-        // Automatically re-run the stored query with search now enabled.
-        handleSendMessageRef.current(queryForSearch, true);
-
-        // Reset state for the next interaction.
-        setQueryForSearch(null);
-    }
-    // Always reset the ref after the effect runs to prevent re-triggering.
-    justEnabledSearchRef.current = false;
-  }, [isSearchEnabled, queryForSearch]);
 
 
   const handleToggleListening = useCallback(() => {
@@ -444,13 +423,7 @@ const App: React.FC = () => {
   }, [isListening]);
 
   const handleToggleSearch = () => {
-    const isTurningOn = !isSearchEnabled;
-    if (isTurningOn) {
-        // Set a ref flag to indicate this state change was a manual "turn on".
-        // The useEffect will use this flag to decide whether to auto-search.
-        justEnabledSearchRef.current = true;
-    }
-    setIsSearchEnabled(isTurningOn);
+    setIsSearchEnabled(prev => !prev);
   };
 
   const weatherProps = {
