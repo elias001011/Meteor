@@ -65,6 +65,10 @@ const App: React.FC = () => {
   // App Settings
   const [settings, setSettings] = useState<AppSettings>(getSettings());
 
+  // State for automatic search continuation
+  const [queryForSearch, setQueryForSearch] = useState<string | null>(null);
+  const justEnabledSearchRef = useRef(false);
+
   // Weather state
   const [weatherInfo, setWeatherInfo] = useState<Partial<AllWeatherData>>({});
   const [weatherStatus, setWeatherStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -370,23 +374,60 @@ const App: React.FC = () => {
         });
     }
 
+    // After getting the full response, check if we need to prompt for search
+    if (fullText.includes("ative a busca na web")) {
+        // The `query` parameter here is the user's original prompt that failed
+        setQueryForSearch(query);
+    } else {
+        // If the query was successful, clear any pending search query
+        setQueryForSearch(null);
+    }
+
     setIsSending(false);
   }, [messages, weatherInfo]);
   
-  const handleSendMessage = useCallback(async (text: string) => {
+  const handleSendMessage = useCallback(async (text: string, isContinuation: boolean = false) => {
     if (!text.trim()) return;
-    const userMessage: ChatMessage = { id: Date.now().toString(), role: 'user', text };
-    setMessages(prev => [...prev, userMessage]);
+
+    // Only add a new user message to the chat if this is not an automatic continuation
+    if (!isContinuation) {
+        const userMessage: ChatMessage = { id: Date.now().toString(), role: 'user', text };
+        setMessages(prev => [...prev, userMessage]);
+    }
     
     let searchResults: SearchResultItem[] | null = null;
     if (isSearchEnabled) {
-      setIsSending(true);
-      searchResults = await getSearchResults(text);
+      setIsSending(true); // Show spinner for search
+       try {
+        searchResults = await getSearchResults(text);
+      } catch (e) {
+        console.error("Web search failed:", e);
+        setAppError("A busca na web falhou. Verifique sua conexão ou a configuração da API.");
+      }
       setIsSending(false);
     }
-
+    
     sendQueryToModel(text, searchResults);
-  }, [sendQueryToModel, isSearchEnabled]);
+  }, [isSearchEnabled, sendQueryToModel]);
+
+  const handleSendMessageRef = useRef(handleSendMessage);
+  useEffect(() => {
+    handleSendMessageRef.current = handleSendMessage;
+  }, [handleSendMessage]);
+
+  useEffect(() => {
+    // This effect runs after `isSearchEnabled` has been updated.
+    if (isSearchEnabled && justEnabledSearchRef.current && queryForSearch) {
+        // Automatically re-run the stored query with search now enabled.
+        handleSendMessageRef.current(queryForSearch, true);
+
+        // Reset state for the next interaction.
+        setQueryForSearch(null);
+    }
+    // Always reset the ref after the effect runs to prevent re-triggering.
+    justEnabledSearchRef.current = false;
+  }, [isSearchEnabled, queryForSearch]);
+
 
   const handleToggleListening = useCallback(() => {
     if (!recognitionRef.current) {
@@ -401,6 +442,16 @@ const App: React.FC = () => {
     }
     setIsListening(prev => !prev);
   }, [isListening]);
+
+  const handleToggleSearch = () => {
+    const isTurningOn = !isSearchEnabled;
+    if (isTurningOn) {
+        // Set a ref flag to indicate this state change was a manual "turn on".
+        // The useEffect will use this flag to decide whether to auto-search.
+        justEnabledSearchRef.current = true;
+    }
+    setIsSearchEnabled(isTurningOn);
+  };
 
   const weatherProps = {
     status: weatherStatus,
@@ -421,10 +472,10 @@ const App: React.FC = () => {
   };
   
   const aiViewProps = {
-      messages, onSendMessage: handleSendMessage, isSending,
+      messages, onSendMessage: (text: string) => handleSendMessage(text, false), isSending,
       chatInputText, setChatInputText,
       isListening, onToggleListening: handleToggleListening,
-      isSearchEnabled, onToggleSearch: () => setIsSearchEnabled(prev => !prev)
+      isSearchEnabled, onToggleSearch: handleToggleSearch
   };
 
   const isRaining = weatherData?.condition?.toLowerCase().includes('chuv');
