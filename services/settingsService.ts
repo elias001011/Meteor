@@ -1,4 +1,5 @@
 
+
 import type { AppSettings, ExportData } from '../types';
 
 const SETTINGS_KEY = 'meteor_settings';
@@ -20,7 +21,9 @@ const DEFAULT_SETTINGS: AppSettings = {
     rainAnimation: {
         enabled: true,
         intensity: 'low'
-    }
+    },
+    userName: '',
+    aiInstructions: ''
 };
 
 export const getSettings = (): AppSettings => {
@@ -31,7 +34,6 @@ export const getSettings = (): AppSettings => {
         const parsed = JSON.parse(stored);
         
         // --- START MIGRATION LOGIC ---
-        // This logic smoothly transitions users from old settings formats to the new one.
         let migratedSettings = { ...parsed };
 
         // 1. Migrate legacy `glassEffectEnabled` (boolean) to `transparencyMode`
@@ -55,8 +57,6 @@ export const getSettings = (): AppSettings => {
         }
         // --- END MIGRATION LOGIC ---
 
-        // Merge deeply to ensure new nested objects (like rainAnimation) are populated if missing in old data
-        // Also ensures clockDisplayMode is added for existing users
         return {
             ...DEFAULT_SETTINGS,
             ...migratedSettings,
