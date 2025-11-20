@@ -11,7 +11,8 @@ export async function* streamChatResponse(
     prompt: string, 
     history: Content[],
     weatherContext: Partial<AllWeatherData> | null,
-    searchResults: SearchResultItem[] | null
+    searchResults: SearchResultItem[] | null,
+    timeContext: string
 ): AsyncGenerator<{ text: string }, void, unknown> {
   
   try {
@@ -24,7 +25,8 @@ export async function* streamChatResponse(
             prompt,
             history,
             weatherContext,
-            searchResults
+            searchResults,
+            timeContext
         }),
     });
 

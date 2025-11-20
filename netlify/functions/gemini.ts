@@ -1,35 +1,41 @@
 
-
 import { GoogleGenAI, Content } from "@google/genai";
 import { type Handler, type HandlerEvent } from "@netlify/functions";
 
 const buildContextualContent = (
     weatherInfo: any | null, 
-    searchResults: any[] | null
+    searchResults: any[] | null,
+    timeContext: string
 ): Content[] => {
     
-    // Diretrizes revisadas para garantir que a IA use os resultados da busca quando disponíveis.
     let systemInstruction = `DIRETRIZES RÍGIDAS DE COMPORTAMENTO:\n`;
-    systemInstruction += `1. **IDENTIDADE E TOM**: Você é a IA do Meteor. Responda de forma prestativa, simpática e **extremamente direta**. Suas respostas devem ser concisas e em texto corrido.\n`;
-    systemInstruction += `2. **REGRA FUNDAMENTAL - NÃO ALUCINE**: Seu conhecimento é limitado. Você **NÃO** sabe a data ou hora atual e não tem acesso a notícias ou eventos em tempo real.\n`;
-    systemInstruction += `   - **NÃO INVENTE, NÃO ADIVINHE, NÃO CALCULE DATAS.**\n`;
-    systemInstruction += `3. **LÓGICA DE RESPOSTA**: Siga esta ordem de prioridade:\n`;
-    systemInstruction += `   a. **SE** o contexto incluir "Resultados da Pesquisa na Web", sua prioridade **MÁXIMA** é analisar os trechos fornecidos e sintetizar uma resposta direta à pergunta do usuário. Se os resultados forem irrelevantes, informe que a busca não ajudou.\n`;
-    systemInstruction += `   b. **SENÃO**, se a pergunta do usuário exigir conhecimento atual que você não possui (como "que dia é hoje?", "quais as últimas notícias?"), sua **ÚNICA** ação é responder: "Não tenho essa informação. Para te responder, por favor, ative a busca na web."\n`;
-    systemInstruction += `4. **MEMÓRIA DE CONVERSA**: Você **DEVE** se lembrar do histórico de chat anterior. Se o usuário ativar a busca e disser "continue" ou "e agora?", você precisa olhar as mensagens anteriores para saber qual era a pergunta original e respondê-la usando os novos resultados da busca.\n`;
-    systemInstruction += `5. **FORMATAÇÃO**: Use Markdown para **negrito** (\`**texto**\`) e *itálico* (\`*texto*\`) somente se for essencial para a clareza. Não use listas ou outros formatos.\n`;
+    systemInstruction += `1. **IDENTIDADE**: Você é a IA do Meteor. Seja prestativa, simpática, mas **EXTREMAMENTE DIRETA**. Evite introduções longas.\n`;
+    
+    // INJECTED TIME CONTEXT - SOLVES "WHAT DAY IS IT"
+    systemInstruction += `2. **CONTEXTO TEMPORAL (CRÍTICO)**: A data e hora atual é: **${timeContext}**. USE ESTA INFORMAÇÃO para responder perguntas sobre "que dia é hoje", "que horas são" ou referências temporais. NÃO DIGA QUE NÃO SABE A DATA.\n`;
+    
+    systemInstruction += `3. **DECISÃO DE BUSCA (AUTO-TOOL)**:\n`;
+    systemInstruction += `   - Você tem acesso a: Data atual, Clima local (se fornecido) e Histórico de chat.\n`;
+    systemInstruction += `   - **SE** a pergunta do usuário exigir informações externas que você NÃO possui (ex: notícias recentes, placar de jogos, curiosidades, eventos futuros específicos, cotações) **E** você não recebeu "Resultados da Pesquisa na Web" ainda:\n`;
+    systemInstruction += `   - **SUA ÚNICA RESPOSTA DEVE SER O COMANDO**: [SEARCH_REQUIRED]\n`;
+    systemInstruction += `   - Não peça desculpas, não explique. Apenas responda: [SEARCH_REQUIRED]. O sistema fará a busca automaticamente e te enviará os dados.\n`;
+    
+    systemInstruction += `4. **USO DE DADOS**:\n`;
+    systemInstruction += `   - **SE** você recebeu "Resultados da Pesquisa na Web": Use-os para responder à pergunta original. Cite as fontes implicitamente.\n`;
+    systemInstruction += `   - **SE** for sobre clima: Use o contexto climático fornecido abaixo.\n`;
+    
+    systemInstruction += `5. **FORMATAÇÃO**: Use Markdown (negrito, itálico) com moderação.\n`;
     
     const content: Content[] = [{
         role: 'user',
         parts: [{ text: systemInstruction }]
     }, {
         role: 'model',
-        parts: [{ text: `Entendido. Seguirei estritamente estas regras. Não tenho acesso a informações em tempo real, sugerirei a busca web quando necessário e manterei o contexto da conversa.` }]
+        parts: [{ text: `Entendido. Sei que hoje é ${timeContext}. Se precisar de info externa, responderei apenas [SEARCH_REQUIRED].` }]
     }];
 
     if (weatherInfo && weatherInfo.weatherData) {
         const { weatherData, airQualityData, dailyForecast, alerts } = weatherInfo;
-        // Removida a data/hora do servidor para evitar confusão da IA.
         let weatherContextText = `## Contexto do Clima Atual para ${weatherData.city}, ${weatherData.country}\n- Temperatura: ${weatherData.temperature}°C, ${weatherData.condition}\n- Vento: ${weatherData.windSpeed} km/h, Umidade: ${weatherData.humidity}%\n`;
         if (airQualityData) weatherContextText += `- IQAR: ${airQualityData.aqi} (${['Boa', 'Razoável', 'Moderada', 'Ruim', 'Muito Ruim'][airQualityData.aqi - 1]})\n`;
         if (dailyForecast && dailyForecast.length > 0) weatherContextText += `- Previsão: ${dailyForecast.slice(0, 3).map((d: any) => `${new Date(d.dt * 1000).toLocaleDateString('pt-BR', { weekday: 'short' })} ${d.temperature}°C`).join(', ')}\n`;
@@ -44,7 +50,7 @@ const buildContextualContent = (
         searchContextText += searchResults.map((r: any) => `- Fonte: ${r.title}\n- Conteúdo: ${r.snippet}`).join('\n\n');
         
         content.push({ role: 'user', parts: [{ text: searchContextText }]});
-        content.push({ role: 'model', parts: [{ text: "Ok, tenho os resultados da busca." }]});
+        content.push({ role: 'model', parts: [{ text: "Recebi os resultados da busca. Vou responder à pergunta original do usuário com base neles." }]});
     }
 
     return content;
@@ -64,16 +70,19 @@ const handler: Handler = async (event: HandlerEvent) => {
     }
 
     try {
-        const { prompt, history, weatherContext, searchResults } = JSON.parse(event.body || '{}');
+        const { prompt, history, weatherContext, searchResults, timeContext } = JSON.parse(event.body || '{}');
 
         if (!prompt) {
             return { statusCode: 400, body: JSON.stringify({ message: "O prompt é obrigatório." }) };
         }
 
+        // Fallback if frontend didn't send time (backward compatibility)
+        const effectiveTimeContext = timeContext || new Date().toLocaleString('pt-BR');
+
         const ai = new GoogleGenAI({ apiKey });
         const model = 'gemini-flash-lite-latest';
         
-        const contextualContent = buildContextualContent(weatherContext, searchResults);
+        const contextualContent = buildContextualContent(weatherContext, searchResults, effectiveTimeContext);
         
         const contents = [
             ...contextualContent, 
