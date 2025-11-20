@@ -1,7 +1,8 @@
 
+
 import React, { useState } from 'react';
 import type { ChatMessage } from '../../types';
-import { LinkIcon, CopyIcon, VolumeIcon, RobotIcon, InfoIcon, CheckIcon } from '../icons';
+import { LinkIcon, CopyIcon, VolumeIcon, InfoIcon, CheckIcon, RefreshCwIcon } from '../icons';
 import { useTheme } from '../context/ThemeContext';
 
 interface MessageBubbleProps {
@@ -15,8 +16,16 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   const [showInfo, setShowInfo] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
 
+  // Cleaner to remove LaTeX/Math artifacts if the model ignores instructions
+  const cleanText = (raw: string) => {
+      return raw
+        .replace(/\$|\\text\{|\}|\\circ/g, '') // Remove $, \text{}, } and \circ
+        .replace(/:\*/g, ':'); // Fix hanging colon+asterisk
+  };
+
   // Formatter for markdown-like syntax
-  const renderFormattedText = (text: string) => {
+  const renderFormattedText = (rawText: string) => {
+    const text = cleanText(rawText);
     const parts = text.split(/(\*\*.*?\*\*|\*.*?\*|`.*?`)/g);
     return parts.map((part, index) => {
         if (part.startsWith('**') && part.endsWith('**')) return <strong key={index}>{part.substring(2, part.length - 2)}</strong>;
@@ -38,7 +47,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
               window.speechSynthesis.cancel();
               setIsSpeaking(false);
           } else {
-              const utterance = new SpeechSynthesisUtterance(message.text);
+              const utterance = new SpeechSynthesisUtterance(cleanText(message.text));
               utterance.lang = 'pt-BR';
               utterance.onend = () => setIsSpeaking(false);
               window.speechSynthesis.speak(utterance);
@@ -52,13 +61,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   return (
     <div className={`flex items-end gap-2 mb-4 ${isModel ? 'justify-start' : 'justify-end'}`}>
       
-      {isModel && (
-          <div className="hidden sm:flex items-center justify-center w-8 h-8 rounded-full bg-gray-700/50 flex-shrink-0">
-              <RobotIcon className="w-5 h-5 text-gray-400" />
-          </div>
-      )}
+      {/* Icon Removed as requested */}
 
-      <div className="flex flex-col max-w-[85%] sm:max-w-[75%]">
+      <div className="flex flex-col max-w-[95%] sm:max-w-[85%]">
         <div
           className={`relative px-5 py-3.5 rounded-2xl shadow-sm text-base leading-relaxed ${
             isModel
@@ -68,6 +73,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
         >
           <div className="whitespace-pre-wrap break-words">
             {renderFormattedText(message.text)}
+            {message.isError && <span className="text-red-400 text-sm block mt-2">⚠ Erro na geração.</span>}
             {!isModel && message.text.length === 0 ? '...' : ''}
           </div>
         </div>
@@ -81,7 +87,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
                 <button onClick={handleSpeak} className={`p-1.5 hover:bg-gray-700 rounded-full transition-colors ${isSpeaking ? 'text-green-400 animate-pulse' : 'text-gray-500 hover:text-white'}`} title="Ler em voz alta">
                     <VolumeIcon className="w-4 h-4" />
                 </button>
-                <button onClick={() => setShowInfo(!showInfo)} className="p-1.5 text-gray-500 hover:text-white hover:bg-gray-700 rounded-full transition-colors" title="Informações da Resposta">
+                <button onClick={() => setShowInfo(!showInfo)} className={`p-1.5 hover:bg-gray-700 rounded-full transition-colors ${showInfo ? 'text-cyan-400' : 'text-gray-500 hover:text-white'}`} title="Informações da Resposta">
                     <InfoIcon className="w-4 h-4" />
                 </button>
             </div>
@@ -104,19 +110,20 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             </div>
         )}
 
-        {/* Sources Section */}
+        {/* Sources Section - Only show if web search was active */}
         {message.sources && message.sources.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
+            <div className="w-full text-xs text-gray-500 font-semibold uppercase mb-1">Fontes Consultadas</div>
             {message.sources.map((source, index) => (
               <a 
                 key={index} 
                 href={source.uri} 
                 target="_blank" 
                 rel="noopener noreferrer" 
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-800 border border-gray-700 hover:border-gray-600 hover:bg-gray-700 transition-all text-xs text-gray-300 max-w-full`}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 hover:border-gray-600 hover:bg-gray-700 transition-all text-xs text-gray-300 max-w-full`}
               >
                 <LinkIcon className="w-3 h-3 flex-shrink-0" />
-                <span className="truncate max-w-[150px]">{source.title || new URL(source.uri).hostname}</span>
+                <span className="truncate max-w-[200px]">{source.title || new URL(source.uri).hostname}</span>
               </a>
             ))}
           </div>
