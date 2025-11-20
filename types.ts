@@ -1,4 +1,5 @@
 
+
 export type View = 'weather' | 'ai' | 'map' | 'news' | 'settings' | 'tips' | 'info';
 
 export interface WeatherData {
@@ -110,7 +111,6 @@ export type TransparencyMode = 'off' | 'low' | 'glass';
 export type ClockDisplayMode = 'always' | 'different_zone' | 'never';
 
 export interface AppSettings {
-    userName: string;
     showClock: boolean; // System clock in header
     clockDisplayMode: ClockDisplayMode; // Local time in weather card
     startFullscreen: boolean;
@@ -118,7 +118,6 @@ export interface AppSettings {
     startupBehavior: StartupBehavior;
     specificLocation?: CitySearchResult; // Used if startupBehavior is 'specific_location'
     startupSection?: View; // Used if startupBehavior is 'custom_section'
-    aiCustomInstructions: string;
     saveChatHistory: boolean;
     // Visual Customization
     themeColor: AppTheme;

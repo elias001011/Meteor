@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import WeatherView from './components/weather/WeatherView';
 import AiView from './components/ai/AiView';
@@ -343,7 +344,7 @@ const App: React.FC = () => {
         parts: [{ text: msg.text }]
     }));
 
-    const stream = streamChatResponse(query, history, weatherInfo, searchResults, settings);
+    const stream = streamChatResponse(query, history, weatherInfo, searchResults);
     let fullText = '';
     const allSources: GroundingSource[] = [];
 
@@ -370,7 +371,7 @@ const App: React.FC = () => {
     }
 
     setIsSending(false);
-  }, [messages, weatherInfo, settings]);
+  }, [messages, weatherInfo]);
   
   const handleSendMessage = useCallback(async (text: string) => {
     if (!text.trim()) return;

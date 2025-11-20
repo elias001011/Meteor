@@ -273,17 +273,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
             <section className="bg-gray-800/50 rounded-2xl p-5 border border-gray-700/50">
                 <h3 className={`text-lg font-semibold ${classes.text} mb-4`}>Geral</h3>
                 <div className="space-y-4">
-                    <div className="flex flex-col gap-2">
-                        <label className="text-sm text-gray-300">Como a IA deve te chamar?</label>
-                        <input 
-                            type="text" 
-                            value={settings.userName}
-                            onChange={(e) => handleSave({ userName: e.target.value })}
-                            placeholder="Seu nome ou apelido"
-                            className={`bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:ring-2 outline-none ${classes.ring}`}
-                        />
-                    </div>
-                    
                     <div className="space-y-2">
                         <div className="flex items-center justify-between">
                             <span className="text-gray-300">Modo Tela Cheia (Agora)</span>
@@ -414,12 +403,12 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
                     )}
                 </div>
             </section>
-
-            {/* --- AI --- */}
-            <section className="bg-gray-800/50 rounded-2xl p-5 border border-gray-700/50">
-                <h3 className={`text-lg font-semibold ${classes.text} mb-4`}>Inteligência Artificial</h3>
-                <div className="space-y-6">
-                    <div className="flex items-center justify-between pb-4 border-b border-gray-700/30">
+            
+             {/* --- DATA MANAGEMENT --- */}
+             <section className="bg-gray-800/50 rounded-2xl p-5 border border-gray-700/50">
+                <h3 className={`text-lg font-semibold ${classes.text} mb-4`}>Gerenciamento de Dados</h3>
+                <div className="space-y-4">
+                     <div className="flex items-center justify-between pb-4 border-b border-gray-700/30">
                         <div className="flex flex-col">
                             <span className="text-gray-300">Salvar Histórico de Chat</span>
                             <span className="text-xs text-gray-500">Manter conversas após recarregar.</span>
@@ -432,49 +421,31 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
                         </button>
                     </div>
 
-                    <div className="flex flex-col gap-2">
-                        <label className="text-sm text-gray-300">Instruções Personalizadas</label>
-                        <p className="text-xs text-gray-500 mb-2">
-                            Tudo o que você escrever aqui será enviado para a IA como uma "regra" de comportamento extra. Ex: "Seja sarcástico", "Fale sempre em rimas", "Responda como um meteorologista técnico".
-                        </p>
-                        <textarea 
-                            value={settings.aiCustomInstructions}
-                            onChange={(e) => handleSave({ aiCustomInstructions: e.target.value })}
-                            placeholder="Digite suas instruções personalizadas para a IA..."
-                            rows={4}
-                            className={`bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:ring-2 outline-none resize-none ${classes.ring}`}
-                        />
+                    <div className="grid grid-cols-2 gap-4">
+                        <button onClick={handleExport} className="bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-xl font-medium transition-colors">
+                            Exportar Dados
+                        </button>
+                        <button onClick={() => setShowImportModal(true)} className="bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-xl font-medium transition-colors">
+                            Importar Dados
+                        </button>
                     </div>
-                </div>
-            </section>
 
-             {/* --- DATA MANAGEMENT --- */}
-             <section className="bg-gray-800/50 rounded-2xl p-5 border border-gray-700/50">
-                <h3 className={`text-lg font-semibold ${classes.text} mb-4`}>Gerenciamento de Dados</h3>
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                    <button onClick={handleExport} className="bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-xl font-medium transition-colors">
-                        Exportar Dados
-                    </button>
-                    <button onClick={() => setShowImportModal(true)} className="bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-xl font-medium transition-colors">
-                        Importar Dados
-                    </button>
-                </div>
-
-                <div className="border-t border-gray-700/50 pt-4 space-y-3">
-                    <h4 className="text-red-400 text-sm font-bold uppercase tracking-wider mb-2">Zona de Perigo</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                         <button onClick={() => handleReset('settings')} className="border border-red-500/30 text-red-300 hover:bg-red-500/10 py-2 rounded-lg text-sm transition-colors">
-                            Resetar Configurações
-                        </button>
-                        <button onClick={() => handleReset('cache')} className="border border-red-500/30 text-red-300 hover:bg-red-500/10 py-2 rounded-lg text-sm transition-colors">
-                            Limpar Cache (API)
-                        </button>
-                        <button onClick={() => handleReset('history')} className="border border-red-500/30 text-red-300 hover:bg-red-500/10 py-2 rounded-lg text-sm transition-colors">
-                            Limpar Histórico IA
-                        </button>
-                        <button onClick={() => handleReset('all')} className="bg-red-500/80 hover:bg-red-600 text-white py-2 rounded-lg text-sm font-bold transition-colors shadow-lg shadow-red-900/20">
-                            Resetar Tudo (Fábrica)
-                        </button>
+                    <div className="border-t border-gray-700/50 pt-4 space-y-3">
+                        <h4 className="text-red-400 text-sm font-bold uppercase tracking-wider mb-2">Zona de Perigo</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <button onClick={() => handleReset('settings')} className="border border-red-500/30 text-red-300 hover:bg-red-500/10 py-2 rounded-lg text-sm transition-colors">
+                                Resetar Configurações
+                            </button>
+                            <button onClick={() => handleReset('cache')} className="border border-red-500/30 text-red-300 hover:bg-red-500/10 py-2 rounded-lg text-sm transition-colors">
+                                Limpar Cache (API)
+                            </button>
+                            <button onClick={() => handleReset('history')} className="border border-red-500/30 text-red-300 hover:bg-red-500/10 py-2 rounded-lg text-sm transition-colors">
+                                Limpar Histórico IA
+                            </button>
+                            <button onClick={() => handleReset('all')} className="bg-red-500/80 hover:bg-red-600 text-white py-2 rounded-lg text-sm font-bold transition-colors shadow-lg shadow-red-900/20">
+                                Resetar Tudo (Fábrica)
+                            </button>
+                        </div>
                     </div>
                 </div>
             </section>
