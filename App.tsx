@@ -351,7 +351,7 @@ const App: React.FC = () => {
                     // IMPORTANT: Don't show this text to user. Reset the model message.
                     // Fetch search results invisible to user
                     const newResults = await getSearchResults(query);
-                    setIsSearchEnabled(true); // Visually toggle the button so user knows search was used
+                    // Note: We do NOT enable the search toggle visually here anymore.
                     
                     // Recursive call with results
                     await performChatRequest(newResults);
