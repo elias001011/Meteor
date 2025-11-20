@@ -8,27 +8,28 @@ const buildContextualContent = (
     searchResults: any[] | null
 ): Content[] => {
     
-    // 1. Identidade Central e Regras de Comportamento
-    let systemInstruction = `DIRETRIZES ESSENCIAIS:\n`;
-    systemInstruction += `1. Você é a IA do Meteor. Seja prestativo, simpático e direto. Suas respostas devem ser curtas e em texto corrido, sem formatação (como negrito ou listas), a menos que estritamente necessário.\n`;
-    systemInstruction += `2. MEMÓRIA: Lembre-se do histórico do chat para entender o contexto de perguntas contínuas.\n`;
-    systemInstruction += `3. BUSCA WEB: Se o usuário perguntar algo que você não sabe, instrua-o a ativar a busca na web. Não invente respostas. Se resultados da busca forem fornecidos, use-os para responder.`;
+    // Direrizes mais rígidas para controlar o comportamento da IA, evitar alucinações e forçar o uso correto do histórico e da busca web.
+    let systemInstruction = `DIRETRIZES RÍGIDAS DE COMPORTAMENTO:\n`;
+    systemInstruction += `1. **IDENTIDADE E TOM**: Você é a IA do Meteor. Responda de forma prestativa, simpática e **extremamente direta**. Suas respostas devem ser concisas e em texto corrido.\n`;
+    systemInstruction += `2. **REGRA FUNDAMENTAL - NÃO ALUCINE**: Seu conhecimento é limitado. Você **NÃO** sabe a data ou hora atual e não tem acesso a notícias ou eventos em tempo real.\n`;
+    systemInstruction += `   - Se a pergunta do usuário exigir conhecimento atual que você não possui (como "que dia é hoje?", "quais as últimas notícias?"), sua **ÚNICA** ação é responder: "Não tenho essa informação. Para te responder, por favor, ative a busca na web."\n`;
+    systemInstruction += `   - **NÃO INVENTE, NÃO ADIVINHE, NÃO CALCULE DATAS.**\n`;
+    systemInstruction += `3. **USO DA BUSCA WEB**: Se o contexto incluir "Resultados da Pesquisa na Web", baseie sua resposta **ESTRITAMENTE** neles. Se os resultados não contiverem a resposta, diga que não encontrou a informação na busca.\n`;
+    systemInstruction += `4. **MEMÓRIA DE CONVERSA**: Você **DEVE** se lembrar do histórico de chat anterior. Se o usuário ativar a busca e disser "continue" ou "e agora?", você precisa olhar as mensagens anteriores para saber qual era a pergunta original e respondê-la usando os novos resultados da busca.\n`;
+    systemInstruction += `5. **FORMATAÇÃO**: Use Markdown para **negrito** (\`**texto**\`) e *itálico* (\`*texto*\`) somente se for essencial para a clareza. Não use listas ou outros formatos.\n`;
     
     const content: Content[] = [{
         role: 'user',
         parts: [{ text: systemInstruction }]
     }, {
         role: 'model',
-        parts: [{ text: `Entendido. Sou o Meteor. Serei breve, simpático, lembrarei do histórico da conversa e sugerirei a busca web quando necessário.` }]
+        parts: [{ text: `Entendido. Seguirei estritamente estas regras. Não tenho acesso a informações em tempo real, sugerirei a busca web quando necessário e manterei o contexto da conversa.` }]
     }];
 
     if (weatherInfo && weatherInfo.weatherData) {
-        const now = new Date();
-        const formattedDate = now.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-        const formattedTime = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-
         const { weatherData, airQualityData, dailyForecast, alerts } = weatherInfo;
-        let weatherContextText = `## Contexto do Clima Atual (Hoje é ${formattedDate}, ${formattedTime} em ${weatherData.city}, ${weatherData.country})\n- Temperatura: ${weatherData.temperature}°C, ${weatherData.condition}\n- Vento: ${weatherData.windSpeed} km/h, Umidade: ${weatherData.humidity}%\n`;
+        // Removida a data/hora do servidor para evitar confusão da IA.
+        let weatherContextText = `## Contexto do Clima Atual para ${weatherData.city}, ${weatherData.country}\n- Temperatura: ${weatherData.temperature}°C, ${weatherData.condition}\n- Vento: ${weatherData.windSpeed} km/h, Umidade: ${weatherData.humidity}%\n`;
         if (airQualityData) weatherContextText += `- IQAR: ${airQualityData.aqi} (${['Boa', 'Razoável', 'Moderada', 'Ruim', 'Muito Ruim'][airQualityData.aqi - 1]})\n`;
         if (dailyForecast && dailyForecast.length > 0) weatherContextText += `- Previsão: ${dailyForecast.slice(0, 3).map((d: any) => `${new Date(d.dt * 1000).toLocaleDateString('pt-BR', { weekday: 'short' })} ${d.temperature}°C`).join(', ')}\n`;
         if (alerts && alerts.length > 0) weatherContextText += `- Alertas: ${alerts.map((a: any) => a.event).join(', ')}\n`;
@@ -69,7 +70,7 @@ const handler: Handler = async (event: HandlerEvent) => {
         }
 
         const ai = new GoogleGenAI({ apiKey });
-        const model = 'gemini-2.5-flash-lite';
+        const model = 'gemini-flash-lite-latest';
         
         const contextualContent = buildContextualContent(weatherContext, searchResults);
         
