@@ -95,6 +95,8 @@ const AppContent: React.FC<{
     onOpenImport: () => void;
     onOpenChangelog: () => void;
     onOpenSettingsCity: () => void;
+    // Landing
+    onReplayIntro: () => void;
 }> = (props) => {
     const { appBackgroundClass, isPerformanceMode } = useTheme();
     const { settings, view, weatherInfo, weatherStatus, appError } = props;
@@ -199,6 +201,7 @@ const AppContent: React.FC<{
                             onOpenImport={props.onOpenImport}
                             onOpenChangelog={props.onOpenChangelog}
                             onOpenCitySelection={props.onOpenSettingsCity}
+                            onReplayIntro={props.onReplayIntro}
                         />
                     </div>}
                     {view === 'tips' && <div className={animationClass}><PlaceholderView title="Dicas" /></div>}
@@ -227,6 +230,7 @@ const AppContent: React.FC<{
                             onOpenImport={props.onOpenImport}
                             onOpenChangelog={props.onOpenChangelog}
                             onOpenCitySelection={props.onOpenSettingsCity}
+                            onReplayIntro={props.onReplayIntro}
                         />
                     </div>
                     <div className={`${view === 'tips' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24 pt-16 ${animationClass}`}>
@@ -708,6 +712,7 @@ const App: React.FC = () => {
         onOpenImport={() => setShowImportModal(true)}
         onOpenChangelog={() => setShowChangelogModal(true)}
         onOpenSettingsCity={() => setShowSettingsCityModal(true)}
+        onReplayIntro={() => setShowLanding(true)}
       />
       
       {/* GLOBAL MODALS RENDERED AT ROOT */}
