@@ -1,9 +1,5 @@
 
 
-
-
-
-
 import React, { useState, useEffect } from 'react';
 import type { AppSettings, View, DataSource, AppTheme, TransparencyMode, ClockDisplayMode, BackgroundMode, MapTheme, BorderEffectMode, LayoutDensity } from '../../types';
 import { getSettings, resetSettings, resetCache, resetAllData, exportAppData } from '../../services/settingsService';
@@ -132,6 +128,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
 
     // Consistent Select Style
     const selectStyle = `w-full bg-gray-900/50 border border-gray-600/50 rounded-xl px-4 py-2 text-white focus:ring-2 outline-none ${classes.ring} appearance-none cursor-pointer hover:bg-gray-900/80 transition-colors ${density.text}`;
+    const inputStyle = `w-full bg-gray-900/50 border border-gray-600/50 rounded-xl px-4 py-2 text-white focus:ring-2 outline-none ${classes.ring} placeholder-gray-500 transition-colors ${density.text}`;
     const disabledSectionStyle = isPerformanceMode ? 'opacity-50 pointer-events-none filter grayscale' : '';
 
     // Re-implemented Toggle Switch with Absolute Positioning for precision and reliability on mobile
@@ -186,7 +183,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({
             )}
             
             {/* --- PERFORMANCE MODE TOGGLE --- */}
-            {/* Updated to use theme colors instead of hardcoded emerald/gray */}
             <section className={`rounded-3xl ${density.padding} ${isPerformanceMode ? 'bg-gray-900' : cardClass} ${classes.borderFaded} relative overflow-hidden`}>
                  <div className={`absolute top-0 left-0 w-1 h-full bg-gradient-to-b ${classes.gradient}`}></div>
                  <div className="flex items-center justify-between">
@@ -206,6 +202,39 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                     />
                 </div>
             </section>
+
+             {/* --- IA SETTINGS (NEW) --- */}
+             <section className={`rounded-3xl ${density.padding} ${cardClass}`}>
+                <h3 className={`text-lg font-bold ${classes.text} mb-4 flex items-center gap-2`}>
+                    <SparklesIcon className="w-5 h-5" />
+                    Inteligência Artificial
+                </h3>
+                <div className={density.settingsGap}>
+                    <div className="flex flex-col gap-2">
+                         <label className={`${density.text} text-sm font-medium text-gray-300`}>Como devo te chamar?</label>
+                         <input 
+                            type="text"
+                            value={settings.userName || ''}
+                            onChange={(e) => handleSave({ userName: e.target.value })}
+                            placeholder="Seu nome ou apelido"
+                            className={inputStyle}
+                            maxLength={30}
+                         />
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                         <label className={`${density.text} text-sm font-medium text-gray-300`}>Instruções de Personalidade</label>
+                         <span className="text-xs text-gray-400 mb-1">Ex: "Responda em rimas", "Seja muito formal". A IA seguirá isso dentro do possível, sem violar suas regras de segurança.</span>
+                         <textarea 
+                            value={settings.userAiInstructions || ''}
+                            onChange={(e) => handleSave({ userAiInstructions: e.target.value })}
+                            placeholder="Digite suas preferências..."
+                            className={`${inputStyle} min-h-[80px] resize-none`}
+                            maxLength={200}
+                         />
+                    </div>
+                </div>
+             </section>
 
             {/* --- CUSTOMIZATION --- */}
              <section className={`rounded-3xl ${density.padding} ${cardClass}`}>

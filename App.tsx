@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import WeatherView from './components/weather/WeatherView';
 import AiView from './components/ai/AiView';
@@ -55,12 +56,6 @@ const RainAnimation: React.FC<{ intensity: 'low' | 'high' }> = ({ intensity }) =
             })}
         </div>
     );
-};
-
-const DEFAULT_WELCOME_MSG: ChatMessage = {
-    id: '1',
-    role: 'model',
-    text: 'Olá! Sou a IA do Meteor. Como posso ajudar você hoje?',
 };
 
 // Separate component to access theme context
@@ -139,7 +134,7 @@ const AppContent: React.FC<{
 
     const aiViewProps = {
         messages: props.messages,
-        onSendMessage: (text: string) => props.handleSendMessage(text, false),
+        onSendMessage: (text: string, isContinuation?: boolean) => props.handleSendMessage(text, isContinuation),
         isSending: props.isSending,
         chatInputText: props.chatInputText,
         setChatInputText: props.setChatInputText,
@@ -258,7 +253,7 @@ const AppContent: React.FC<{
 
 const App: React.FC = () => {
   const [view, setView] = useState<View>('weather');
-  const [messages, setMessages] = useState<ChatMessage[]>([DEFAULT_WELCOME_MSG]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [isSearchEnabled, setIsSearchEnabled] = useState(false);
   
@@ -320,7 +315,7 @@ const App: React.FC = () => {
   // Save chat history when messages update
   useEffect(() => {
     if (settings.saveChatHistory) {
-        if (messages.length > 1 || messages[0].text !== DEFAULT_WELCOME_MSG.text) {
+        if (messages.length > 0) {
              localStorage.setItem('chat_history', JSON.stringify(messages));
         }
     } else {
@@ -334,7 +329,7 @@ const App: React.FC = () => {
   };
   
   const handleClearChatHistory = useCallback(() => {
-      setMessages([DEFAULT_WELCOME_MSG]);
+      setMessages([]);
       localStorage.removeItem('chat_history');
   }, []);
 
@@ -543,18 +538,19 @@ const App: React.FC = () => {
     const modelMessage: ChatMessage = { id: (Date.now() + 1).toString(), role: 'model', text: '', sources: [] };
     setMessages(prev => [...prev, modelMessage]);
     
-    const history: Content[] = messages.slice(1).map(msg => ({ 
+    // Only send messages (no default greeting in history now)
+    const history: Content[] = messages.map(msg => ({ 
         role: msg.role,
         parts: [{ text: msg.text }]
     }));
 
-    // Create formatted time context
     const timeContext = new Date().toLocaleString('pt-BR', { 
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
     });
 
     const performChatRequest = async (searchData: SearchResultItem[] | null) => {
-        const stream = streamChatResponse(query, history, weatherInfo, searchData, timeContext);
+        // Passing full weather info to geminiService
+        const stream = streamChatResponse(query, history, weatherInfo, searchData, timeContext, isSearchEnabled);
         let fullText = '';
         const allSources: GroundingSource[] = [];
 
@@ -568,26 +564,19 @@ const App: React.FC = () => {
 
         try {
             for await (const chunk of stream) {
-                fullText += chunk.text;
-
-                // Check for stealth command [SEARCH_REQUIRED]
-                if (fullText.includes('[SEARCH_REQUIRED]')) {
-                    console.log("AUTO-SEARCH TRIGGERED by AI");
-                    
-                    // Fetch search results invisible to user
-                    const newResults = await getSearchResults(query);
-                    
-                    // Recursive call with results
-                    await performChatRequest(newResults);
-                    return; // Exit this loop and this execution context
-                }
-
+                fullText = chunk.text;
+                
                 setMessages(prev => {
                     const newMessages = [...prev];
                     const lastMessage = newMessages[newMessages.length - 1];
                     if (lastMessage.role === 'model') {
                         lastMessage.text = fullText;
                         lastMessage.sources = [...allSources];
+                        if (chunk.isFinal) {
+                            lastMessage.modelUsed = chunk.model;
+                            lastMessage.processingTime = chunk.processingTime;
+                            lastMessage.toolExecuted = chunk.toolUsed;
+                        }
                     }
                     return newMessages;
                 });
@@ -598,7 +587,7 @@ const App: React.FC = () => {
                 const newMessages = [...prev];
                 const lastMessage = newMessages[newMessages.length - 1];
                 if (lastMessage.role === 'model') {
-                    lastMessage.text = "Desculpe, ocorreu um erro ao processar a resposta.";
+                    lastMessage.text += "\n\n[Erro ao processar resposta]";
                 }
                 return newMessages;
             });
@@ -607,7 +596,7 @@ const App: React.FC = () => {
 
     await performChatRequest(initialSearchResults);
     setIsSending(false);
-  }, [messages, weatherInfo]);
+  }, [messages, weatherInfo, isSearchEnabled]);
   
   const handleSendMessage = useCallback(async (text: string, isContinuation: boolean = false) => {
     if (!text.trim()) return;
@@ -618,10 +607,14 @@ const App: React.FC = () => {
     }
     
     let searchResults: SearchResultItem[] | null = null;
+    
+    // If search is manually enabled by the toggle, perform search immediately
     if (isSearchEnabled) {
       setIsSending(true); 
        try {
-        searchResults = await getSearchResults(text);
+        // Append date for context
+        const dateQuery = `${text} ${new Date().toLocaleDateString('pt-BR')}`;
+        searchResults = await getSearchResults(dateQuery);
       } catch (e) {
         console.error("Web search failed:", e);
       }
