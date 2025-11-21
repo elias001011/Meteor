@@ -1,7 +1,7 @@
 
 
 import React, { createContext, useContext, useEffect } from 'react';
-import type { AppTheme, TransparencyMode, BackgroundMode } from '../../types';
+import type { AppTheme, TransparencyMode, BackgroundMode, LayoutDensity } from '../../types';
 
 interface ThemeClasses {
     text: string;
@@ -14,6 +14,20 @@ interface ThemeClasses {
     hex: string; // For things that need explicit values like meta tags
 }
 
+interface DensityClasses {
+    padding: string;
+    gap: string;
+    text: string;
+    subtext: string;
+    // New specific typography scalers
+    titleText: string; // For City Name
+    tempText: string; // For the main temperature number
+    iconSize: string; // For weather icons
+    sectionTitle: string; // For headers like "Hourly Forecast"
+    settingsGap: string; // Specific for settings page spacing
+    itemGap: string; // Gap between small items (like color buttons)
+}
+
 interface ThemeContextProps {
     theme: AppTheme;
     transparencyMode: TransparencyMode;
@@ -23,6 +37,7 @@ interface ThemeContextProps {
     headerClass: string; // Specifically for the top navigation
     appBackgroundClass: string; // The main app background
     isPerformanceMode: boolean;
+    density: DensityClasses;
 }
 
 const THEME_DEFINITIONS: Record<AppTheme, ThemeClasses> = {
@@ -88,6 +103,34 @@ const THEME_DEFINITIONS: Record<AppTheme, ThemeClasses> = {
     }
 };
 
+const DENSITY_DEFINITIONS: Record<LayoutDensity, DensityClasses> = {
+    comfortable: {
+        padding: 'p-6',
+        gap: 'gap-6',
+        text: 'text-base',
+        subtext: 'text-sm',
+        titleText: 'text-3xl',
+        tempText: 'text-8xl',
+        iconSize: 'w-5 h-5',
+        sectionTitle: 'text-sm mb-3',
+        settingsGap: 'space-y-6',
+        itemGap: 'gap-4'
+    },
+    compact: {
+        // Aggressive compact mode
+        padding: 'p-3', 
+        gap: 'gap-2', 
+        text: 'text-xs',
+        subtext: 'text-[10px]',
+        titleText: 'text-xl',
+        tempText: 'text-5xl', 
+        iconSize: 'w-4 h-4',
+        sectionTitle: 'text-[10px] mb-1 font-bold',
+        settingsGap: 'space-y-3',
+        itemGap: 'gap-2'
+    }
+};
+
 const ThemeContext = createContext<ThemeContextProps>({
     theme: 'purple',
     transparencyMode: 'glass',
@@ -96,7 +139,8 @@ const ThemeContext = createContext<ThemeContextProps>({
     cardClass: 'bg-white/5 backdrop-blur-lg border border-white/5',
     headerClass: 'bg-[#131B2E]/70 backdrop-blur-md border-b border-white/5',
     appBackgroundClass: 'bg-slate-900',
-    isPerformanceMode: false
+    isPerformanceMode: false,
+    density: DENSITY_DEFINITIONS.comfortable
 });
 
 export const ThemeProvider: React.FC<{ 
@@ -105,10 +149,12 @@ export const ThemeProvider: React.FC<{
     backgroundMode?: BackgroundMode,
     performanceMode?: boolean,
     reducedMotion?: boolean,
+    layoutDensity?: LayoutDensity,
     children: React.ReactNode 
-}> = ({ theme, transparencyMode, backgroundMode = 'gradient', performanceMode = false, reducedMotion = false, children }) => {
+}> = ({ theme, transparencyMode, backgroundMode = 'gradient', performanceMode = false, reducedMotion = false, layoutDensity = 'comfortable', children }) => {
     
     const currentClasses = THEME_DEFINITIONS[theme] || THEME_DEFINITIONS.purple;
+    const currentDensity = DENSITY_DEFINITIONS[layoutDensity] || DENSITY_DEFINITIONS.comfortable;
     
     // Generic overlay glass (modals, nav bars)
     let glassClass = '';
@@ -162,7 +208,7 @@ export const ThemeProvider: React.FC<{
     }
 
     return (
-        <ThemeContext.Provider value={{ theme, transparencyMode, classes: currentClasses, glassClass, cardClass, headerClass, appBackgroundClass, isPerformanceMode: performanceMode }}>
+        <ThemeContext.Provider value={{ theme, transparencyMode, classes: currentClasses, glassClass, cardClass, headerClass, appBackgroundClass, isPerformanceMode: performanceMode, density: currentDensity }}>
             {children}
         </ThemeContext.Provider>
     );

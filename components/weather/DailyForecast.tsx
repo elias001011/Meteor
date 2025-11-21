@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import type { DailyForecast } from '../../types';
 import { UmbrellaIcon } from '../icons';
@@ -10,7 +11,7 @@ interface DailyForecastProps {
 }
 
 const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data, timezoneOffset = 0 }) => {
-  const { classes, cardClass } = useTheme();
+  const { classes, cardClass, density } = useTheme();
   
   const getDayLabel = (dt: number) => {
     // Apply offset to get the target location's day
@@ -36,22 +37,22 @@ const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data, timezoneOf
   };
 
   return (
-    <div className={`rounded-3xl p-5 ${cardClass} animate-enter delay-300`}>
-      <h3 className="text-sm font-medium text-gray-300 mb-3 px-2 uppercase tracking-wide">Próximos Dias</h3>
+    <div className={`rounded-3xl ${density.padding} ${cardClass} animate-enter delay-300`}>
+      <h3 className={`${density.sectionTitle} font-medium text-gray-300 px-2 uppercase tracking-wide`}>Próximos Dias</h3>
       <div className="space-y-1">
         {data.map((item, index) => (
-          <div key={index} className="grid grid-cols-4 items-center p-3 rounded-xl hover:bg-white/5 transition-colors group">
-            <span className="font-medium text-gray-200 group-hover:text-white">{getDayLabel(item.dt)}</span>
-            <div className={`flex justify-center items-center gap-1 text-xs ${classes.text} font-medium`}>
+          <div key={index} className="grid grid-cols-4 items-center p-2 rounded-xl hover:bg-white/5 transition-colors group">
+            <span className={`font-medium text-gray-200 group-hover:text-white ${density.text}`}>{getDayLabel(item.dt)}</span>
+            <div className={`flex justify-center items-center gap-1 ${density.subtext} ${classes.text} font-medium`}>
                 {typeof item.pop === 'number' && item.pop > 0.05 && (
                     <>
-                        <UmbrellaIcon className="w-4 h-4" />
+                        <UmbrellaIcon className="w-3 h-3" />
                         <span>{Math.round(item.pop * 100)}%</span>
                     </>
                 )}
             </div>
-            <span className="text-2xl text-center">{item.conditionIcon}</span>
-            <span className="font-bold text-right text-lg">{Math.round(item.temperature)}°</span>
+            <span className="text-xl text-center">{item.conditionIcon}</span>
+            <span className={`font-bold text-right ${density.text}`}>{Math.round(item.temperature)}°</span>
           </div>
         ))}
       </div>
