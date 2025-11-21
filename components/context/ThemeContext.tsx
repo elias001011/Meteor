@@ -117,16 +117,16 @@ const DENSITY_DEFINITIONS: Record<LayoutDensity, DensityClasses> = {
         itemGap: 'gap-4'
     },
     compact: {
-        // Updated to be less aggressive (medium density)
-        padding: 'p-4', 
-        gap: 'gap-4', 
-        text: 'text-sm',
+        // Adjusted to be less aggressive - slightly reduced version of normal
+        padding: 'p-5', 
+        gap: 'gap-5', 
+        text: 'text-[15px]', // Slightly smaller than base, bigger than sm
         subtext: 'text-xs',
         titleText: 'text-2xl',
-        tempText: 'text-6xl', 
+        tempText: 'text-7xl', 
         iconSize: 'w-5 h-5',
         sectionTitle: 'text-xs mb-2 font-bold',
-        settingsGap: 'space-y-4',
+        settingsGap: 'space-y-5',
         itemGap: 'gap-3'
     }
 };
@@ -146,7 +146,7 @@ const ThemeContext = createContext<ThemeContextProps>({
 export const ThemeProvider: React.FC<{ 
     theme: AppTheme, 
     transparencyMode: TransparencyMode,
-    glassScope?: GlassScope, // Optional to maintain backward compat if not passed immediately
+    glassScope?: GlassScope, // Granular control
     backgroundMode?: BackgroundMode,
     performanceMode?: boolean,
     reducedMotion?: boolean,
@@ -166,13 +166,13 @@ export const ThemeProvider: React.FC<{
     const currentClasses = THEME_DEFINITIONS[theme] || THEME_DEFINITIONS.purple;
     const currentDensity = DENSITY_DEFINITIONS[layoutDensity] || DENSITY_DEFINITIONS.comfortable;
     
-    // Definitions for 'Low/Hybrid' mode (fallback)
+    // Definitions for 'Low/Hybrid' mode (fallback if Glass is off OR Scope is disabled for that item)
     const lowGlass = 'bg-slate-900/95 border border-white/10';
     const lowCard = 'bg-slate-800/80 border border-white/5';
     const lowHeader = 'bg-[#0f172a]/90 backdrop-blur-sm border-b border-white/5';
 
     // Definitions for 'Glass' mode
-    const highGlass = 'bg-black/40 backdrop-blur-2xl border border-white/10 shadow-2xl';
+    const highGlass = 'bg-black/60 backdrop-blur-2xl border border-white/10 shadow-2xl'; // Darker glass for readability
     const highCard = 'bg-white/5 backdrop-blur-md border border-white/10 shadow-lg hover:bg-white/10 transition-colors duration-300';
     const highHeader = 'bg-[#0f172a]/70 backdrop-blur-md border-b border-white/5';
 
@@ -202,15 +202,15 @@ export const ThemeProvider: React.FC<{
         appBackgroundClass = 'bg-[#0f172a]'; // Solid slate background
     } else {
         // --- NORMAL MODE ---
-        // Logic: If mode is Glass, check Scope. If Scope is false, downgrade to Low.
         
         // 1. Overlays (Modals, Nav)
+        // Check if Glass Mode IS selected AND Scope is enabled
         if (transparencyMode === 'glass' && glassScope.overlays) {
             glassClass = highGlass;
         } else if (transparencyMode === 'off') {
             glassClass = 'bg-slate-900 border border-gray-700';
         } else {
-            glassClass = lowGlass;
+            glassClass = lowGlass; // Hybrid or Scope Disabled
         }
 
         // 2. Cards (Widgets)
@@ -219,7 +219,7 @@ export const ThemeProvider: React.FC<{
         } else if (transparencyMode === 'off') {
             cardClass = 'bg-slate-800 border border-gray-700';
         } else {
-            cardClass = lowCard;
+            cardClass = lowCard; // Hybrid or Scope Disabled
         }
 
         // 3. Header
@@ -228,7 +228,7 @@ export const ThemeProvider: React.FC<{
         } else if (transparencyMode === 'off') {
             headerClass = 'bg-[#0f172a] border-b border-gray-800';
         } else {
-            headerClass = lowHeader;
+            headerClass = lowHeader; // Hybrid or Scope Disabled
         }
         
         appBackgroundClass = backgroundMode === 'solid' 

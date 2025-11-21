@@ -1,6 +1,8 @@
 
 
 
+
+
 // FIX: Module '"@netlify/functions"' has no exported member 'getStore'. This is likely due to a version mismatch. Importing `getStore` directly from `@netlify/blobs` as a documented fallback.
 import { type Handler, type HandlerEvent, type HandlerContext } from "@netlify/functions";
 import { getStore } from "@netlify/blobs";
@@ -152,7 +154,8 @@ const fetchWithOpenMeteo = async (lat: string, lon: string) => {
          // Open-Meteo daily times are usually midnight local time, but checking string date ensures correctness
          const dayString = daily.time[i].split('T')[0];
          
-         // STRICTLY filter for today onwards
+         // STRICTLY filter for today onwards. Using >= ensures we include today but exclude yesterday.
+         // We assume dayString and localToday are in YYYY-MM-DD format.
          if (dayString >= localToday && dailyForecast.length < 7) {
               dailyForecast.push({
                 dt: dayTime,

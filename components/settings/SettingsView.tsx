@@ -2,6 +2,8 @@
 
 
 
+
+
 import React, { useState, useEffect } from 'react';
 import type { AppSettings, View, DataSource, AppTheme, TransparencyMode, ClockDisplayMode, BackgroundMode, MapTheme, BorderEffectMode, LayoutDensity } from '../../types';
 import { getSettings, resetSettings, resetCache, resetAllData, exportAppData } from '../../services/settingsService';
@@ -354,7 +356,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                 ))}
                             </div>
 
-                            {/* GLASS SCOPE SETTINGS */}
+                            {/* GLASS SCOPE SETTINGS - ADDED */}
                             {settings.transparencyMode === 'glass' && (
                                 <div className="mt-3 bg-black/20 rounded-xl p-4 border border-white/5 animate-enter">
                                     <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Aplicar Efeito Vidro em:</h4>
