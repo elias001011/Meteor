@@ -1,0 +1,28 @@
+{
+  "name": "meteor",
+  "private": true,
+  "version": "2.5.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react-dom": "^19.2.0",
+    "react": "^19.2.0",
+    "@google/genai": "^1.29.1",
+    "@netlify/functions": "^5.1.0",
+    "buffer": "^6.0.3",
+    "@netlify/blobs": "^10.3.3",
+    "path": "^0.12.7",
+    "@vitejs/plugin-react": "^5.1.1",
+    "vite": "^7.2.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0"
+  }
+}
