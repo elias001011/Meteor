@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import type { AppSettings, View, DataSource, AppTheme, TransparencyMode, ClockDisplayMode, BackgroundMode, MapTheme, BorderEffectMode, LayoutDensity } from '../../types';
 import { getSettings, resetSettings, resetCache, resetAllData, exportAppData } from '../../services/settingsService';
 import { useTheme } from '../context/ThemeContext';
-import { XIcon, LightbulbIcon, SparklesIcon, ChevronLeftIcon, GaugeIcon } from '../icons';
+import { XIcon, LightbulbIcon, SparklesIcon, ChevronLeftIcon, GaugeIcon, HeartIcon } from '../icons';
 
 interface SettingsViewProps {
     settings: AppSettings;
@@ -24,6 +25,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
 }) => {
     const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
     const [showPwaBanner, setShowPwaBanner] = useState(true);
+    const [pixCopied, setPixCopied] = useState(false);
     
     const { classes, cardClass, isPerformanceMode, density } = useTheme();
     const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
@@ -86,6 +88,12 @@ const SettingsView: React.FC<SettingsViewProps> = ({
             console.error(e);
             setFeedbackMessage("Erro ao exportar dados.");
         }
+    };
+
+    const handleCopyPix = () => {
+        navigator.clipboard.writeText("8001be0f-4952-4ef8-b2a5-9bafe691c65c");
+        setPixCopied(true);
+        setTimeout(() => setPixCopied(false), 2000);
     };
     
     const themes: { id: AppTheme, name: string, color: string }[] = [
@@ -630,6 +638,47 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                         </div>
                     )}
                 </div>
+            </section>
+
+            {/* --- DONATION / SUPPORT SECTION (PIX) --- */}
+            <section className={`rounded-3xl ${density.padding} ${cardClass} border-l-4 border-emerald-500 relative overflow-hidden`}>
+                <div className="relative z-10">
+                    <div className="flex items-start justify-between">
+                        <div>
+                            <h3 className={`text-lg font-bold text-white mb-2 flex items-center gap-2`}>
+                                <HeartIcon className="w-5 h-5 text-emerald-500 fill-emerald-500 animate-pulse" />
+                                Apoie o Projeto
+                            </h3>
+                            <p className="text-sm text-gray-300 max-w-lg leading-relaxed mb-4">
+                                O Meteor é um projeto independente e gratuito. Se você gosta do app, considere fazer uma doação via Pix para ajudar a manter os servidores e o desenvolvimento.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="bg-gray-900/50 rounded-xl p-4 border border-white/10 mb-4 flex flex-col gap-1">
+                        <p className="text-xs text-gray-400 uppercase tracking-wider font-bold">Chave Pix (Aleatória)</p>
+                        <code className="font-mono text-emerald-400 text-sm break-all select-all">8001be0f-4952-4ef8-b2a5-9bafe691c65c</code>
+                    </div>
+
+                    <button
+                        onClick={handleCopyPix}
+                        className={`w-full font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg group ${pixCopied ? 'bg-emerald-500 text-white shadow-emerald-900/20' : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white border border-emerald-500/30 hover:shadow-emerald-900/20'}`}
+                    >
+                        {pixCopied ? (
+                            <>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                <span>Chave Copiada!</span>
+                            </>
+                        ) : (
+                            <>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="group-hover:scale-110 transition-transform"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                <span>Copiar Chave Pix</span>
+                            </>
+                        )}
+                    </button>
+                </div>
+                {/* Background decoration */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl transform translate-x-10 -translate-y-10 pointer-events-none"></div>
             </section>
             
              {/* --- DATA MANAGEMENT --- */}
