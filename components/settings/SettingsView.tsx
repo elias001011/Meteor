@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from 'react';
 import type { AppSettings, View, DataSource, AppTheme, TransparencyMode, ClockDisplayMode, BackgroundMode, MapTheme, BorderEffectMode, LayoutDensity } from '../../types';
 import { getSettings, resetSettings, resetCache, resetAllData, exportAppData } from '../../services/settingsService';
@@ -693,7 +691,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                         </div>
                         <div>
                             <p className="text-xs text-gray-400 font-medium uppercase tracking-wider mb-0.5">Meteor App</p>
-                            <p className="text-white font-bold">Versão 2.0.0</p>
+                            <p className="text-white font-bold">Versão 2.5.0</p>
                             <p className="text-xs text-gray-500 mt-0.5 group-hover:text-gray-300 transition-colors">Desenvolvido por @elias_jrnunes</p>
                         </div>
                     </div>

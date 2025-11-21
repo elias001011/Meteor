@@ -1,5 +1,3 @@
-
-
 import React, { useEffect } from 'react';
 import { XIcon, SparklesIcon, AlertTriangleIcon } from '../icons';
 import { useTheme } from '../context/ThemeContext';
@@ -26,6 +24,16 @@ const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose }) => {
     if (!isOpen) return null;
 
     const versions = [
+        {
+            version: "2.5.0",
+            title: "Revolução na Inteligência",
+            changes: [
+                "Reimplementação completa do sistema de IA para maior precisão e velocidade.",
+                "Nova integração de ferramentas 'Stealth Mode' para consultas climáticas globais sem comandos visíveis.",
+                "Capacidade aprimorada de realizar buscas na web automaticamente.",
+                "Ajustes finos de performance e correções de interface."
+            ]
+        },
         {
             version: "2.0.0",
             title: "A Nova Era do Meteor",
