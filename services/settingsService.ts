@@ -17,6 +17,11 @@ const DEFAULT_SETTINGS: AppSettings = {
     themeColor: 'purple',
     dynamicTheme: false,
     transparencyMode: 'glass', // Default to Glass
+    glassScope: { // Default all enabled
+        header: true,
+        cards: true,
+        overlays: true
+    },
     backgroundMode: 'gradient', // Default to Gradient
     borderEffect: 'top', // Default to Top as requested
     mapTheme: 'light', // Default to Light as requested
@@ -65,6 +70,10 @@ export const getSettings = (): AppSettings => {
         return {
             ...DEFAULT_SETTINGS,
             ...migratedSettings,
+            glassScope: {
+                ...DEFAULT_SETTINGS.glassScope,
+                ...(migratedSettings.glassScope || {})
+            },
             rainAnimation: {
                 ...DEFAULT_SETTINGS.rainAnimation,
                 ...(migratedSettings.rainAnimation || {})
@@ -144,6 +153,10 @@ export const importAppData = (
             const mergedSettings = { 
                 ...DEFAULT_SETTINGS, 
                 ...data.settings,
+                glassScope: {
+                    ...DEFAULT_SETTINGS.glassScope,
+                    ...(data.settings.glassScope || {})
+                },
                 rainAnimation: {
                     ...DEFAULT_SETTINGS.rainAnimation,
                     ...(data.settings.rainAnimation || {})

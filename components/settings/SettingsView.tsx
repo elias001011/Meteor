@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useState, useEffect } from 'react';
 import type { AppSettings, View, DataSource, AppTheme, TransparencyMode, ClockDisplayMode, BackgroundMode, MapTheme, BorderEffectMode, LayoutDensity } from '../../types';
 import { getSettings, resetSettings, resetCache, resetAllData, exportAppData } from '../../services/settingsService';
@@ -351,6 +353,39 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                     </button>
                                 ))}
                             </div>
+
+                            {/* GLASS SCOPE SETTINGS */}
+                            {settings.transparencyMode === 'glass' && (
+                                <div className="mt-3 bg-black/20 rounded-xl p-4 border border-white/5 animate-enter">
+                                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Aplicar Efeito Vidro em:</h4>
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm text-gray-300">Cabeçalho (Header)</span>
+                                            <ToggleSwitch 
+                                                checked={settings.glassScope.header}
+                                                onChange={() => handleSave({ glassScope: { ...settings.glassScope, header: !settings.glassScope.header } })}
+                                                activeColorClass={classes.bg}
+                                            />
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm text-gray-300">Cartões e Widgets</span>
+                                            <ToggleSwitch 
+                                                checked={settings.glassScope.cards}
+                                                onChange={() => handleSave({ glassScope: { ...settings.glassScope, cards: !settings.glassScope.cards } })}
+                                                activeColorClass={classes.bg}
+                                            />
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm text-gray-300">Menus e Sobreposições</span>
+                                            <ToggleSwitch 
+                                                checked={settings.glassScope.overlays}
+                                                onChange={() => handleSave({ glassScope: { ...settings.glassScope, overlays: !settings.glassScope.overlays } })}
+                                                activeColorClass={classes.bg}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                         
                         {/* Map Theme */}

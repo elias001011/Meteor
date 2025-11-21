@@ -114,6 +114,12 @@ export type MapTheme = 'light' | 'dark';
 export type BorderEffectMode = 'none' | 'top' | 'bottom';
 export type LayoutDensity = 'comfortable' | 'compact';
 
+export interface GlassScope {
+    header: boolean;
+    cards: boolean;
+    overlays: boolean; // Modals, Dropdowns, Nav
+}
+
 export interface AppSettings {
     showClock: boolean; // System clock in header
     clockDisplayMode: ClockDisplayMode; // Local time in weather card
@@ -127,6 +133,7 @@ export interface AppSettings {
     themeColor: AppTheme;
     dynamicTheme: boolean; 
     transparencyMode: TransparencyMode;
+    glassScope: GlassScope; // Granular control over glass effects
     backgroundMode: BackgroundMode; 
     borderEffect: BorderEffectMode; // LED-like border effect position
     mapTheme: MapTheme;

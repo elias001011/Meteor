@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { CitySearchResult } from '../../types';
 import { searchCities } from '../../services/weatherService';
@@ -89,15 +91,15 @@ const SearchBar: React.FC<SearchBarProps> = ({ onCitySelect, onGeolocate }) => {
         </form>
 
         {isDropdownOpen && (
-          <div className={`absolute top-full mt-2 w-full ${glassClass} border border-gray-700 rounded-2xl shadow-lg z-50 max-h-60 overflow-y-auto`}>
+          <div className={`absolute top-full mt-2 w-full ${glassClass} bg-gray-900/95 backdrop-blur-xl border border-gray-700 rounded-2xl shadow-2xl z-50 max-h-60 overflow-y-auto`}>
             {isLoading ? (
               <p className="p-4 text-center text-gray-400">Buscando...</p>
             ) : results.length > 0 ? (
               <ul>
                 {results.map((city, index) => (
                   <li key={`${city.lat}-${city.lon}-${index}`}>
-                    <button onClick={() => handleSelectCity(city)} className="w-full text-left p-3 hover:bg-gray-700/50 transition-colors">
-                      <p className="font-semibold">{city.name}</p>
+                    <button onClick={() => handleSelectCity(city)} className="w-full text-left p-3 hover:bg-white/10 transition-colors border-b border-white/5 last:border-none">
+                      <p className="font-semibold text-white">{city.name}</p>
                       <p className="text-sm text-gray-400">{[city.state, city.country].filter(Boolean).join(', ')}</p>
                     </button>
                   </li>

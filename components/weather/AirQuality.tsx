@@ -1,5 +1,7 @@
 
 
+
+
 import React from 'react';
 import type { AirQualityData } from '../../types';
 import { useTheme } from '../context/ThemeContext';
@@ -62,7 +64,7 @@ const AirQuality: React.FC<AirQualityProps> = ({ data }) => {
             <div>
                 <h4 className="text-xs text-gray-400 mb-3 px-1 mt-4">Componentes (μg/m³)</h4>
                 <div className="grid grid-cols-4 gap-3">
-                    <Pollutant name="PM2.5" value={data.components.pm2_5} unit="partículas" />
+                    <Pollutant name="PM2.5" value={data.components.pm2_5} unit="partíc." />
                     <Pollutant name="O₃" value={data.components.o3} unit="ozônio" />
                     <Pollutant name="NO₂" value={data.components.no2} unit="nitro." />
                     <Pollutant name="SO₂" value={data.components.so2} unit="enxof." />
