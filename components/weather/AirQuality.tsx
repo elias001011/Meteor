@@ -2,6 +2,8 @@
 
 
 
+
+
 import React from 'react';
 import type { AirQualityData } from '../../types';
 import { useTheme } from '../context/ThemeContext';

@@ -2,6 +2,8 @@
 
 
 
+
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { CitySearchResult } from '../../types';
 import { searchCities } from '../../services/weatherService';
@@ -91,6 +93,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onCitySelect, onGeolocate }) => {
         </form>
 
         {isDropdownOpen && (
+          // Fixed background transparency: using bg-gray-900/95 ensures it's not transparent when glassClass fails or is too weak
           <div className={`absolute top-full mt-2 w-full ${glassClass} bg-gray-900/95 backdrop-blur-xl border border-gray-700 rounded-2xl shadow-2xl z-50 max-h-60 overflow-y-auto`}>
             {isLoading ? (
               <p className="p-4 text-center text-gray-400">Buscando...</p>

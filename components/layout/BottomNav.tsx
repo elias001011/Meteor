@@ -2,6 +2,8 @@
 
 
 
+
+
 import React, { useState, useEffect, useRef } from 'react';
 import type { View } from '../../types';
 import { HomeIcon, MapIcon, NewspaperIcon, SettingsIcon, SparklesIcon, LightbulbIcon, InfoIcon, MoreHorizontalIcon } from '../icons';
@@ -73,6 +75,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeView, setView }) => {
         {/* Anchored More Menu */}
         <div className="relative flex items-center justify-center" ref={menuRef}>
             {isMoreMenuOpen && (
+                // Added explicit bg-gray-900/95 to fix transparency issue when glass effects are weak
                 <div className={`absolute bottom-full right-0 mb-3 ${glassClass} bg-gray-900/95 backdrop-blur-xl border border-gray-600/50 rounded-2xl shadow-2xl flex flex-col items-start p-2 gap-1 animate-enter-pop min-w-[140px] z-[150]`}>
                     <NavItem activeColorClass={classes.text} icon={<NewspaperIcon className="w-5 h-5" />} label="Notícias" isActive={activeView === 'news'} onClick={() => handleMoreClick('news')} className="w-full !flex-row !justify-start gap-3 !h-10 px-2" />
                     <NavItem activeColorClass={classes.text} icon={<InfoIcon className="w-5 h-5" />} label="Informações" isActive={activeView === 'info'} onClick={() => handleMoreClick('info')} className="w-full !flex-row !justify-start gap-3 !h-10 px-2" />

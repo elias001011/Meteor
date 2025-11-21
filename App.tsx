@@ -2,6 +2,8 @@
 
 
 
+
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import WeatherView from './components/weather/WeatherView';
 import AiView from './components/ai/AiView';
@@ -27,8 +29,8 @@ import { ThemeProvider, useTheme } from './components/context/ThemeContext';
 
 // Rain animation component defined locally
 const RainAnimation: React.FC<{ intensity: 'low' | 'high' }> = ({ intensity }) => {
-    const numberOfDrops = intensity === 'high' ? 150 : 50;
-    const speedMultiplier = intensity === 'high' ? 0.6 : 1;
+    const numberOfDrops = intensity === 'high' ? 150 : 60;
+    const speedMultiplier = intensity === 'high' ? 0.7 : 1;
 
     return (
         <div className="fixed top-0 left-0 w-full h-full z-0 pointer-events-none overflow-hidden">
@@ -38,9 +40,12 @@ const RainAnimation: React.FC<{ intensity: 'low' | 'high' }> = ({ intensity }) =
                     className="raindrop"
                     style={{
                         left: `${Math.random() * 100}%`,
-                        animationDuration: `${(0.5 + Math.random() * 0.5) * speedMultiplier}s`,
+                        animationDuration: `${(0.6 + Math.random() * 0.4) * speedMultiplier}s`,
                         animationDelay: `${Math.random() * 5}s`,
-                        opacity: intensity === 'high' ? 0.4 : 0.25
+                        opacity: intensity === 'high' ? 0.7 : 0.5,
+                        background: 'linear-gradient(to top, rgba(174, 217, 255, 0) 0%, rgba(174, 217, 255, 0.6) 100%)',
+                        width: '1.5px',
+                        height: intensity === 'high' ? '70px' : '50px'
                     }}
                 />
             ))}
