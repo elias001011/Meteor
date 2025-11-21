@@ -43,11 +43,12 @@ const RainAnimation: React.FC<{ intensity: 'low' | 'high' }> = ({ intensity }) =
                             left: `${Math.random() * 100}%`,
                             animationDuration: `${duration}s`,
                             animationDelay: `${delay}s`,
-                            opacity: Math.random() * 0.3 + 0.2, // Slightly transparent
-                            // Blueish gradient (Sky-400/500 tone) fading to transparent at top
-                            background: 'linear-gradient(to bottom, rgba(56, 189, 248, 0) 0%, rgba(56, 189, 248, 0.6) 100%)',
-                            width: '1px', // Thinner
-                            height: `${Math.random() * 80 + 80}px` // Much longer (80px to 160px)
+                            // DRASTICALLY REDUCED OPACITY to ensure it looks "behind" the glass cards
+                            opacity: Math.random() * 0.15 + 0.05, 
+                            // Softer gradient
+                            background: 'linear-gradient(to bottom, rgba(56, 189, 248, 0) 0%, rgba(56, 189, 248, 0.4) 100%)',
+                            width: '1px', 
+                            height: `${Math.random() * 80 + 80}px`
                         }}
                     />
                 );
