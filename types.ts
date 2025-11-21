@@ -112,6 +112,7 @@ export type ClockDisplayMode = 'always' | 'different_zone' | 'never';
 export type BackgroundMode = 'gradient' | 'solid';
 export type MapTheme = 'light' | 'dark';
 export type BorderEffectMode = 'none' | 'top' | 'bottom';
+export type LayoutDensity = 'comfortable' | 'compact';
 
 export interface AppSettings {
     showClock: boolean; // System clock in header
@@ -129,6 +130,7 @@ export interface AppSettings {
     backgroundMode: BackgroundMode; 
     borderEffect: BorderEffectMode; // LED-like border effect position
     mapTheme: MapTheme;
+    layoutDensity: LayoutDensity; // Compact vs Comfortable
     showScrollbars: boolean;
     performanceMode: boolean; // Performance Mode
     reducedMotion: boolean; // New: Remove Animations

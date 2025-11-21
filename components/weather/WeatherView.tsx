@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import type { WeatherData, HourlyForecast, DailyForecast, AirQualityData, CitySearchResult, WeatherAlert, DataSource, ClockDisplayMode } from '../../types';
 import SearchBar from './SearchBar';
@@ -47,7 +48,7 @@ const WeatherView: React.FC<WeatherViewProps> = ({
     onRetry,
     onDataSourceInfoClick
 }) => {
-    const { classes } = useTheme();
+    const { classes, density } = useTheme();
 
     if (status === 'loading') {
         return (
@@ -59,7 +60,7 @@ const WeatherView: React.FC<WeatherViewProps> = ({
 
     if (status === 'error') {
         return (
-            <div className="p-4 sm:p-6">
+            <div className={`p-4 sm:${density.padding}`}>
                 <SearchBar onCitySelect={onCitySelect} onGeolocate={onGeolocate} />
                 <div className="mt-6">
                     <ErrorDisplay message={error || "Não foi possível buscar os dados."} onRetry={onRetry} />
@@ -91,7 +92,7 @@ const WeatherView: React.FC<WeatherViewProps> = ({
     
     if (status === 'success' && weatherData) {
         return (
-            <div className="p-4 sm:p-6 space-y-6">
+            <div className={`p-4 sm:${density.padding} ${density.gap} flex flex-col`}>
                 <SearchBar onCitySelect={onCitySelect} onGeolocate={onGeolocate} />
                 <CurrentWeather data={weatherData} clockDisplayMode={clockDisplayMode} />
                 {dataSource !== 'open-meteo' && <Alerts alerts={alerts} />}

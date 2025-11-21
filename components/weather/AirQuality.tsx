@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import type { AirQualityData } from '../../types';
 import { useTheme } from '../context/ThemeContext';
@@ -39,11 +40,11 @@ const Pollutant: React.FC<{ name: string; value: number | undefined; unit: strin
 
 
 const AirQuality: React.FC<AirQualityProps> = ({ data }) => {
-    const { cardClass } = useTheme();
+    const { cardClass, density } = useTheme();
     const aqiInfo = typeof data.aqi === 'number' ? getAqiInfo(data.aqi) : null;
 
     return (
-        <div className={`rounded-3xl p-5 space-y-4 ${cardClass} animate-enter delay-100`}>
+        <div className={`rounded-3xl ${density.padding} space-y-4 ${cardClass} animate-enter delay-100`}>
             <div>
                 <h3 className="text-sm font-medium text-gray-300 mb-3 px-1 uppercase tracking-wide">Qualidade do Ar</h3>
                  {aqiInfo && (

@@ -1,7 +1,5 @@
 
 
-
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import WeatherView from './components/weather/WeatherView';
 import AiView from './components/ai/AiView';
@@ -12,7 +10,7 @@ import type { ChatMessage, View, CitySearchResult, AllWeatherData, GroundingSour
 import { streamChatResponse } from './services/geminiService';
 import { getSearchResults } from './services/searchService';
 import { fetchAllWeatherData } from './services/weatherService';
-import { getSettings, saveSettings } from './services/settingsService';
+import { getSettings, saveSettings, importAppData } from './services/settingsService';
 import DesktopWeather from './components/weather/DesktopWeather';
 import PlaceholderView from './components/common/PlaceholderView';
 import MobileAiControls from './components/ai/MobileAiControls';
@@ -20,6 +18,9 @@ import SettingsView from './components/settings/SettingsView';
 import { Content } from '@google/genai';
 import ErrorPopup from './components/common/ErrorPopup';
 import DataSourceModal from './components/common/DataSourceModal';
+import ImportModal from './components/settings/ImportModal';
+import ChangelogModal from './components/settings/ChangelogModal';
+import CitySelectionModal from './components/common/CitySelectionModal';
 import { ThemeProvider, useTheme } from './components/context/ThemeContext';
 
 // Rain animation component defined locally
@@ -84,6 +85,10 @@ const AppContent: React.FC<{
     setIsDataSourceModalOpen: (o: boolean) => void;
     appError: string | null;
     setAppError: (e: string | null) => void;
+    // Modals Handlers
+    onOpenImport: () => void;
+    onOpenChangelog: () => void;
+    onOpenSettingsCity: () => void;
 }> = (props) => {
     const { appBackgroundClass, isPerformanceMode } = useTheme();
     const { settings, view, weatherInfo, weatherStatus, appError } = props;
@@ -171,7 +176,16 @@ const AppContent: React.FC<{
                         </div>
                     )}
                     {view === 'news' && <div className={animationClass}><PlaceholderView title="Notícias" /></div>}
-                    {view === 'settings' && <div className={animationClass}><SettingsView settings={settings} onSettingsChanged={props.handleSettingsChange} onClearHistory={props.handleClearChatHistory} /></div>}
+                    {view === 'settings' && <div className={animationClass}>
+                        <SettingsView 
+                            settings={settings} 
+                            onSettingsChanged={props.handleSettingsChange} 
+                            onClearHistory={props.handleClearChatHistory} 
+                            onOpenImport={props.onOpenImport}
+                            onOpenChangelog={props.onOpenChangelog}
+                            onOpenCitySelection={props.onOpenSettingsCity}
+                        />
+                    </div>}
                     {view === 'tips' && <div className={animationClass}><PlaceholderView title="Dicas" /></div>}
                     {view === 'info' && <div className={animationClass}><PlaceholderView title="Informações" /></div>}
                 </div>
@@ -191,7 +205,14 @@ const AppContent: React.FC<{
                         <PlaceholderView title="Notícias" />
                     </div>
                     <div className={`${view === 'settings' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24 pt-16 ${animationClass}`}>
-                        <SettingsView settings={settings} onSettingsChanged={props.handleSettingsChange} onClearHistory={props.handleClearChatHistory} />
+                        <SettingsView 
+                            settings={settings} 
+                            onSettingsChanged={props.handleSettingsChange} 
+                            onClearHistory={props.handleClearChatHistory}
+                            onOpenImport={props.onOpenImport}
+                            onOpenChangelog={props.onOpenChangelog}
+                            onOpenCitySelection={props.onOpenSettingsCity}
+                        />
                     </div>
                     <div className={`${view === 'tips' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24 pt-16 ${animationClass}`}>
                         <PlaceholderView title="Dicas" />
@@ -238,6 +259,11 @@ const App: React.FC = () => {
   const [currentCityInfo, setCurrentCityInfo] = useState<{name: string, country: string} | null>(null);
   const [isDataSourceModalOpen, setIsDataSourceModalOpen] = useState(false);
   
+  // Global Modal States (Hoisted from SettingsView)
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [showChangelogModal, setShowChangelogModal] = useState(false);
+  const [showSettingsCityModal, setShowSettingsCityModal] = useState(false); // For setting default location
+
   // Synced with Settings.weatherSource but allows temporary override via Modal
   const [preferredDataSource, setPreferredDataSource] = useState<DataSource | 'auto'>('auto');
   
@@ -292,9 +318,23 @@ const App: React.FC = () => {
       localStorage.removeItem('chat_history');
   }, []);
 
-  // Dynamic Theme Logic (Disabled in Performance Mode)
+  // Handlers for Settings Imports
+  const handleImportData = (content: string, options: any) => {
+      const success = importAppData(content, options);
+      if (success) {
+          setAppError("Dados importados com sucesso! Recarregando...");
+          setTimeout(() => window.location.reload(), 1500);
+      } else {
+          setAppError("Falha ao importar arquivo.");
+      }
+      setShowImportModal(false);
+  };
+
+  // Dynamic Theme Logic
   useEffect(() => {
-      if (!settings.dynamicTheme || settings.performanceMode) {
+      // Allow theme calculation even in Performance Mode if desired, 
+      // as color changes are cheap. Only heavier effects are disabled in ThemeContext.
+      if (!settings.dynamicTheme) {
           setActiveTheme(settings.themeColor);
           return;
       }
@@ -597,6 +637,7 @@ const App: React.FC = () => {
       backgroundMode={settings.backgroundMode} 
       performanceMode={settings.performanceMode}
       reducedMotion={settings.reducedMotion}
+      layoutDensity={settings.layoutDensity}
     >
       <AppContent 
         settings={settings}
@@ -629,6 +670,36 @@ const App: React.FC = () => {
         setIsDataSourceModalOpen={setIsDataSourceModalOpen}
         appError={appError}
         setAppError={setAppError}
+        // Handlers for root modals
+        onOpenImport={() => setShowImportModal(true)}
+        onOpenChangelog={() => setShowChangelogModal(true)}
+        onOpenSettingsCity={() => setShowSettingsCityModal(true)}
+      />
+      
+      {/* GLOBAL MODALS RENDERED AT ROOT */}
+      <ImportModal 
+          isOpen={showImportModal}
+          onClose={() => setShowImportModal(false)}
+          onImport={handleImportData}
+      />
+      
+      <ChangelogModal 
+          isOpen={showChangelogModal}
+          onClose={() => setShowChangelogModal(false)}
+      />
+      
+      <CitySelectionModal 
+          isOpen={showSettingsCityModal}
+          onClose={() => {
+              setShowSettingsCityModal(false);
+              if (!settings.specificLocation) {
+                   setAppError("Nenhuma localização selecionada.");
+              }
+          }}
+          onSelect={(city) => {
+              handleSettingsChange({ ...settings, specificLocation: city });
+              setShowSettingsCityModal(false);
+          }}
       />
     </ThemeProvider>
   );

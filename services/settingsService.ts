@@ -13,13 +13,14 @@ const DEFAULT_SETTINGS: AppSettings = {
     weatherSource: 'auto',
     startupBehavior: 'idle',
     saveChatHistory: false, // Default to NOT saving history
-    startupSection: 'weather',
+    startupSection: 'weather', // Default to Weather to avoid crashes
     themeColor: 'purple',
     dynamicTheme: false,
     transparencyMode: 'glass', // Default to Glass
     backgroundMode: 'gradient', // Default to Gradient
     borderEffect: 'top', // Default to Top as requested
     mapTheme: 'light', // Default to Light as requested
+    layoutDensity: 'comfortable', // Default
     showScrollbars: false, // Default to OFF for a cleaner, mobile-first UI
     performanceMode: false, // Default OFF
     reducedMotion: false, // Default OFF
@@ -139,7 +140,7 @@ export const importAppData = (
         const data: ExportData & { lastCoords?: any } = JSON.parse(jsonContent);
 
         if (options.importSettings && data.settings) {
-            // Merge with defaults to ensure new keys (like reducedMotion) are present even if importing old backup
+            // Merge with defaults to ensure new keys (like reducedMotion, layoutDensity) are present
             const mergedSettings = { 
                 ...DEFAULT_SETTINGS, 
                 ...data.settings,
