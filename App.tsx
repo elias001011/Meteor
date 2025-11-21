@@ -24,8 +24,8 @@ import { ThemeProvider, useTheme } from './components/context/ThemeContext';
 
 // Rain animation component defined locally
 const RainAnimation: React.FC<{ intensity: 'low' | 'high' }> = ({ intensity }) => {
-    // Adjusted density: Low is now clearly visible (80), High is a storm (350)
-    const numberOfDrops = intensity === 'high' ? 350 : 80;
+    // Adjusted density: Low is very subtle (15), High is moderate (160)
+    const numberOfDrops = intensity === 'high' ? 160 : 15;
     
     return (
         <div className="fixed inset-0 w-full h-full z-0 pointer-events-none overflow-hidden">
@@ -43,10 +43,10 @@ const RainAnimation: React.FC<{ intensity: 'low' | 'high' }> = ({ intensity }) =
                             left: `${Math.random() * 100}%`,
                             animationDuration: `${duration}s`,
                             animationDelay: `${delay}s`,
-                            // Increased opacity range (0.1 to 0.4) so it's visible but stays in background
-                            opacity: Math.random() * 0.3 + 0.1, 
-                            // Cyan/Blue tint
-                            background: 'linear-gradient(to bottom, rgba(56, 189, 248, 0) 0%, rgba(56, 189, 248, 0.6) 100%)',
+                            // DRASTICALLY REDUCED OPACITY to ensure it looks "behind" the glass cards
+                            opacity: Math.random() * 0.15 + 0.05, 
+                            // Softer gradient
+                            background: 'linear-gradient(to bottom, rgba(56, 189, 248, 0) 0%, rgba(56, 189, 248, 0.4) 100%)',
                             width: '1px', 
                             height: `${Math.random() * 80 + 80}px`
                         }}
