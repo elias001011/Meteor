@@ -107,6 +107,12 @@
           animation: popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       }
       
+      /* Utility to disable animations via JS toggle if needed */
+      .reduce-motion * {
+        animation: none !important;
+        transition: none !important;
+      }
+      
       /* Staggered delays for children */
       .delay-100 { animation-delay: 100ms; }
       .delay-200 { animation-delay: 200ms; }

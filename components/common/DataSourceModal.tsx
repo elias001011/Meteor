@@ -48,6 +48,18 @@ const DataSourceModal: React.FC<DataSourceModalProps> = ({
     setSelectedSource(preferredSource);
   }, [preferredSource]);
 
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+        document.body.style.overflow = 'hidden';
+    } else {
+        document.body.style.overflow = '';
+    }
+    return () => {
+        document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleApply = () => {
@@ -56,14 +68,14 @@ const DataSourceModal: React.FC<DataSourceModalProps> = ({
 
   return (
     <div 
-        className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center lg:justify-start p-4 pb-28 lg:p-4 lg:pl-12 backdrop-blur-sm" 
+        className="fixed inset-0 bg-black/70 z-[150] flex items-center justify-center lg:justify-start p-4 pb-28 lg:p-4 lg:pl-12 backdrop-blur-sm h-screen w-screen" 
         onClick={onClose}
         role="dialog"
         aria-modal="true"
         aria-labelledby="dataSourceModalTitle"
     >
         <div 
-            className={`${glassClass} border border-gray-700/50 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col`}
+            className={`${glassClass} border border-gray-700/50 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col relative`}
             onClick={e => e.stopPropagation()}
         >
             <header className="flex items-center justify-between p-4 border-b border-white/10 flex-shrink-0">

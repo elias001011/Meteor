@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import type { AppSettings, View, DataSource, AppTheme, TransparencyMode, ClockDisplayMode, BackgroundMode, MapTheme, BorderEffectMode } from '../../types';
 import { getSettings, saveSettings, exportAppData, importAppData, resetSettings, resetCache, resetAllData } from '../../services/settingsService';
@@ -5,7 +6,7 @@ import CitySelectionModal from '../common/CitySelectionModal';
 import ImportModal from './ImportModal';
 import ChangelogModal from './ChangelogModal';
 import { useTheme } from '../context/ThemeContext';
-import { XIcon, LightbulbIcon, SparklesIcon, ChevronLeftIcon } from '../icons';
+import { XIcon, LightbulbIcon, SparklesIcon, ChevronLeftIcon, GaugeIcon } from '../icons';
 
 interface SettingsViewProps {
     settings: AppSettings;
@@ -23,7 +24,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
     const [showPwaBanner, setShowPwaBanner] = useState(true);
     
     // Use Theme Context to get dynamic styles for headings/buttons
-    const { classes, cardClass } = useTheme();
+    const { classes, cardClass, isPerformanceMode } = useTheme();
 
     // Fullscreen state
     const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
@@ -134,16 +135,31 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
 
     // Consistent Select Style
     const selectStyle = `w-full bg-gray-900/50 border border-gray-600/50 rounded-xl px-4 py-3 text-white focus:ring-2 outline-none ${classes.ring} appearance-none cursor-pointer hover:bg-gray-900/80 transition-colors`;
+    const disabledSectionStyle = isPerformanceMode ? 'opacity-50 pointer-events-none filter grayscale' : '';
+
+    // Helper for Toggle Switch
+    const ToggleSwitch = ({ checked, onChange, disabled = false, activeColorClass }: { checked: boolean, onChange: () => void, disabled?: boolean, activeColorClass?: string }) => (
+        <button 
+            onClick={onChange}
+            disabled={disabled}
+            className={`w-12 h-7 rounded-full p-1 transition-colors duration-300 ease-in-out focus:outline-none ${checked ? (activeColorClass || 'bg-emerald-500') : 'bg-gray-600/50'} ${disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
+            aria-pressed={checked}
+        >
+            <div 
+                className={`w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform duration-300 ease-in-out ${checked ? 'translate-x-5' : 'translate-x-0'}`} 
+            />
+        </button>
+    );
 
     return (
-        <div className="p-6 max-w-3xl mx-auto space-y-8 pb-32 animate-enter">
+        <div className="p-6 max-w-3xl mx-auto space-y-8 pb-32">
             <h2 className="text-3xl font-bold text-white flex items-center gap-3 tracking-tight">
                 Ajustes do Meteor
             </h2>
 
             {/* PWA Banner Prompt */}
             {showPwaBanner && !window.matchMedia('(display-mode: standalone)').matches && (
-                <div className="bg-gradient-to-r from-blue-900/80 to-cyan-900/80 backdrop-blur-md border border-blue-500/30 p-5 rounded-3xl flex items-start justify-between gap-4 shadow-lg animate-enter">
+                <div className="bg-gradient-to-r from-blue-900/80 to-cyan-900/80 backdrop-blur-md border border-blue-500/30 p-5 rounded-3xl flex items-start justify-between gap-4 shadow-lg">
                     <div className="flex gap-4">
                         <div className="p-3 bg-blue-500/20 rounded-full h-fit text-blue-400 shadow-inner">
                             <LightbulbIcon className="w-6 h-6" />
@@ -168,10 +184,31 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
             )}
 
             {feedbackMessage && (
-                <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-emerald-600/90 backdrop-blur-md text-white px-6 py-3 rounded-full font-medium shadow-xl border border-emerald-400/50 animate-enter text-center whitespace-nowrap">
+                <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[9999] bg-emerald-600/90 backdrop-blur-md text-white px-6 py-3 rounded-full font-medium shadow-xl border border-emerald-400/50 text-center whitespace-nowrap">
                     {feedbackMessage}
                 </div>
             )}
+            
+            {/* --- PERFORMANCE MODE TOGGLE --- */}
+            <section className={`rounded-3xl p-6 ${cardClass} border-emerald-500/30 relative overflow-hidden`}>
+                 <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-emerald-400 to-cyan-500"></div>
+                 <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="bg-emerald-500/20 p-3 rounded-full">
+                             <GaugeIcon className="w-6 h-6 text-emerald-400" />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <span className="text-white font-bold text-lg">Modo Desempenho</span>
+                            <span className="text-sm text-gray-400">Desliga efeitos visuais pesados para maior velocidade.</span>
+                        </div>
+                    </div>
+                    <ToggleSwitch 
+                        checked={settings.performanceMode} 
+                        onChange={() => handleSave({ performanceMode: !settings.performanceMode })} 
+                        activeColorClass="bg-emerald-500"
+                    />
+                </div>
+            </section>
 
             {/* --- CUSTOMIZATION --- */}
              <section className={`rounded-3xl p-6 ${cardClass}`}>
@@ -180,31 +217,49 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
                 </h3>
                 <div className="space-y-8">
                     
+                    {/* Reduced Motion Toggle */}
+                    <div className={`flex items-center justify-between pb-6 border-b border-white/5`}>
+                        <div className="flex flex-col gap-1">
+                            <span className="text-white font-medium">Remover Animações</span>
+                            <span className="text-xs text-gray-400">
+                                {isPerformanceMode ? 'Ativado pelo Modo Desempenho' : 'Desativa transições e movimentos da interface.'}
+                            </span>
+                        </div>
+                        <ToggleSwitch 
+                            checked={settings.reducedMotion || isPerformanceMode}
+                            onChange={() => handleSave({ reducedMotion: !settings.reducedMotion })}
+                            disabled={isPerformanceMode}
+                            activeColorClass={classes.bg}
+                        />
+                    </div>
+
                     {/* Dynamic Theme Toggle */}
-                    <div className="flex items-center justify-between pb-6 border-b border-white/5">
+                    <div className={`flex items-center justify-between pb-6 border-b border-white/5 ${disabledSectionStyle}`}>
                         <div className="flex flex-col gap-1">
                             <span className="text-white font-medium">Tema Dinâmico</span>
-                            <span className="text-xs text-gray-400">Muda a cor com base no clima e na hora do dia.</span>
+                            <span className="text-xs text-gray-400">
+                                {isPerformanceMode ? 'Desativado pelo Modo Desempenho' : 'Muda a cor com base no clima e na hora do dia.'}
+                            </span>
                         </div>
-                        <button 
-                            onClick={() => handleSave({ dynamicTheme: !settings.dynamicTheme })}
-                            className={`w-14 h-8 rounded-full p-1 transition-colors duration-300 ${settings.dynamicTheme ? classes.bg : 'bg-gray-600/50'}`}
-                        >
-                            <div className={`w-6 h-6 rounded-full bg-white shadow-md transform transition-transform duration-300 ${settings.dynamicTheme ? 'translate-x-6' : 'translate-x-0'}`} />
-                        </button>
+                        <ToggleSwitch 
+                            checked={settings.dynamicTheme}
+                            onChange={() => handleSave({ dynamicTheme: !settings.dynamicTheme })}
+                            disabled={isPerformanceMode}
+                            activeColorClass={classes.bg}
+                        />
                     </div>
 
                     {/* Theme Color */}
-                    <div className={`transition-opacity duration-300 ${settings.dynamicTheme ? 'opacity-50 pointer-events-none grayscale' : 'opacity-100'}`}>
+                    <div className={`transition-opacity duration-300 ${settings.dynamicTheme || isPerformanceMode ? 'opacity-50 pointer-events-none grayscale' : 'opacity-100'}`}>
                         <label className="text-sm font-medium text-gray-300 mb-4 block">
-                            Cor do Tema {settings.dynamicTheme && '(Controlado pela IA)'}
+                            Cor do Tema {(settings.dynamicTheme || isPerformanceMode) && '(Controlado pelo Sistema)'}
                         </label>
                         <div className="flex flex-wrap gap-4">
                             {themes.map((theme) => (
                                 <button
                                     key={theme.id}
                                     onClick={() => handleSave({ themeColor: theme.id })}
-                                    disabled={settings.dynamicTheme}
+                                    disabled={settings.dynamicTheme || isPerformanceMode}
                                     className={`w-12 h-12 rounded-full ${theme.color} transition-transform hover:scale-110 focus:outline-none ring-2 ring-offset-2 ring-offset-transparent ${settings.themeColor === theme.id ? `ring-white scale-110 shadow-lg` : 'ring-transparent opacity-70 hover:opacity-100'}`}
                                     aria-label={`Selecionar tema ${theme.name}`}
                                     title={theme.name}
@@ -214,16 +269,19 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
                     </div>
 
                     {/* Background Mode */}
-                    <div>
+                    <div className={disabledSectionStyle}>
                         <div className="flex flex-col mb-3 gap-1">
                             <span className="text-white font-medium">Estilo do Fundo</span>
-                            <span className="text-xs text-gray-400">Escolha entre a aparência padrão ou minimalista.</span>
+                            <span className="text-xs text-gray-400">
+                                {isPerformanceMode ? 'Definido como Sólido (Desempenho)' : 'Escolha entre a aparência padrão ou minimalista.'}
+                            </span>
                         </div>
                         <div className="flex bg-black/20 rounded-xl p-1 border border-white/5">
                             {backgroundOptions.map((option) => (
                                 <button
                                     key={option.id}
                                     onClick={() => handleSave({ backgroundMode: option.id })}
+                                    disabled={isPerformanceMode}
                                     className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
                                         settings.backgroundMode === option.id 
                                             ? 'bg-white/10 text-white shadow-sm border border-white/10' 
@@ -237,16 +295,19 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
                     </div>
                     
                      {/* Border Effect (LED) Selector */}
-                     <div>
+                     <div className={disabledSectionStyle}>
                         <div className="flex flex-col mb-3 gap-1">
                             <span className="text-white font-medium">Efeito LED (Borda)</span>
-                            <span className="text-xs text-gray-400">Adiciona um brilho colorido no topo ou na base da tela.</span>
+                            <span className="text-xs text-gray-400">
+                                 {isPerformanceMode ? 'Desativado pelo Modo Desempenho' : 'Adiciona um brilho colorido no topo ou na base da tela.'}
+                            </span>
                         </div>
                         <div className="flex bg-black/20 rounded-xl p-1 border border-white/5">
                             {borderEffectOptions.map((option) => (
                                 <button
                                     key={option.id}
                                     onClick={() => handleSave({ borderEffect: option.id })}
+                                    disabled={isPerformanceMode}
                                     className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
                                         settings.borderEffect === option.id 
                                             ? 'bg-white/10 text-white shadow-sm border border-white/10' 
@@ -261,16 +322,19 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
 
                     {/* Visual Effects */}
                     <div className="space-y-6">
-                        <div>
+                        <div className={disabledSectionStyle}>
                             <div className="flex flex-col mb-3 gap-1">
                                 <span className="text-white font-medium">Transparência (Efeito Vidro)</span>
-                                <span className="text-xs text-gray-400">Controle a intensidade dos efeitos visuais na interface.</span>
+                                <span className="text-xs text-gray-400">
+                                     {isPerformanceMode ? 'Desativado pelo Modo Desempenho' : 'Controle a intensidade dos efeitos visuais na interface.'}
+                                </span>
                             </div>
                             <div className="flex bg-black/20 rounded-xl p-1 border border-white/5">
                                 {transparencyOptions.map((option) => (
                                     <button
                                         key={option.id}
                                         onClick={() => handleSave({ transparencyMode: option.id })}
+                                        disabled={isPerformanceMode}
                                         className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
                                             settings.transparencyMode === option.id 
                                                 ? 'bg-white/10 text-white shadow-sm border border-white/10' 
@@ -305,26 +369,28 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
                             </div>
                         </div>
 
-                        <div className="flex items-center justify-between pt-6 border-t border-white/5">
+                        <div className={`flex items-center justify-between pt-6 border-t border-white/5 ${disabledSectionStyle}`}>
                             <div className="flex flex-col gap-1">
                                 <span className="text-white font-medium">Animação de Chuva</span>
-                                <span className="text-xs text-gray-400">Mostrar gotas na tela quando chover.</span>
+                                <span className="text-xs text-gray-400">
+                                     {isPerformanceMode ? 'Desativado pelo Modo Desempenho' : 'Mostrar gotas na tela quando chover.'}
+                                </span>
                             </div>
-                             <button 
-                                onClick={() => handleSave({ 
+                            <ToggleSwitch 
+                                checked={settings.rainAnimation.enabled}
+                                onChange={() => handleSave({ 
                                     rainAnimation: { 
                                         ...settings.rainAnimation, 
                                         enabled: !settings.rainAnimation.enabled 
                                     } 
                                 })}
-                                className={`w-14 h-8 rounded-full p-1 transition-colors duration-300 ${settings.rainAnimation.enabled ? classes.bg : 'bg-gray-600/50'}`}
-                            >
-                                <div className={`w-6 h-6 rounded-full bg-white shadow-md transform transition-transform duration-300 ${settings.rainAnimation.enabled ? 'translate-x-6' : 'translate-x-0'}`} />
-                            </button>
+                                disabled={isPerformanceMode}
+                                activeColorClass={classes.bg}
+                            />
                         </div>
 
-                        {settings.rainAnimation.enabled && (
-                             <div className="flex items-center justify-between bg-white/5 p-3 rounded-xl animate-enter">
+                        {settings.rainAnimation.enabled && !isPerformanceMode && (
+                             <div className="flex items-center justify-between bg-white/5 p-3 rounded-xl">
                                 <span className="text-sm text-gray-300 font-medium pl-1">Intensidade da Chuva</span>
                                 <div className="flex bg-black/20 rounded-lg p-1">
                                     <button 
@@ -348,12 +414,11 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
                                 <span className="text-white font-medium">Barras de Rolagem</span>
                                 <span className="text-xs text-gray-400">Pode ser útil em desktops.</span>
                             </div>
-                            <button 
-                                onClick={() => handleSave({ showScrollbars: !settings.showScrollbars })}
-                                className={`w-14 h-8 rounded-full p-1 transition-colors duration-300 ${settings.showScrollbars ? classes.bg : 'bg-gray-600/50'}`}
-                            >
-                                <div className={`w-6 h-6 rounded-full bg-white shadow-md transform transition-transform duration-300 ${settings.showScrollbars ? 'translate-x-6' : 'translate-x-0'}`} />
-                            </button>
+                            <ToggleSwitch 
+                                checked={settings.showScrollbars}
+                                onChange={() => handleSave({ showScrollbars: !settings.showScrollbars })}
+                                activeColorClass={classes.bg}
+                            />
                         </div>
                     </div>
 
@@ -379,23 +444,21 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
                                 <span className="text-white font-medium">Sempre iniciar em tela cheia</span>
                                 <span className="text-xs text-gray-400">Entrará automaticamente ao tocar na tela.</span>
                             </div>
-                            <button 
-                                onClick={() => handleSave({ startFullscreen: !settings.startFullscreen })}
-                                className={`w-14 h-8 rounded-full p-1 transition-colors duration-300 ${settings.startFullscreen ? classes.bg : 'bg-gray-600/50'}`}
-                            >
-                                <div className={`w-6 h-6 rounded-full bg-white shadow-md transform transition-transform duration-300 ${settings.startFullscreen ? 'translate-x-6' : 'translate-x-0'}`} />
-                            </button>
+                            <ToggleSwitch 
+                                checked={settings.startFullscreen}
+                                onChange={() => handleSave({ startFullscreen: !settings.startFullscreen })}
+                                activeColorClass={classes.bg}
+                            />
                         </div>
                     </div>
 
                     <div className="flex items-center justify-between pt-4 border-t border-white/5">
                         <span className="text-white font-medium">Relógio do Sistema (Topo)</span>
-                        <button 
-                            onClick={() => handleSave({ showClock: !settings.showClock })}
-                            className={`w-14 h-8 rounded-full p-1 transition-colors duration-300 ${settings.showClock ? classes.bg : 'bg-gray-600/50'}`}
-                        >
-                            <div className={`w-6 h-6 rounded-full bg-white shadow-md transform transition-transform duration-300 ${settings.showClock ? 'translate-x-6' : 'translate-x-0'}`} />
-                        </button>
+                        <ToggleSwitch 
+                            checked={settings.showClock}
+                            onChange={() => handleSave({ showClock: !settings.showClock })}
+                            activeColorClass={classes.bg}
+                        />
                     </div>
 
                     <div className="flex flex-col gap-3 pt-4 border-t border-white/5">
@@ -504,12 +567,11 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
                             <span className="text-white font-medium">Salvar Histórico de Chat</span>
                             <span className="text-xs text-gray-400">Manter conversas após recarregar.</span>
                         </div>
-                        <button 
-                            onClick={() => handleSave({ saveChatHistory: !settings.saveChatHistory })}
-                            className={`w-14 h-8 rounded-full p-1 transition-colors duration-300 ${settings.saveChatHistory ? classes.bg : 'bg-gray-600/50'}`}
-                        >
-                            <div className={`w-6 h-6 rounded-full bg-white shadow-md transform transition-transform duration-300 ${settings.saveChatHistory ? 'translate-x-6' : 'translate-x-0'}`} />
-                        </button>
+                        <ToggleSwitch 
+                            checked={settings.saveChatHistory}
+                            onChange={() => handleSave({ saveChatHistory: !settings.saveChatHistory })}
+                            activeColorClass={classes.bg}
+                        />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">

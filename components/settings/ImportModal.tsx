@@ -1,4 +1,6 @@
-import React, { useState, useRef } from 'react';
+
+
+import React, { useState, useRef, useEffect } from 'react';
 import { XIcon } from '../icons';
 import { useTheme } from '../context/ThemeContext';
 
@@ -17,6 +19,17 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onImport }) 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { glassClass } = useTheme();
 
+    useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [isOpen]);
+
     if (!isOpen) return null;
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -33,7 +46,7 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onImport }) 
     };
 
     return (
-        <div className="fixed inset-0 bg-black/70 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 bg-black/70 z-[150] flex items-center justify-center p-4 pb-20 backdrop-blur-sm h-screen w-screen">
             <div className={`${glassClass} border border-gray-700 rounded-2xl w-full max-w-md p-6 relative shadow-2xl`}>
                  <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white">
                     <XIcon className="w-6 h-6" />
