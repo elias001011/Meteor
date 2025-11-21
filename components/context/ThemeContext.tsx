@@ -1,7 +1,7 @@
 
 
 import React, { createContext, useContext, useEffect } from 'react';
-import type { AppTheme, TransparencyMode, BackgroundMode, LayoutDensity } from '../../types';
+import type { AppTheme, TransparencyMode, BackgroundMode, LayoutDensity, GlassScope } from '../../types';
 
 interface ThemeClasses {
     text: string;
@@ -117,17 +117,17 @@ const DENSITY_DEFINITIONS: Record<LayoutDensity, DensityClasses> = {
         itemGap: 'gap-4'
     },
     compact: {
-        // Aggressive compact mode
-        padding: 'p-3', 
-        gap: 'gap-2', 
-        text: 'text-xs',
-        subtext: 'text-[10px]',
-        titleText: 'text-xl',
-        tempText: 'text-5xl', 
-        iconSize: 'w-4 h-4',
-        sectionTitle: 'text-[10px] mb-1 font-bold',
-        settingsGap: 'space-y-3',
-        itemGap: 'gap-2'
+        // Updated to be less aggressive (medium density)
+        padding: 'p-4', 
+        gap: 'gap-4', 
+        text: 'text-sm',
+        subtext: 'text-xs',
+        titleText: 'text-2xl',
+        tempText: 'text-6xl', 
+        iconSize: 'w-5 h-5',
+        sectionTitle: 'text-xs mb-2 font-bold',
+        settingsGap: 'space-y-4',
+        itemGap: 'gap-3'
     }
 };
 
@@ -146,16 +146,36 @@ const ThemeContext = createContext<ThemeContextProps>({
 export const ThemeProvider: React.FC<{ 
     theme: AppTheme, 
     transparencyMode: TransparencyMode,
+    glassScope?: GlassScope, // Optional to maintain backward compat if not passed immediately
     backgroundMode?: BackgroundMode,
     performanceMode?: boolean,
     reducedMotion?: boolean,
     layoutDensity?: LayoutDensity,
     children: React.ReactNode 
-}> = ({ theme, transparencyMode, backgroundMode = 'gradient', performanceMode = false, reducedMotion = false, layoutDensity = 'comfortable', children }) => {
+}> = ({ 
+    theme, 
+    transparencyMode, 
+    glassScope = { header: true, cards: true, overlays: true }, 
+    backgroundMode = 'gradient', 
+    performanceMode = false, 
+    reducedMotion = false, 
+    layoutDensity = 'comfortable', 
+    children 
+}) => {
     
     const currentClasses = THEME_DEFINITIONS[theme] || THEME_DEFINITIONS.purple;
     const currentDensity = DENSITY_DEFINITIONS[layoutDensity] || DENSITY_DEFINITIONS.comfortable;
     
+    // Definitions for 'Low/Hybrid' mode (fallback)
+    const lowGlass = 'bg-slate-900/95 border border-white/10';
+    const lowCard = 'bg-slate-800/80 border border-white/5';
+    const lowHeader = 'bg-[#0f172a]/90 backdrop-blur-sm border-b border-white/5';
+
+    // Definitions for 'Glass' mode
+    const highGlass = 'bg-black/40 backdrop-blur-2xl border border-white/10 shadow-2xl';
+    const highCard = 'bg-white/5 backdrop-blur-md border border-white/10 shadow-lg hover:bg-white/10 transition-colors duration-300';
+    const highHeader = 'bg-[#0f172a]/70 backdrop-blur-md border-b border-white/5';
+
     // Generic overlay glass (modals, nav bars)
     let glassClass = '';
     // Card container glass (weather widgets, settings sections)
@@ -182,24 +202,33 @@ export const ThemeProvider: React.FC<{
         appBackgroundClass = 'bg-[#0f172a]'; // Solid slate background
     } else {
         // --- NORMAL MODE ---
-        switch (transparencyMode) {
-            case 'off':
-                glassClass = 'bg-slate-900 border border-gray-700'; 
-                cardClass = 'bg-slate-800 border border-gray-700';
-                headerClass = 'bg-[#0f172a] border-b border-gray-800';
-                break;
-            case 'low':
-                glassClass = 'bg-slate-900/95 border border-white/10'; 
-                cardClass = 'bg-slate-800/80 border border-white/5';
-                headerClass = 'bg-[#0f172a]/90 backdrop-blur-sm border-b border-white/5';
-                break;
-            case 'glass':
-            default:
-                // Elegant, premium glass feel
-                glassClass = 'bg-black/40 backdrop-blur-2xl border border-white/10 shadow-2xl'; 
-                cardClass = 'bg-white/5 backdrop-blur-md border border-white/10 shadow-lg hover:bg-white/10 transition-colors duration-300';
-                headerClass = 'bg-[#0f172a]/70 backdrop-blur-md border-b border-white/5';
-                break;
+        // Logic: If mode is Glass, check Scope. If Scope is false, downgrade to Low.
+        
+        // 1. Overlays (Modals, Nav)
+        if (transparencyMode === 'glass' && glassScope.overlays) {
+            glassClass = highGlass;
+        } else if (transparencyMode === 'off') {
+            glassClass = 'bg-slate-900 border border-gray-700';
+        } else {
+            glassClass = lowGlass;
+        }
+
+        // 2. Cards (Widgets)
+        if (transparencyMode === 'glass' && glassScope.cards) {
+            cardClass = highCard;
+        } else if (transparencyMode === 'off') {
+            cardClass = 'bg-slate-800 border border-gray-700';
+        } else {
+            cardClass = lowCard;
+        }
+
+        // 3. Header
+        if (transparencyMode === 'glass' && glassScope.header) {
+            headerClass = highHeader;
+        } else if (transparencyMode === 'off') {
+            headerClass = 'bg-[#0f172a] border-b border-gray-800';
+        } else {
+            headerClass = lowHeader;
         }
         
         appBackgroundClass = backgroundMode === 'solid' 

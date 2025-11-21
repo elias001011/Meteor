@@ -1,4 +1,6 @@
 
+
+
 // FIX: Module '"@netlify/functions"' has no exported member 'getStore'. This is likely due to a version mismatch. Importing `getStore` directly from `@netlify/blobs` as a documented fallback.
 import { type Handler, type HandlerEvent, type HandlerContext } from "@netlify/functions";
 import { getStore } from "@netlify/blobs";
@@ -147,9 +149,10 @@ const fetchWithOpenMeteo = async (lat: string, lon: string) => {
 
     for (let i = 0; i < daily.time.length; i++) {
          const dayTime = new Date(daily.time[i]).getTime() / 1000;
+         // Open-Meteo daily times are usually midnight local time, but checking string date ensures correctness
          const dayString = daily.time[i].split('T')[0];
          
-         // Allow today and future days
+         // STRICTLY filter for today onwards
          if (dayString >= localToday && dailyForecast.length < 7) {
               dailyForecast.push({
                 dt: dayTime,
@@ -325,25 +328,31 @@ const fetchWithFreeTier = async (lat: string, lon: string) => {
     
     // Use the timezone offset from the API to ensure "days" align with the city's local time
     const timezoneOffset = forecastApiData.city.timezone; // seconds
+    
+    // Get "today" in target timezone
+    const localToday = new Date(Date.now() + timezoneOffset * 1000).toISOString().split('T')[0];
 
     futureList.forEach((item: any) => {
         // We use UTC methods on the shifted time to bucket by day correctly relative to the city
         const localDt = (item.dt + timezoneOffset) * 1000;
         const date = new Date(localDt).toISOString().split('T')[0]; 
         
-        if (!dailyMap.has(date)) {
-            dailyMap.set(date, {
-                dt: item.dt, 
-                temps: [],
-                icons: [],
-                pops: []
-            });
+        // STRICTLY filter for today onwards
+        if (date >= localToday) {
+            if (!dailyMap.has(date)) {
+                dailyMap.set(date, {
+                    dt: item.dt, 
+                    temps: [],
+                    icons: [],
+                    pops: []
+                });
+            }
+            
+            const dayData = dailyMap.get(date);
+            dayData.temps.push(item.main.temp);
+            dayData.icons.push(item.weather[0].icon);
+            dayData.pops.push(item.pop);
         }
-        
-        const dayData = dailyMap.get(date);
-        dayData.temps.push(item.main.temp);
-        dayData.icons.push(item.weather[0].icon);
-        dayData.pops.push(item.pop);
     });
 
     const dailyForecast = Array.from(dailyMap.values()).slice(0, 5).map((day: any) => {
