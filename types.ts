@@ -65,6 +65,10 @@ export interface ChatMessage {
     role: 'user' | 'model';
     text: string;
     sources?: GroundingSource[];
+    // AI Metadata
+    modelUsed?: string;
+    processingTime?: number;
+    toolExecuted?: string; // e.g., "Busca Web", "Consulta Clima"
 }
 
 export interface CitySearchResult {
@@ -121,6 +125,8 @@ export interface GlassScope {
 }
 
 export interface AppSettings {
+    userName?: string; // New: User name for greeting
+    userAiInstructions?: string; // New: Custom prompt instructions
     showClock: boolean; // System clock in header
     clockDisplayMode: ClockDisplayMode; // Local time in weather card
     startFullscreen: boolean;

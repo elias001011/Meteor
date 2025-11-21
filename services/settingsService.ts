@@ -7,6 +7,8 @@ const WEATHER_CACHE_PREFIX = 'weather_data_';
 const AI_USAGE_KEY = 'meteor_ai_usage'; // Key used in geminiService.ts
 
 const DEFAULT_SETTINGS: AppSettings = {
+    userName: '',
+    userAiInstructions: '',
     showClock: true,
     clockDisplayMode: 'always', // Default to showing it always
     startFullscreen: false,

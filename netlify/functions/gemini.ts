@@ -1,95 +1,123 @@
 
+
 import { GoogleGenAI, Content } from "@google/genai";
 import { type Handler, type HandlerEvent } from "@netlify/functions";
 
+// Enhanced system instructions with Stealth Tools
 const buildContextualContent = (
     weatherInfo: any | null, 
     searchResults: any[] | null,
-    timeContext: string
+    weatherToolResult: any | null,
+    timeContext: string,
+    userInstructions: string = '',
+    isSearchEnabled: boolean
 ): Content[] => {
     
     let systemInstruction = `DIRETRIZES MESTRAS (METEOR AI):\n\n`;
     
-    systemInstruction += `1. **MEMÓRIA E CONTEXTO (PRIORIDADE MÁXIMA)**:\n`;
-    systemInstruction += `   - Você recebe o HISTÓRICO da conversa. Antes de responder, LEIA-O.\n`;
-    systemInstruction += `   - Se o usuário perguntar "o que eu disse antes?", "qual minha primeira mensagem?", ou retomar um assunto anterior, USE O HISTÓRICO. NÃO FAÇA BUSCA NA WEB para isso. Confie na sua memória de contexto fornecida.\n`;
+    systemInstruction += `1. **IDENTIDADE E TOM**:\n`;
+    systemInstruction += `   - Você é a IA do Meteor. Seja **DIRETA** e **OBJETIVA**, evitando rodeios, mas mantendo uma personalidade **MUITO CARISMÁTICA** e simpática.\n`;
+    systemInstruction += `   - Use formatação rica para facilitar a leitura: **Negrito** em dados chaves, Listas para passos, Títulos (#) para organizar, *itálico* para ênfase suave.\n`;
     
-    systemInstruction += `2. **CONTEXTO TEMPORAL**:\n`;
-    systemInstruction += `   - Agora é: **${timeContext}**.\n`;
-    systemInstruction += `   - Use isso para responder sobre datas e horas. NÃO diga que não sabe a data.\n`;
+    systemInstruction += `2. **MEMÓRIA E CONTEXTO**:\n`;
+    systemInstruction += `   - LEIA o histórico de mensagens. Se o usuário continuar um assunto, mantenha o contexto.\n`;
+    systemInstruction += `   - Data/Hora atual: **${timeContext}**.\n`;
     
-    systemInstruction += `3. **AUTO-BUSCA INTELIGENTE ([SEARCH_REQUIRED])**:\n`;
-    systemInstruction += `   - Avalie a pergunta. Você precisa de dados externos (Notícias, placar de jogos, eventos futuros, fatos obscuros) que NÃO estão no histórico e nem no clima?\n`;
-    systemInstruction += `   - Se a resposta para "Preciso de dados externos?" for SIM, e você NÃO tem esses dados no contexto atual:\n`;
-    systemInstruction += `   - Responda APENAS E EXATAMENTE: [SEARCH_REQUIRED]\n`;
-    systemInstruction += `   - NÃO use [SEARCH_REQUIRED] para perguntas sobre o histórico da conversa ou perguntas pessoais.\n`;
-    systemInstruction += `   - **IMPORTANTE**: Se já recebeu "Resultados da Pesquisa na Web" abaixo, NÃO peça busca novamente para o mesmo assunto. Use os dados fornecidos.\n`;
+    systemInstruction += `3. **USO DE FERRAMENTAS (STEALTH MODE)**:\n`;
+    systemInstruction += `   - Você tem acesso a ferramentas via COMANDOS ESPECIAIS. O usuário NÃO vê esses comandos, eles são processados pelo sistema.\n`;
+    systemInstruction += `   - **Busca Web**: A busca está atualmente: [${isSearchEnabled ? 'LIGADA' : 'DESLIGADA'}].\n`;
+    systemInstruction += `     - Se a busca estiver DESLIGADA e você precisar de informação externa (notícias, datas de feriados futuros, fatos recentes), responda ESTRITAMENTE com o comando: [SEARCH_REQUIRED]\n`;
+    systemInstruction += `     - NÃO peça para o usuário pesquisar se você pode ativar a busca com esse comando.\n`;
+    systemInstruction += `     - Se já houver resultados da web abaixo (contexto), NÃO use o comando novamente.\n`;
+    systemInstruction += `   - **Consulta Climática Global**: Você tem dados do local *atual* do usuário abaixo (seção Contexto Climático).\n`;
+    systemInstruction += `     - Se o usuário perguntar o clima de **OUTRA** cidade/local que você não tem no contexto, responda ESTRITAMENTE com o comando: [WEATHER_QUERY=NomeDaCidade]\n`;
+    systemInstruction += `     - Exemplo: User: "E como está em Paris?" -> Você: [WEATHER_QUERY=Paris]\n`;
     
-    systemInstruction += `4. **IDENTIDADE E TOM**:\n`;
-    systemInstruction += `   - Você é a IA do Meteor. Direta, útil e simpática.\n`;
-    systemInstruction += `   - INTEGRAÇÃO NATURAL: Ao usar resultados da web, não diga "Com base nos resultados...". Apenas responda a pergunta naturalmente como se você já soubesse.\n`;
-    
+    systemInstruction += `4. **TRATAMENTO DE ERROS**:\n`;
+    systemInstruction += `   - Se uma ferramenta falhou (veja contexto abaixo), tente responder com o que sabe ou peça desculpas educadamente, sugerindo que o usuário verifique a conexão.\n`;
+
     const content: Content[] = [{
         role: 'user',
         parts: [{ text: systemInstruction }]
     }, {
         role: 'model',
-        parts: [{ text: `Entendido. Data atual: ${timeContext}. Priorizarei o histórico para memória e usarei [SEARCH_REQUIRED] apenas para dados externos faltantes. Responderei de forma natural.` }]
+        parts: [{ text: `Entendido. Sou a Meteor AI. Serei direta, carismática e usarei [SEARCH_REQUIRED] ou [WEATHER_QUERY=Local] quando precisar de dados que não possuo.` }]
     }];
 
+    // 1. Contexto Climático (Cache/Local Atual)
     if (weatherInfo && weatherInfo.weatherData) {
-        const { weatherData, airQualityData, dailyForecast, alerts } = weatherInfo;
-        let weatherContextText = `## DADOS DO CLIMA (${weatherData.city})\n- Temp: ${weatherData.temperature}°C (${weatherData.condition})\n- Vento: ${weatherData.windSpeed} km/h\n- Umidade: ${weatherData.humidity}%\n`;
-        if (airQualityData) weatherContextText += `- IQAR: ${airQualityData.aqi}\n`;
-        if (dailyForecast && dailyForecast.length > 0) weatherContextText += `- Previsão: ${dailyForecast.slice(0, 3).map((d: any) => `${new Date(d.dt * 1000).toLocaleDateString('pt-BR', { weekday: 'short' })} ${Math.round(d.temperature)}°C`).join(', ')}\n`;
-        if (alerts && alerts.length > 0) weatherContextText += `- ALERTAS: ${alerts.map((a: any) => a.event).join(', ')}\n`;
+        const { weatherData, dailyForecast, alerts } = weatherInfo;
+        let weatherContextText = `## DADOS CLIMÁTICOS ATUAIS (Local do Usuário: ${weatherData.city})\n`;
+        weatherContextText += `- Condição: ${weatherData.condition} (${weatherData.temperature}°C)\n`;
+        weatherContextText += `- Sensação: ${weatherData.feels_like}°C | Vento: ${weatherData.windSpeed} km/h | Umidade: ${weatherData.humidity}%\n`;
+        if (dailyForecast) weatherContextText += `- Previsão: ${dailyForecast.slice(0, 3).map((d: any) => `${new Date(d.dt * 1000).toLocaleDateString('pt-BR', { weekday: 'short' })}: ${Math.round(d.temperature)}°C`).join(', ')}\n`;
+        if (alerts?.length) weatherContextText += `- ALERTAS VIGENTES: ${alerts.map((a: any) => a.event).join(', ')}\n`;
         
         content.push({ role: 'user', parts: [{ text: weatherContextText }]});
-        content.push({ role: 'model', parts: [{ text: "Ciente dos dados climáticos." }]});
+    }
+
+    // 2. Resultados de Ferramentas (Inseridos dinamicamente)
+    if (weatherToolResult) {
+        if (weatherToolResult.error) {
+             content.push({ role: 'user', parts: [{ text: `## ERRO NA CONSULTA CLIMÁTICA:\n${weatherToolResult.error}. Avise o usuário.` }]});
+        } else {
+             content.push({ role: 'user', parts: [{ text: `## RESULTADO DA CONSULTA CLIMÁTICA (Open-Meteo):\n${JSON.stringify(weatherToolResult)}` }]});
+        }
     }
 
     if (searchResults && searchResults.length > 0) {
-        let searchContextText = `## RESULTADOS DA PESQUISA WEB (Use para responder)\n\n`;
-        searchContextText += searchResults.map((r: any) => `[${r.title}]: ${r.snippet}`).join('\n\n');
-        
+        let searchContextText = `## RESULTADOS DA WEB (Use para responder à pergunta atual):\n`;
+        searchContextText += searchResults.map((r: any) => `> [${r.title}]: ${r.snippet}`).join('\n\n');
         content.push({ role: 'user', parts: [{ text: searchContextText }]});
-        content.push({ role: 'model', parts: [{ text: "Recebi os resultados da web. Vou responder a pergunta do usuário usando essas informações de forma natural." }]});
+    }
+
+    // 3. Instruções do Usuário (Separate Context to prevent overriding Safety)
+    if (userInstructions && userInstructions.trim() !== '') {
+        content.push({ 
+            role: 'user', 
+            parts: [{ text: `## PREFERÊNCIAS DO USUÁRIO (Injeção de Estilo):\nO usuário solicitou: "${userInstructions}".\nTente adaptar seu estilo a isso, DESDE QUE não viole as diretrizes de segurança, utilidade ou uso das ferramentas.` }]
+        });
     }
 
     return content;
 };
 
-
 const handler: Handler = async (event: HandlerEvent) => {
     const apiKey = process.env.GEMINI_API;
 
     if (!apiKey) {
-        console.error("Erro Crítico: A variável de ambiente GEMINI_API não está configurada no painel do Netlify.");
-        return { statusCode: 500, body: JSON.stringify({ message: "Erro de configuração no servidor (Chave de IA ausente)." }) };
+        return { statusCode: 500, body: JSON.stringify({ message: "Chave de API ausente." }) };
     }
 
     if (event.httpMethod !== 'POST') {
         return { statusCode: 405, body: 'Method Not Allowed' };
     }
 
+    const startTime = Date.now();
+
     try {
-        const { prompt, history, weatherContext, searchResults, timeContext } = JSON.parse(event.body || '{}');
+        const { prompt, history, weatherContext, searchResults, weatherToolResult, timeContext, userInstructions, isSearchEnabled } = JSON.parse(event.body || '{}');
 
         if (!prompt) {
-            return { statusCode: 400, body: JSON.stringify({ message: "O prompt é obrigatório." }) };
+            return { statusCode: 400, body: JSON.stringify({ message: "Prompt obrigatório." }) };
         }
 
-        // Fallback if frontend didn't send time (backward compatibility)
         const effectiveTimeContext = timeContext || new Date().toLocaleString('pt-BR');
-
         const ai = new GoogleGenAI({ apiKey });
         
-        // Configuration for Model Fallback
-        // 1. Primary: Gemini Flash Lite (Fastest/Cheapest)
-        // 2. Fallback: Gemini 2.0 Flash Lite (Higher RPM limit, good backup). 
-        const modelsToTry = ['gemini-flash-lite-latest', 'gemini-2.0-flash-lite-preview-02-05'];
+        // Updated Models as requested
+        // Primary: gemini-2.5-flash-lite
+        // Fallback: gemini-2.0-flash-lite
+        const modelsToTry = ['gemini-2.5-flash-lite', 'gemini-2.0-flash-lite']; 
         
-        const contextualContent = buildContextualContent(weatherContext, searchResults, effectiveTimeContext);
+        const contextualContent = buildContextualContent(
+            weatherContext, 
+            searchResults, 
+            weatherToolResult, 
+            effectiveTimeContext, 
+            userInstructions,
+            isSearchEnabled
+        );
         
         const contents = [
             ...contextualContent, 
@@ -98,41 +126,42 @@ const handler: Handler = async (event: HandlerEvent) => {
         ];
         
         let text = '';
+        let usedModel = '';
         let lastError = null;
 
-        // Try models in sequence
         for (const model of modelsToTry) {
             try {
-                console.log(`Meteor AI: Tentando gerar resposta com modelo: ${model}`);
+                usedModel = model;
                 const result = await ai.models.generateContent({ model, contents });
                 text = result.text;
-                
-                if (text) break; // Success, stop trying
+                if (text) break;
             } catch (error) {
-                console.warn(`Meteor AI: Falha no modelo ${model}.`, error);
+                console.warn(`Falha no modelo ${model}.`, error);
                 lastError = error;
-                // Continue to next model in loop
             }
         }
 
         if (!text) {
-            console.error("Meteor AI: Todos os modelos falharam.", lastError);
-            throw lastError || new Error("Falha em todos os modelos de IA disponíveis.");
+            throw lastError || new Error("Falha na IA.");
         }
+
+        const processingTime = Date.now() - startTime;
 
         return {
             statusCode: 200,
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ text }),
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                text, 
+                model: usedModel,
+                processingTime
+            }),
         };
 
     } catch (error) {
-        console.error("Erro na função Gemini (Fatal):", error);
+        console.error("Erro Fatal Gemini:", error);
         return {
             statusCode: 500,
-            body: JSON.stringify({ message: "Ocorreu um erro ao processar sua solicitação na IA. Tente novamente mais tarde." }),
+            body: JSON.stringify({ message: "Erro ao processar resposta da IA." }),
         };
     }
 };
