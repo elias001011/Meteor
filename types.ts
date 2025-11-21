@@ -130,6 +130,8 @@ export interface AppSettings {
     borderEffect: BorderEffectMode; // LED-like border effect position
     mapTheme: MapTheme;
     showScrollbars: boolean;
+    performanceMode: boolean; // Performance Mode
+    reducedMotion: boolean; // New: Remove Animations
     rainAnimation: {
         enabled: boolean;
         intensity: 'low' | 'high';

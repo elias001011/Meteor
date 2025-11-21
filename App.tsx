@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import WeatherView from './components/weather/WeatherView';
 import AiView from './components/ai/AiView';
@@ -83,7 +85,7 @@ const AppContent: React.FC<{
     appError: string | null;
     setAppError: (e: string | null) => void;
 }> = (props) => {
-    const { appBackgroundClass, classes } = useTheme();
+    const { appBackgroundClass, isPerformanceMode } = useTheme();
     const { settings, view, weatherInfo, weatherStatus, appError } = props;
     const isRaining = weatherInfo.weatherData?.condition?.toLowerCase().includes('chuv');
 
@@ -121,10 +123,14 @@ const AppContent: React.FC<{
         isSearchEnabled: props.isSearchEnabled,
         onToggleSearch: props.onToggleSearch
     };
+    
+    // Remove animation class if performance mode is on
+    const animationClass = isPerformanceMode ? '' : 'animate-enter';
 
     return (
         <div className={`relative text-white min-h-screen font-sans flex flex-col h-screen overflow-hidden transition-colors duration-500 ${appBackgroundClass}`}>
-            {view === 'weather' && isRaining && settings.rainAnimation.enabled && (
+            {/* Disable Rain Animation in Performance Mode */}
+            {view === 'weather' && isRaining && settings.rainAnimation.enabled && !isPerformanceMode && (
                 <RainAnimation intensity={settings.rainAnimation.intensity} />
             )}
 
@@ -132,7 +138,7 @@ const AppContent: React.FC<{
                 activeView={view} 
                 setView={props.setView} 
                 showClock={settings.showClock} 
-                borderEffect={settings.borderEffect}
+                borderEffect={isPerformanceMode ? 'none' : settings.borderEffect}
             />
             
             {appError && <ErrorPopup message={appError} onClose={() => props.setAppError(null)} />}
@@ -149,7 +155,7 @@ const AppContent: React.FC<{
                 {/* --- DESKTOP VIEW --- */}
                 <div className="hidden lg:block h-full overflow-y-auto pt-16">
                     {view === 'weather' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 h-full animate-enter">
+                        <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 p-6 h-full ${animationClass}`}>
                             <div className="overflow-y-auto pr-2 space-y-6">
                                 <DesktopWeather {...weatherProps} />
                             </div>
@@ -158,39 +164,39 @@ const AppContent: React.FC<{
                             </div>
                         </div>
                     )}
-                    {view === 'ai' && <div className="h-full animate-enter"><AiView {...aiViewProps} /></div>}
+                    {view === 'ai' && <div className={`h-full ${animationClass}`}><AiView {...aiViewProps} /></div>}
                     {view === 'map' && (
-                        <div className="h-full animate-enter">
+                        <div className={`h-full ${animationClass}`}>
                             <MapView lat={props.currentCoords?.lat} lon={props.currentCoords?.lon} theme={settings.mapTheme} />
                         </div>
                     )}
-                    {view === 'news' && <div className="animate-enter"><PlaceholderView title="Notícias" /></div>}
-                    {view === 'settings' && <div className="animate-enter"><SettingsView settings={settings} onSettingsChanged={props.handleSettingsChange} onClearHistory={props.handleClearChatHistory} /></div>}
-                    {view === 'tips' && <div className="animate-enter"><PlaceholderView title="Dicas" /></div>}
-                    {view === 'info' && <div className="animate-enter"><PlaceholderView title="Informações" /></div>}
+                    {view === 'news' && <div className={animationClass}><PlaceholderView title="Notícias" /></div>}
+                    {view === 'settings' && <div className={animationClass}><SettingsView settings={settings} onSettingsChanged={props.handleSettingsChange} onClearHistory={props.handleClearChatHistory} /></div>}
+                    {view === 'tips' && <div className={animationClass}><PlaceholderView title="Dicas" /></div>}
+                    {view === 'info' && <div className={animationClass}><PlaceholderView title="Informações" /></div>}
                 </div>
 
                 {/* --- MOBILE VIEW --- */}
                 <div className="lg:hidden h-full">
-                    <div className={`${view === 'weather' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24 pt-16 animate-enter`}>
+                    <div className={`${view === 'weather' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24 pt-16 ${animationClass}`}>
                         <WeatherView {...weatherProps} />
                     </div>
-                    <div className={`${view === 'ai' ? 'block' : 'hidden'} h-full animate-enter pt-16`}>
+                    <div className={`${view === 'ai' ? 'block' : 'hidden'} h-full pt-16 ${animationClass}`}>
                         <AiView {...aiViewProps} />
                     </div>
-                    <div className={`${view === 'map' ? 'block' : 'hidden'} h-full pb-24 pt-16 animate-enter`}>
+                    <div className={`${view === 'map' ? 'block' : 'hidden'} h-full pb-24 pt-16 ${animationClass}`}>
                         <MapView lat={props.currentCoords?.lat} lon={props.currentCoords?.lon} theme={settings.mapTheme} />
                     </div>
-                    <div className={`${view === 'news' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24 pt-16 animate-enter`}>
+                    <div className={`${view === 'news' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24 pt-16 ${animationClass}`}>
                         <PlaceholderView title="Notícias" />
                     </div>
-                    <div className={`${view === 'settings' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24 pt-16 animate-enter`}>
+                    <div className={`${view === 'settings' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24 pt-16 ${animationClass}`}>
                         <SettingsView settings={settings} onSettingsChanged={props.handleSettingsChange} onClearHistory={props.handleClearChatHistory} />
                     </div>
-                    <div className={`${view === 'tips' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24 pt-16 animate-enter`}>
+                    <div className={`${view === 'tips' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24 pt-16 ${animationClass}`}>
                         <PlaceholderView title="Dicas" />
                     </div>
-                    <div className={`${view === 'info' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24 pt-16 animate-enter`}>
+                    <div className={`${view === 'info' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24 pt-16 ${animationClass}`}>
                         <PlaceholderView title="Informações" />
                     </div>
                 </div>
@@ -286,9 +292,9 @@ const App: React.FC = () => {
       localStorage.removeItem('chat_history');
   }, []);
 
-  // Dynamic Theme Logic
+  // Dynamic Theme Logic (Disabled in Performance Mode)
   useEffect(() => {
-      if (!settings.dynamicTheme) {
+      if (!settings.dynamicTheme || settings.performanceMode) {
           setActiveTheme(settings.themeColor);
           return;
       }
@@ -316,15 +322,15 @@ const App: React.FC = () => {
               setActiveTheme('cyan');
           }
       }
-  }, [settings.dynamicTheme, settings.themeColor, weatherData]);
+  }, [settings.dynamicTheme, settings.themeColor, weatherData, settings.performanceMode]);
 
   // PWA Theme Color Update
   useEffect(() => {
       const metaThemeColor = document.querySelector('meta[name="theme-color"]');
       if (metaThemeColor) {
-          metaThemeColor.setAttribute('content', '#0f172a');
+          metaThemeColor.setAttribute('content', settings.performanceMode ? '#0f172a' : '#0f172a');
       }
-  }, []);
+  }, [settings.performanceMode]);
 
   // Initialization Logic based on Settings
   useEffect(() => {
@@ -585,7 +591,13 @@ const App: React.FC = () => {
   };
 
   return (
-    <ThemeProvider theme={activeTheme} transparencyMode={settings.transparencyMode} backgroundMode={settings.backgroundMode}>
+    <ThemeProvider 
+      theme={activeTheme} 
+      transparencyMode={settings.transparencyMode} 
+      backgroundMode={settings.backgroundMode} 
+      performanceMode={settings.performanceMode}
+      reducedMotion={settings.reducedMotion}
+    >
       <AppContent 
         settings={settings}
         handleSettingsChange={handleSettingsChange}

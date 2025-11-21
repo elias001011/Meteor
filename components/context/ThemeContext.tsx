@@ -1,6 +1,6 @@
 
 
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useEffect } from 'react';
 import type { AppTheme, TransparencyMode, BackgroundMode } from '../../types';
 
 interface ThemeClasses {
@@ -22,6 +22,7 @@ interface ThemeContextProps {
     cardClass: string; // For main content containers (The "Glass" look)
     headerClass: string; // Specifically for the top navigation
     appBackgroundClass: string; // The main app background
+    isPerformanceMode: boolean;
 }
 
 const THEME_DEFINITIONS: Record<AppTheme, ThemeClasses> = {
@@ -94,15 +95,18 @@ const ThemeContext = createContext<ThemeContextProps>({
     glassClass: 'bg-black/40 backdrop-blur-xl border border-white/10',
     cardClass: 'bg-white/5 backdrop-blur-lg border border-white/5',
     headerClass: 'bg-[#131B2E]/70 backdrop-blur-md border-b border-white/5',
-    appBackgroundClass: 'bg-slate-900'
+    appBackgroundClass: 'bg-slate-900',
+    isPerformanceMode: false
 });
 
 export const ThemeProvider: React.FC<{ 
     theme: AppTheme, 
     transparencyMode: TransparencyMode,
     backgroundMode?: BackgroundMode,
+    performanceMode?: boolean,
+    reducedMotion?: boolean,
     children: React.ReactNode 
-}> = ({ theme, transparencyMode, backgroundMode = 'gradient', children }) => {
+}> = ({ theme, transparencyMode, backgroundMode = 'gradient', performanceMode = false, reducedMotion = false, children }) => {
     
     const currentClasses = THEME_DEFINITIONS[theme] || THEME_DEFINITIONS.purple;
     
@@ -110,37 +114,55 @@ export const ThemeProvider: React.FC<{
     let glassClass = '';
     // Card container glass (weather widgets, settings sections)
     let cardClass = '';
-    // Header specific style - Needs to be strictly controlled by transparencyMode
+    // Header specific style
     let headerClass = '';
+    // Background
+    let appBackgroundClass = '';
 
-    switch (transparencyMode) {
-        case 'off':
-            glassClass = 'bg-slate-900 border border-gray-700'; 
-            cardClass = 'bg-slate-800 border border-gray-700';
-            headerClass = 'bg-[#0f172a] border-b border-gray-800'; // Solid dark
-            break;
-        case 'low':
-            glassClass = 'bg-slate-900/95 border border-white/10'; 
-            cardClass = 'bg-slate-800/80 border border-white/5';
-            headerClass = 'bg-[#0f172a]/90 backdrop-blur-sm border-b border-white/5';
-            break;
-        case 'glass':
-        default:
-            // Elegant, premium glass feel
-            glassClass = 'bg-black/40 backdrop-blur-2xl border border-white/10 shadow-2xl'; 
-            cardClass = 'bg-white/5 backdrop-blur-md border border-white/10 shadow-lg hover:bg-white/10 transition-colors duration-300';
-            // Header gets transparency ONLY in glass/low modes
-            headerClass = 'bg-[#0f172a]/70 backdrop-blur-md border-b border-white/5';
-            break;
+    // Apply Reduced Motion Class to Body
+    useEffect(() => {
+        if (reducedMotion || performanceMode) {
+            document.body.classList.add('reduce-motion');
+        } else {
+            document.body.classList.remove('reduce-motion');
+        }
+    }, [reducedMotion, performanceMode]);
+
+    if (performanceMode) {
+        // --- PERFORMANCE MODE ON: REMOVE BLUR, SHADOWS, GRADIENTS ---
+        glassClass = 'bg-gray-900 border border-gray-700'; // Solid background, no blur
+        cardClass = 'bg-gray-800 border border-gray-700'; // Solid cards
+        headerClass = 'bg-gray-900 border-b border-gray-700'; // Solid header
+        appBackgroundClass = 'bg-[#0f172a]'; // Solid slate background
+    } else {
+        // --- NORMAL MODE ---
+        switch (transparencyMode) {
+            case 'off':
+                glassClass = 'bg-slate-900 border border-gray-700'; 
+                cardClass = 'bg-slate-800 border border-gray-700';
+                headerClass = 'bg-[#0f172a] border-b border-gray-800';
+                break;
+            case 'low':
+                glassClass = 'bg-slate-900/95 border border-white/10'; 
+                cardClass = 'bg-slate-800/80 border border-white/5';
+                headerClass = 'bg-[#0f172a]/90 backdrop-blur-sm border-b border-white/5';
+                break;
+            case 'glass':
+            default:
+                // Elegant, premium glass feel
+                glassClass = 'bg-black/40 backdrop-blur-2xl border border-white/10 shadow-2xl'; 
+                cardClass = 'bg-white/5 backdrop-blur-md border border-white/10 shadow-lg hover:bg-white/10 transition-colors duration-300';
+                headerClass = 'bg-[#0f172a]/70 backdrop-blur-md border-b border-white/5';
+                break;
+        }
+        
+        appBackgroundClass = backgroundMode === 'solid' 
+            ? 'bg-[#0f172a]' 
+            : 'bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#1e293b] via-[#0f172a] to-black bg-fixed';
     }
-    
-    // Background Logic
-    const appBackgroundClass = backgroundMode === 'solid' 
-        ? 'bg-[#0f172a]' // Slate 900 solid
-        : 'bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#1e293b] via-[#0f172a] to-black bg-fixed'; // The original premium gradient
 
     return (
-        <ThemeContext.Provider value={{ theme, transparencyMode, classes: currentClasses, glassClass, cardClass, headerClass, appBackgroundClass }}>
+        <ThemeContext.Provider value={{ theme, transparencyMode, classes: currentClasses, glassClass, cardClass, headerClass, appBackgroundClass, isPerformanceMode: performanceMode }}>
             {children}
         </ThemeContext.Provider>
     );

@@ -21,6 +21,8 @@ const DEFAULT_SETTINGS: AppSettings = {
     borderEffect: 'top', // Default to Top as requested
     mapTheme: 'light', // Default to Light as requested
     showScrollbars: false, // Default to OFF for a cleaner, mobile-first UI
+    performanceMode: false, // Default OFF
+    reducedMotion: false, // Default OFF
     rainAnimation: {
         enabled: true,
         intensity: 'low'
@@ -137,6 +139,7 @@ export const importAppData = (
         const data: ExportData & { lastCoords?: any } = JSON.parse(jsonContent);
 
         if (options.importSettings && data.settings) {
+            // Merge with defaults to ensure new keys (like reducedMotion) are present even if importing old backup
             const mergedSettings = { 
                 ...DEFAULT_SETTINGS, 
                 ...data.settings,

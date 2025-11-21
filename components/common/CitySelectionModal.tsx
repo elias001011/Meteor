@@ -1,4 +1,6 @@
-import React from 'react';
+
+
+import React, { useEffect } from 'react';
 import SearchBar from '../weather/SearchBar';
 import type { CitySearchResult } from '../../types';
 import { XIcon } from '../icons';
@@ -12,10 +14,22 @@ interface CitySelectionModalProps {
 
 const CitySelectionModal: React.FC<CitySelectionModalProps> = ({ isOpen, onClose, onSelect }) => {
     const { glassClass } = useTheme();
+    
+    useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [isOpen]);
+
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/70 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 bg-black/70 z-[150] flex items-center justify-center p-4 pb-20 backdrop-blur-sm h-screen w-screen">
             <div className={`${glassClass} border border-gray-700 rounded-2xl w-full max-w-md p-6 relative shadow-2xl`}>
                 <button 
                     onClick={onClose}
