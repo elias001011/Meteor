@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import WeatherView from './components/weather/WeatherView';
 import AiView from './components/ai/AiView';
@@ -23,16 +24,16 @@ import { ThemeProvider, useTheme } from './components/context/ThemeContext';
 
 // Rain animation component defined locally
 const RainAnimation: React.FC<{ intensity: 'low' | 'high' }> = ({ intensity }) => {
-    // Increased density for better visibility
-    const numberOfDrops = intensity === 'high' ? 400 : 120;
-    const speedMultiplier = intensity === 'high' ? 1.3 : 0.9;
-
+    // Adjusted density: Low is very subtle (15), High is moderate (160)
+    const numberOfDrops = intensity === 'high' ? 160 : 15;
+    
     return (
-        <div className="fixed inset-0 w-full h-full z-20 pointer-events-none overflow-hidden">
+        <div className="fixed inset-0 w-full h-full z-0 pointer-events-none overflow-hidden">
             {Array.from({ length: numberOfDrops }).map((_, i) => {
-                // Use negative delay to ensure rain is already falling when component mounts
+                // Randomize delay to prevent "waves" of rain
                 const delay = Math.random() * -5;
-                const duration = (0.6 + Math.random() * 0.4) / speedMultiplier;
+                // Faster speed for longer "streak" look
+                const duration = (0.5 + Math.random() * 0.3);
                 
                 return (
                     <div
@@ -42,11 +43,11 @@ const RainAnimation: React.FC<{ intensity: 'low' | 'high' }> = ({ intensity }) =
                             left: `${Math.random() * 100}%`,
                             animationDuration: `${duration}s`,
                             animationDelay: `${delay}s`,
-                            // Increased opacity and used white gradient for better contrast against dark backgrounds
-                            opacity: Math.random() * 0.4 + 0.3, 
-                            background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.8) 100%)',
-                            width: '2px',
-                            height: intensity === 'high' ? `${Math.random() * 30 + 60}px` : `${Math.random() * 20 + 40}px`
+                            opacity: Math.random() * 0.3 + 0.2, // Slightly transparent
+                            // Blueish gradient (Sky-400/500 tone) fading to transparent at top
+                            background: 'linear-gradient(to bottom, rgba(56, 189, 248, 0) 0%, rgba(56, 189, 248, 0.6) 100%)',
+                            width: '1px', // Thinner
+                            height: `${Math.random() * 80 + 80}px` // Much longer (80px to 160px)
                         }}
                     />
                 );
@@ -152,7 +153,7 @@ const AppContent: React.FC<{
 
     return (
         <div className={`relative text-white min-h-screen font-sans flex flex-col h-screen overflow-hidden transition-colors duration-500 ${appBackgroundClass}`}>
-            {/* Rain Animation Layer - Now Z-Indexed above main content for visibility */}
+            {/* Rain Animation Layer - Z-Index 0 puts it behind content (z-10) but above background */}
             {view === 'weather' && isRaining && settings.rainAnimation.enabled && !isPerformanceMode && (
                 <RainAnimation intensity={settings.rainAnimation.intensity} />
             )}
