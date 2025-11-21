@@ -1,9 +1,3 @@
-
-
-
-
-
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import WeatherView from './components/weather/WeatherView';
 import AiView from './components/ai/AiView';
@@ -29,26 +23,34 @@ import { ThemeProvider, useTheme } from './components/context/ThemeContext';
 
 // Rain animation component defined locally
 const RainAnimation: React.FC<{ intensity: 'low' | 'high' }> = ({ intensity }) => {
-    const numberOfDrops = intensity === 'high' ? 150 : 60;
-    const speedMultiplier = intensity === 'high' ? 0.7 : 1;
+    // Increased density for better visibility
+    const numberOfDrops = intensity === 'high' ? 400 : 120;
+    const speedMultiplier = intensity === 'high' ? 1.3 : 0.9;
 
     return (
-        <div className="fixed top-0 left-0 w-full h-full z-0 pointer-events-none overflow-hidden">
-            {Array.from({ length: numberOfDrops }).map((_, i) => (
-                <div
-                    key={i}
-                    className="raindrop"
-                    style={{
-                        left: `${Math.random() * 100}%`,
-                        animationDuration: `${(0.6 + Math.random() * 0.4) * speedMultiplier}s`,
-                        animationDelay: `${Math.random() * 5}s`,
-                        opacity: intensity === 'high' ? 0.7 : 0.5,
-                        background: 'linear-gradient(to top, rgba(174, 217, 255, 0) 0%, rgba(174, 217, 255, 0.6) 100%)',
-                        width: '1.5px',
-                        height: intensity === 'high' ? '70px' : '50px'
-                    }}
-                />
-            ))}
+        <div className="fixed inset-0 w-full h-full z-20 pointer-events-none overflow-hidden">
+            {Array.from({ length: numberOfDrops }).map((_, i) => {
+                // Use negative delay to ensure rain is already falling when component mounts
+                const delay = Math.random() * -5;
+                const duration = (0.6 + Math.random() * 0.4) / speedMultiplier;
+                
+                return (
+                    <div
+                        key={i}
+                        className="raindrop"
+                        style={{
+                            left: `${Math.random() * 100}%`,
+                            animationDuration: `${duration}s`,
+                            animationDelay: `${delay}s`,
+                            // Increased opacity and used white gradient for better contrast against dark backgrounds
+                            opacity: Math.random() * 0.4 + 0.3, 
+                            background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.8) 100%)',
+                            width: '2px',
+                            height: intensity === 'high' ? `${Math.random() * 30 + 60}px` : `${Math.random() * 20 + 40}px`
+                        }}
+                    />
+                );
+            })}
         </div>
     );
 };
@@ -99,7 +101,16 @@ const AppContent: React.FC<{
 }> = (props) => {
     const { appBackgroundClass, isPerformanceMode } = useTheme();
     const { settings, view, weatherInfo, weatherStatus, appError } = props;
-    const isRaining = weatherInfo.weatherData?.condition?.toLowerCase().includes('chuv');
+    
+    // Enhanced detection for rain conditions including drizzle, thunderstorms, etc.
+    const condition = weatherInfo.weatherData?.condition?.toLowerCase() || '';
+    const isRaining = condition.includes('chuv') || 
+                      condition.includes('rain') || 
+                      condition.includes('drizzle') || 
+                      condition.includes('garoa') || 
+                      condition.includes('tempestade') || 
+                      condition.includes('trovoada') ||
+                      condition.includes('aguaceiro');
 
     const weatherProps = {
         status: weatherStatus,
@@ -141,7 +152,7 @@ const AppContent: React.FC<{
 
     return (
         <div className={`relative text-white min-h-screen font-sans flex flex-col h-screen overflow-hidden transition-colors duration-500 ${appBackgroundClass}`}>
-            {/* Disable Rain Animation in Performance Mode */}
+            {/* Rain Animation Layer - Now Z-Indexed above main content for visibility */}
             {view === 'weather' && isRaining && settings.rainAnimation.enabled && !isPerformanceMode && (
                 <RainAnimation intensity={settings.rainAnimation.intensity} />
             )}
