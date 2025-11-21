@@ -108,7 +108,8 @@
       }
       
       /* Utility to disable animations via JS toggle if needed */
-      .reduce-motion * {
+      /* Excludes .raindrop so weather animations persist even if UI motion is reduced */
+      .reduce-motion *:not(.raindrop) {
         animation: none !important;
         transition: none !important;
       }
