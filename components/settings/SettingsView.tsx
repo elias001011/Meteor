@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import type { AppSettings, View, DataSource, AppTheme, TransparencyMode, ClockDisplayMode, BackgroundMode, MapTheme, BorderEffectMode, LayoutDensity } from '../../types';
 import { getSettings, resetSettings, resetCache, resetAllData, exportAppData } from '../../services/settingsService';
 import { useTheme } from '../context/ThemeContext';
-import { XIcon, LightbulbIcon, SparklesIcon, ChevronLeftIcon, GaugeIcon, HeartIcon } from '../icons';
+import { XIcon, LightbulbIcon, SparklesIcon, ChevronLeftIcon, GaugeIcon, HeartIcon, GithubIcon, FileTextIcon, GlobeIcon } from '../icons';
 
 interface SettingsViewProps {
     settings: AppSettings;
@@ -725,6 +725,45 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                             </button>
                         </div>
                     </div>
+                </div>
+            </section>
+
+            {/* --- USEFUL LINKS (NEW) --- */}
+            <section className={`rounded-3xl ${density.padding} ${cardClass}`}>
+                <h3 className={`text-lg font-bold ${classes.text} mb-4`}>Links Úteis</h3>
+                <div className="grid grid-cols-1 gap-3">
+                    <a href="https://policies-meteor-ai.netlify.app/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group">
+                        <div className={`p-2 rounded-lg bg-gray-800 text-gray-400 group-hover:text-white group-hover:bg-gray-700 transition-colors`}>
+                            <FileTextIcon className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1">
+                            <h4 className="text-sm font-bold text-white">Política de Privacidade e Termos</h4>
+                            <p className="text-xs text-gray-400">Leia sobre como tratamos seus dados</p>
+                        </div>
+                        <ChevronLeftIcon className="w-4 h-4 text-gray-500 rotate-180" />
+                    </a>
+
+                    <a href="https://sobre-meteor-ai.netlify.app/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group">
+                        <div className={`p-2 rounded-lg bg-gray-800 text-gray-400 group-hover:text-white group-hover:bg-gray-700 transition-colors`}>
+                            <GlobeIcon className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1">
+                            <h4 className="text-sm font-bold text-white">Sobre o Projeto</h4>
+                            <p className="text-xs text-gray-400">Conheça a história e missão do Meteor</p>
+                        </div>
+                         <ChevronLeftIcon className="w-4 h-4 text-gray-500 rotate-180" />
+                    </a>
+
+                    <a href="https://github.com/elias001011/Meteor" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group">
+                        <div className={`p-2 rounded-lg bg-gray-800 text-gray-400 group-hover:text-white group-hover:bg-gray-700 transition-colors`}>
+                            <GithubIcon className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1">
+                            <h4 className="text-sm font-bold text-white">Repositório GitHub</h4>
+                            <p className="text-xs text-gray-400">Código fonte aberto e contribuições</p>
+                        </div>
+                         <ChevronLeftIcon className="w-4 h-4 text-gray-500 rotate-180" />
+                    </a>
                 </div>
             </section>
 

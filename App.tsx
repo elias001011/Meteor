@@ -1,5 +1,4 @@
 
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import WeatherView from './components/weather/WeatherView';
 import AiView from './components/ai/AiView';
@@ -21,6 +20,7 @@ import DataSourceModal from './components/common/DataSourceModal';
 import ImportModal from './components/settings/ImportModal';
 import ChangelogModal from './components/settings/ChangelogModal';
 import CitySelectionModal from './components/common/CitySelectionModal';
+import OnboardingModal from './components/common/OnboardingModal';
 import { ThemeProvider, useTheme } from './components/context/ThemeContext';
 
 // Rain animation component defined locally
@@ -278,6 +278,7 @@ const App: React.FC = () => {
   const [showImportModal, setShowImportModal] = useState(false);
   const [showChangelogModal, setShowChangelogModal] = useState(false);
   const [showSettingsCityModal, setShowSettingsCityModal] = useState(false); // For setting default location
+  const [showOnboardingModal, setShowOnboardingModal] = useState(false); // New Onboarding State
 
   // Synced with Settings.weatherSource but allows temporary override via Modal
   const [preferredDataSource, setPreferredDataSource] = useState<DataSource | 'auto'>('auto');
@@ -322,6 +323,19 @@ const App: React.FC = () => {
         localStorage.removeItem('chat_history');
     }
   }, [messages, settings.saveChatHistory]);
+  
+  // Check for Onboarding status on mount
+  useEffect(() => {
+      const hasSeenIntro = localStorage.getItem('meteor_intro_seen');
+      if (!hasSeenIntro) {
+          setShowOnboardingModal(true);
+      }
+  }, []);
+
+  const handleOnboardingClose = () => {
+      localStorage.setItem('meteor_intro_seen', 'true');
+      setShowOnboardingModal(false);
+  };
 
   const handleSettingsChange = (newSettings: AppSettings) => {
     saveSettings(newSettings); // Persist to localStorage
@@ -691,6 +705,10 @@ const App: React.FC = () => {
       />
       
       {/* GLOBAL MODALS RENDERED AT ROOT */}
+      {showOnboardingModal && (
+          <OnboardingModal onClose={handleOnboardingClose} />
+      )}
+
       <ImportModal 
           isOpen={showImportModal}
           onClose={() => setShowImportModal(false)}
