@@ -1,70 +1,80 @@
-
 # Meteor ☄️
-### Inteligência Climática & Alertas Ambientais
+
+### Plataforma de Inteligência Climática e Resiliência Ambiental
 
 ![Status do Projeto](https://img.shields.io/badge/Status-Em_Desenvolvimento-cyan?style=for-the-badge)
-![Tech Stack](https://img.shields.io/badge/React-Vite_|_Netlify_Functions-blue?style=for-the-badge)
+![Tech Stack](https://img.shields.io/badge/Tech_Stack-React_|_Vite_|_TypeScript-blue?style=for-the-badge)
+![Backend](https://img.shields.io/badge/Backend-Netlify_Functions-green?style=for-the-badge)
 ![AI Power](https://img.shields.io/badge/Powered_by-Google_Gemini-purple?style=for-the-badge)
+![Licença](https://img.shields.io/badge/License-Open_Source-brightgreen?style=for-the-badge)
 
-O **Meteor** é uma Plataforma Digital Interativa para monitoramento climático avançado, concebida como a evolução tecnológica do projeto acadêmico **RS Alerta**. Ele combina dados meteorológicos de precisão, mapas interativos e Inteligência Artificial Generativa para fortalecer a comunicação de risco e a resiliência climática.
+O **Meteor** é uma Plataforma Digital Interativa de código aberto dedicada ao monitoramento climático avançado e à comunicação de risco. Concebido como a evolução tecnológica do projeto acadêmico **RS Alerta**, ele integra dados meteorológicos de precisão, mapas interativos e **Inteligência Artificial Generativa** para transformar dados brutos em informações acionáveis, fortalecendo a resiliência climática em qualquer localidade do mundo.
 
-🔗 **Acesse agora:** [meteor-ai.netlify.app](https://meteor-ai.netlify.app)
-
----
-
-## 📜 Histórico: O Legado do RS Alerta
-
-O Meteor é o sucessor espiritual e técnico do **RS Alerta**, um projeto de pesquisa desenvolvido na **Escola Estadual de Ensino Médio Dr. Aldo Conte** (Sarandi/RS).
-
-O RS Alerta nasceu em resposta à catástrofe climática de abril/maio de 2024 no Rio Grande do Sul. O estudo identificou que, além da infraestrutura, houve uma falha crítica na **comunicação de risco**: a informação técnica não chegava de forma clara e acionável à população.
-
-**O Meteor resolve isso transformando dados brutos em diálogo.**
-
-### Diferenciais em relação ao projeto original:
-*   **IA Generativa (Google Gemini):** Em vez de apenas exibir alertas, a IA interpreta os dados, responde perguntas em linguagem natural e dá conselhos personalizados de segurança.
-*   **Arquitetura Global:** Embora focado na resiliência local, o sistema funciona para qualquer cidade do mundo.
-*   **Resiliência de Dados:** Implementação de múltiplos "Fallbacks". Se a API principal (OpenWeather OneCall) falhar ou atingir o limite, o sistema muda automaticamente para APIs gratuitas (OpenWeather Free) ou Open Source (Open-Meteo), garantindo que o serviço nunca saia do ar.
+🔗 **Acesse a Demonstração:** [meteor-ai.netlify.app](https://meteor-ai.netlify.app)
 
 ---
 
-## ✨ Funcionalidades
+## 1. O Legado do RS Alerta
 
-*   **🌦️ Monitoramento em Tempo Real:** Temperatura, vento, umidade, UV, visibilidade e qualidade do ar.
-*   **🤖 Assistente de IA (Gemini 2.5):** Um chat integrado que sabe onde você está e como está o tempo. Pergunte *"Vai chover na hora do meu jogo?"* ou *"O que fazer em caso de enchente?"*.
-*   **🗺️ Mapas Interativos:** Camadas visuais de precipitação, nuvens, temperatura e vento sobrepostas ao mapa.
-*   **📱 PWA (Progressive Web App):** Instale no celular como um aplicativo nativo, com suporte a funcionamento em tela cheia e ícones adaptativos.
-*   **⚙️ Personalização Total:**
-    *   Escolha sua fonte de dados preferida (OpenWeather ou Open-Meteo).
-    *   Modo Tela Cheia e controle de exibição de relógio.
-    *   Instruções personalizadas para moldar a personalidade da IA.
-*   **🛡️ Privacidade e Segurança:** Nenhuma chave de API é exposta no navegador. Toda a comunicação é feita através de um Backend-for-Frontend (Netlify Functions).
+O Meteor é o sucessor técnico e espiritual do **RS Alerta**, um projeto de pesquisa desenvolvido na Escola Estadual de Ensino Médio Dr. Aldo Conte (Sarandi/RS). O projeto original identificou uma falha crítica na comunicação de risco durante eventos climáticos extremos: a informação técnica não chegava de forma clara e acessível à população.
 
----
+**O Meteor resolve este desafio transformando dados brutos em um diálogo personalizado e proativo.**
 
-## 🛠️ Tecnologias
+### Diferenciais em Relação ao Projeto Original:
 
-*   **Frontend:** React 19, TypeScript, Vite, Tailwind CSS.
-*   **Backend (Serverless):** Netlify Functions (Node.js) para orquestração de APIs e proteção de chaves.
-*   **Inteligência Artificial:** Google Gemini API (Modelo `gemini-2.5-flash-lite`).
-*   **Dados Meteorológicos:** OpenWeatherMap (OneCall 3.0 + Free Tier) e Open-Meteo.
-*   **Mapas:** Leaflet + OpenStreetMap.
-*   **Armazenamento:** Netlify Blobs (para controle de taxa/rate-limiting) e LocalStorage (para preferências do usuário).
+| Característica | RS Alerta (Original) | Meteor (Evolução) |
+| :--- | :--- | :--- |
+| **Comunicação** | Exibição estática de alertas. | **IA Generativa (Gemini 2.5):** Interpreta dados, responde perguntas em linguagem natural e oferece conselhos personalizados de segurança. |
+| **Escopo** | Focado em dados regionais. | **Arquitetura Global:** Funciona para qualquer cidade do mundo. |
+| **Resiliência** | Dependência de uma única API. | **Múltiplos Fallbacks:** Troca automática entre APIs (OpenWeather OneCall, OpenWeather Free, Open-Meteo) para garantir a continuidade do serviço. |
+| **Segurança** | Chaves de API no frontend (risco). | **Backend-for-Frontend (Netlify Functions):** Todas as chaves de API são protegidas no servidor. |
 
 ---
 
-## 🚀 Rodando Localmente
+## 2. Funcionalidades Principais
 
-Siga estes passos para rodar o Meteor no seu computador:
+O Meteor oferece um conjunto robusto de ferramentas para monitoramento e interação:
 
-### 1. Pré-requisitos
+*   **🌦️ Monitoramento em Tempo Real:** Acesso a dados essenciais como temperatura, vento, umidade, índice UV, visibilidade e qualidade do ar.
+*   **🤖 Assistente de IA Integrado:** Um chat inteligente que utiliza o modelo Gemini 2.5 para fornecer informações contextuais. A IA sabe a previsão do tempo para a sua localização e pode responder a perguntas complexas como: *"Qual a melhor hora para irrigar minhas plantas amanhã?"* ou *"Resuma a previsão para a semana em termos leigos."*
+*   **🗺️ Mapas Interativos:** Camadas dinâmicas de precipitação, nuvens, temperatura e vento, construídas sobre o Leaflet e OpenStreetMap.
+*   **📱 PWA (Progressive Web App):** Instalação rápida em dispositivos móveis e desktop, oferecendo uma experiência de aplicativo nativo com funcionamento em tela cheia.
+*   **⚙️ Personalização Avançada:** Permite ao usuário escolher a fonte de dados preferida, definir instruções personalizadas para moldar a personalidade da IA e gerenciar o cache de dados.
+*   **🛡️ Segurança e Privacidade:** Nenhuma chave de API é exposta no navegador. Toda a orquestração de dados e chamadas de IA é feita através de Funções Serverless (Netlify Functions).
+
+---
+
+## 3. Tecnologia Utilizada
+
+O projeto é construído com uma arquitetura moderna e escalável:
+
+| Componente | Tecnologia | Uso |
+| :--- | :--- | :--- |
+| **Frontend** | React 19, TypeScript, Vite | Interface de usuário rápida e tipada. |
+| **Estilização** | Tailwind CSS | Desenvolvimento ágil e responsivo. |
+| **Backend (Serverless)** | Netlify Functions (Node.js) | Orquestração de APIs, proteção de chaves e lógica de *rate-limiting*. |
+| **Inteligência Artificial** | Google Gemini API (`gemini-2.5-flash-lite`) | Geração de respostas contextuais e análise de dados. |
+| **Dados Meteorológicos** | OpenWeatherMap (OneCall 3.0 + Free Tier), Open-Meteo | Fontes primárias e de *fallback* para dados climáticos. |
+| **Mapas** | Leaflet, OpenStreetMap | Renderização de mapas e camadas interativas. |
+| **Armazenamento** | Netlify Blobs, LocalStorage | Controle de taxa de uso de API e armazenamento de preferências do usuário. |
+
+---
+
+## 4. Rodando Localmente (Desenvolvimento)
+
+Siga estes passos para configurar e rodar o Meteor no seu ambiente de desenvolvimento:
+
+### 4.1. Pré-requisitos
+
 *   Node.js (versão 18 ou superior)
-*   Gerenciador de pacotes (NPM ou Yarn)
-*   Netlify CLI (Recomendado para rodar as funções serverless localmente)
+*   Gerenciador de pacotes (npm ou yarn)
+*   Netlify CLI (necessário para rodar as funções serverless localmente)
     ```bash
     npm install netlify-cli -g
     ```
 
-### 2. Instalação
+### 4.2. Instalação
+
 Clone o repositório e instale as dependências:
 
 ```bash
@@ -73,53 +83,48 @@ cd Meteor
 npm install
 ```
 
-### 3. Configuração de Ambiente (.env)
-Crie um arquivo `.env` na raiz do projeto e **adicione-o ao seu .gitignore**. Você precisará das seguintes chaves:
+### 4.3. Configuração de Ambiente
+
+Crie um arquivo `.env` na raiz do projeto e **adicione-o ao seu `.gitignore`** (o `.gitignore` já está configurado para ignorá-lo). Você precisará das seguintes chaves de API:
 
 ```env
-# Obrigatório: API do OpenWeatherMap
+# Obrigatório: Chave da API do OpenWeatherMap (para dados climáticos)
 CLIMA_API=sua_chave_openweather
 
-# Obrigatório: API do Google Gemini (AI Studio)
+# Obrigatório: Chave da API do Google Gemini (para o assistente de IA)
 GEMINI_API=sua_chave_gemini
 
-# Opcional: Para imagens de fundo das cidades
+# Opcional: Chave da API do Unsplash (para imagens de fundo das cidades)
 UNSPLASH_ACESS_KEY=sua_chave_unsplash
 
-# Opcional: Para busca na web via IA (Google Custom Search)
+# Opcional: Chave e ID para busca na web via IA (Google Custom Search)
 SEARCH_API=sua_chave_google_search
 SEARCH_ID=seu_search_engine_id
 ```
 
-### 4. Executando o Projeto
-Para que o Frontend e as Funções Backend rodem juntos, use o Netlify CLI:
+### 4.4. Executando o Projeto
+
+Para que o Frontend e as Funções Serverless (Backend) rodem juntos, utilize o Netlify CLI:
 
 ```bash
 netlify dev
 ```
+
 O projeto estará disponível em `http://localhost:8888`.
 
-> **Nota:** Se usar apenas `npm run dev`, a interface carregará, mas as chamadas de API falharão pois dependem das Netlify Functions.
+> **Nota:** Se você usar apenas `npm run dev`, a interface carregará, mas as chamadas de API falharão, pois dependem das Netlify Functions para proteger e orquestrar as chaves.
 
 ---
 
-## 📖 Como Usar (Interface Web)
+## 5. Créditos do Projeto Acadêmico (Base Teórica)
 
-1.  **Início:** Ao abrir, o app pode usar sua localização ou pedir para selecionar uma cidade.
-2.  **Fonte de Dados:** Toque no ícone de "Banco de Dados" no rodapé da previsão para alternar entre provedores (ex: mudar para Open-Meteo se quiser economizar dados da chave principal).
-3.  **IA:** Clique na aba "IA" ou no ícone flutuante (mobile). A IA já sabe o clima da cidade que você está vendo. Tente pedir: *"Resuma a previsão para a semana"* ou *"Crie um alerta para meus vizinhos sobre a chuva"*.
-4.  **Ajustes:** Vá em "Mais" > "Ajustes" para definir seu nome, instruções para a IA e gerenciar o cache.
-
----
-
-## 👥 Créditos do Projeto Acadêmico (Base Teórica)
+O projeto Meteor é baseado no trabalho de pesquisa e desenvolvimento do **RS Alerta**, realizado por:
 
 **Alunos:**
 *   Elias Juriatti Rodrigues Nunes
 *   Guilherme Zatti
 *   Richard Albuquerque Couto
 *   Laísa Linke da Silva
-*   Fernanda Damasceno Maragno
 
 **Orientação:**
 *   Prof. Franciele Pedrolo
@@ -127,7 +132,5 @@ O projeto estará disponível em `http://localhost:8888`.
 
 **Instituição:**
 *   Escola Estadual de Ensino Médio Dr. Aldo Conte (Sarandi/RS)
-
----
 
 Desenvolvido com 💙 e foco em Salvar Vidas.
