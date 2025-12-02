@@ -3,6 +3,8 @@
 
 
 
+
+
 // FIX: Module '"@netlify/functions"' has no exported member 'getStore'. This is likely due to a version mismatch. Importing `getStore` directly from `@netlify/blobs` as a documented fallback.
 import { type Handler, type HandlerEvent, type HandlerContext } from "@netlify/functions";
 import { getStore } from "@netlify/blobs";
@@ -150,12 +152,18 @@ const fetchWithOpenMeteo = async (lat: string, lon: string) => {
     const localToday = new Date(Date.now() + timezoneOffset * 1000).toISOString().split('T')[0];
 
     for (let i = 0; i < daily.time.length; i++) {
-         const dayTime = new Date(daily.time[i]).getTime() / 1000;
-         // Open-Meteo daily times are usually midnight local time, but checking string date ensures correctness
-         const dayString = daily.time[i].split('T')[0];
+         // Open-Meteo returns YYYY-MM-DD strings in local time.
+         // If we convert this string directly to a Date, it becomes UTC Midnight.
+         // If the timezone is negative (e.g. -3h), frontend calculation (dt + offset) will result in 21:00 Previous Day.
+         // FIX: Create a timestamp representing Local Noon converted to UTC. 
+         // Formula: (Local Noon UTC Timestamp) - Offset.
+         // This ensures (dt + offset) = Local Noon, keeping the date stable in the frontend.
+         const baseTime = new Date(`${daily.time[i]}T12:00:00Z`).getTime() / 1000;
+         const dayTime = baseTime - timezoneOffset;
+
+         const dayString = daily.time[i];
          
          // STRICTLY filter for today onwards. Using >= ensures we include today but exclude yesterday.
-         // We assume dayString and localToday are in YYYY-MM-DD format.
          if (dayString >= localToday && dailyForecast.length < 7) {
               dailyForecast.push({
                 dt: dayTime,
