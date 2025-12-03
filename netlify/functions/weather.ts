@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 // FIX: Module '"@netlify/functions"' has no exported member 'getStore'. This is likely due to a version mismatch. Importing `getStore` directly from `@netlify/blobs` as a documented fallback.
 import { type Handler, type HandlerEvent, type HandlerContext } from "@netlify/functions";
 import { getStore } from "@netlify/blobs";
@@ -576,7 +569,8 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
                         const fallbackLayer = MAP_LAYER_FALLBACKS[layer];
                         if (fallbackLayer) {
                              const tileUrl1 = `https://tile.openweathermap.org/map/${fallbackLayer}/${z}/${x}/${y}.png?appid=${API_KEY}`;
-                             console.log(`Fallback URL: ${tileUrl1}`);
+                             // CodeQL Alert Fix: Do not log the full URL containing the API KEY
+                             console.log(`Fallback to Maps 1.0 layer: ${fallbackLayer}`); 
                              response = await fetch(tileUrl1);
                         } else {
                             // No fallback mapping available for this layer

@@ -61,7 +61,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
        <button 
         type="button" 
         onClick={onToggleSearch}
-        className={`p-2 transition-colors rounded-full ${isSearchEnabled ? `${classes.text} ${classes.bg.replace('bg-', 'bg-').replace('500','500/20').replace('600', '600/20')}` : 'text-gray-400 hover:text-white'}`}
+        // Removed complex string replacement which caused CodeQL alerts. Used explicit classes instead.
+        className={`p-2 transition-colors rounded-full ${isSearchEnabled ? `${classes.text} bg-gray-800 border border-gray-700` : 'text-gray-400 hover:text-white'}`}
         aria-label={isSearchEnabled ? "Desativar pesquisa na web" : "Ativar pesquisa na web"}
       >
           <SearchIcon className="w-6 h-6" />
