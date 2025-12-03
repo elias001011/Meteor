@@ -2,20 +2,20 @@
 
 ## Supported Versions
 
-Use this section to tell people about which versions of your project are
-currently being supported with security updates.
+Atualemnte o projeto se encontra na versão mais recente 2.5 com algumas melhorias já inclusas, todas as novas versões atualizadas substituem versões anteriores do software.
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 5.1.x   | :white_check_mark: |
-| 5.0.x   | :x:                |
-| 4.0.x   | :white_check_mark: |
-| < 4.0   | :x:                |
+| Version | Supported |
+| ------- | --------- |
+| 2.5     | ✅        |
+| 2.0     | ❌       |
+| 1.5     | ❌        |
+| 1.0     | ❌        |
+
 
 ## Reporting a Vulnerability
+Se você encontrar uma vulnerabilidade neste projeto, por favor entre em contato pelo e-mail:
 
-Use this section to tell people how to report a vulnerability.
+**elias.juriatti@outlook.com**
 
-Tell them where to go, how often they can expect to get an update on a
-reported vulnerability, what to expect if the vulnerability is accepted or
-declined, etc.
+Nós analisaremos o problema e responderemos o mais rápido possível.  
+Não abra issues públicas para vulnerabilidades de segurança.
