@@ -145,12 +145,10 @@ const fetchWithOpenMeteo = async (lat: string, lon: string) => {
     const localToday = new Date(Date.now() + timezoneOffset * 1000).toISOString().split('T')[0];
 
     for (let i = 0; i < daily.time.length; i++) {
-         // Open-Meteo returns YYYY-MM-DD strings in local time.
-         // If we convert this string directly to a Date, it becomes UTC Midnight.
-         // If the timezone is negative (e.g. -3h), frontend calculation (dt + offset) will result in 21:00 Previous Day.
-         // FIX: Create a timestamp representing Local Noon converted to UTC. 
-         // Formula: (Local Noon UTC Timestamp) - Offset.
-         // This ensures (dt + offset) = Local Noon, keeping the date stable in the frontend.
+         // FIXED BUG: Date shift causing previous day to appear.
+         // Open-Meteo returns YYYY-MM-DD. We force it to Noon UTC (T12:00:00Z)
+         // Then subtract the offset. This ensures that when the frontend ADDS the offset back,
+         // it lands on Noon of the correct day, safe from midnight rollover issues.
          const baseTime = new Date(`${daily.time[i]}T12:00:00Z`).getTime() / 1000;
          const dayTime = baseTime - timezoneOffset;
 
@@ -569,7 +567,7 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
                         const fallbackLayer = MAP_LAYER_FALLBACKS[layer];
                         if (fallbackLayer) {
                              const tileUrl1 = `https://tile.openweathermap.org/map/${fallbackLayer}/${z}/${x}/${y}.png?appid=${API_KEY}`;
-                             // CodeQL Alert Fix: Do not log the full URL containing the API KEY
+                             // CodeQL Alert Fix: Do not log the full URL containing the API KEY. Only log the layer name.
                              console.log(`Fallback to Maps 1.0 layer: ${fallbackLayer}`); 
                              response = await fetch(tileUrl1);
                         } else {
