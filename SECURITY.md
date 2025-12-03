@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-Atualemnte o projeto se encontra na versão mais recente 2.5 com algumas melhorias já inclusas, todas as novas versões atualizadas substituem versões anteriores do software.
+Atualmente o projeto se encontra na versão mais recente 2.5 com algumas melhorias já inclusas, todas as novas versões atualizadas substituem versões anteriores do software.
 
 | Version | Supported |
 | ------- | --------- |
