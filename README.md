@@ -1,4 +1,4 @@
-# Meteor ☄️
+# Meteor v2.5 ☄️
 
 ### Plataforma de Inteligência Climática e Resiliência Ambiental
 
