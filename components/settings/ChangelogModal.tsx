@@ -1,5 +1,4 @@
 
-
 import React, { useEffect } from 'react';
 import { XIcon, SparklesIcon, AlertTriangleIcon } from '../icons';
 import { useTheme } from '../context/ThemeContext';
@@ -28,68 +27,31 @@ const ChangelogModal: React.FC<any> = ({ isOpen, onClose }) => {
 
     const versions = [
         {
+            version: "3.5.0",
+            title: "Finalização Visual & Organização",
+            changes: [
+                "4 Níveis de Transparência: Sólido, Sutil (96%), Equilibrado (85%) e Vidro (60%).",
+                "Consistência Absoluta: Correção do motor de estilo para garantir que Menus e Configurações usem exatamente o mesmo efeito de vidro que o Cabeçalho.",
+                "Settings v3.3 Legacy: Restauração da estrutura de menus clássica, com Transparência integrada à aba Visual.",
+                "Insights Control: Nova opção para ativar/desativar a animação de pulso e cor nos resumos climáticos.",
+                "Chuva Ajustada: Intensidade visual calibrada para maior conforto."
+            ]
+        },
+        {
+            version: "3.4.0",
+            title: "Design & Imersão",
+            changes: [
+                "Refatoração do sistema de Glassmorphism.",
+                "Modo Transparente sem desfoque (foco em legibilidade).",
+                "Efeito de Chuva Boostado."
+            ]
+        },
+        {
             version: "3.3.0",
             title: "Inteligência & Refinamento",
             changes: [
-                "Weather Insights 2.0: Novo algoritmo de detecção de destaques (Chuva parando, nascer do sol, alertas UV) que roda localmente.",
-                "Settings UI: Menu de abas flutuante agora respeita a cor do tema e a transparência selecionada.",
-                "AI Format: Melhoria na renderização de texto (negrito e listas) nas respostas do chat.",
-                "Segurança: Reforço nas diretrizes de formatação da IA e validação de prompts.",
-                "Correções diversas de estilo e layout."
-            ]
-        },
-        {
-            version: "3.2.0",
-            title: "Reforma Visual e UX",
-            changes: [
-                "Nova organização da tela de Ajustes em abas (Geral, Visual, IA, Dados, Sobre).",
-                "Menu de configurações integrado visualmente à barra superior para melhor contraste.",
-                "Melhoria na legibilidade do modo 'Vidro' (Glassmorphism) nos menus.",
-                "Adição de diretrizes de segurança explícitas na configuração da IA."
-            ]
-        },
-        {
-            version: "3.1.0",
-            title: "Refinamento Visual",
-            changes: [
-                "Layout Desktop Personalizável: Escolha a proporção entre o Clima e o Mapa (40/60, 50/50 ou 25/75) nas configurações.",
-                "Reordenação lógica dos elementos: Busca > Clima Atual > Resumo > Alertas.",
-                "Weather Insights agora utiliza o layout 'Limpo' por padrão para um visual mais leve."
-            ]
-        },
-        {
-            version: "3.0.0",
-            title: "Insights & Organização",
-            changes: [
-                "Novo sistema 'Resumo do Clima' (Weather Insights): Destaques de mudança de tempo e recomendações diárias no topo da tela.",
-                "Organização completa do menu de configurações para melhor navegação.",
-                "Modos de visualização 'Limpo' e 'Caixa' para os resumos climáticos."
-            ]
-        },
-        {
-            version: "2.5.0",
-            title: "Revolução na Inteligência",
-            changes: [
-                "Reimplementação completa do sistema de IA para maior precisão e velocidade.",
-                "Nova integração de ferramentas 'Stealth Mode' para consultas climáticas globais sem comandos visíveis.",
-                "Capacidade aprimorada de realizar buscas na web automaticamente."
-            ]
-        },
-        {
-            version: "2.0.0",
-            title: "A Nova Era do Meteor",
-            changes: [
-                "Refinamento visual completo (Glassmorphism aprimorado).",
-                "Adição de efeitos de LED e bordas dinâmicas.",
-                "Novos modos de personalização (Minimalista vs. Gradiente)."
-            ]
-        },
-        {
-            version: "1.5.0",
-            title: "Estabilidade & Segurança",
-            changes: [
-                "Implementação do sistema robusto de Fallbacks (OneCall -> Free -> Open-Meteo).",
-                "Melhorias na gestão de cache para economia de dados."
+                "Weather Insights 2.0: Novo algoritmo de detecção de destaques.",
+                "Segurança: Reforço nas diretrizes de formatação da IA.",
             ]
         }
     ];
@@ -142,7 +104,6 @@ const ChangelogModal: React.FC<any> = ({ isOpen, onClose }) => {
                     </div>
                 </div>
 
-                {/* Footer - RS Alerta Link */}
                 <div className="p-4 bg-gray-900/80 border-t border-white/10">
                     <a 
                         href="https://rsalerta.netlify.app" 

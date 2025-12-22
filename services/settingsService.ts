@@ -39,7 +39,8 @@ const DEFAULT_SETTINGS: AppSettings = {
     weatherInsights: {
         enabled: true,
         style: 'clean', // Changed to 'clean' by default as requested in v3.1
-        content: 'both'
+        content: 'both',
+        showPulse: true
     }
 };
 

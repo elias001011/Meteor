@@ -1,3 +1,4 @@
+
 // FIX: Module '"@netlify/functions"' has no exported member 'getStore'. This is likely due to a version mismatch. Importing `getStore` directly from `@netlify/blobs` as a documented fallback.
 import { type Handler, type HandlerEvent, type HandlerContext } from "@netlify/functions";
 import { getStore } from "@netlify/blobs";
@@ -135,6 +136,7 @@ const fetchWithOpenMeteo = async (lat: string, lon: string) => {
             dt: new Date(hourly.time[i]).getTime() / 1000,
             temperature: hourly.temperature_2m[i],
             conditionIcon: mapOpenMeteoCodeToEmoji(hourly.weather_code[i], hourly.is_day[i] === 1),
+            description: mapWmoCodeToDescription(hourly.weather_code[i]),
             pop: hourly.precipitation_probability[i] / 100,
         });
     }
@@ -145,21 +147,17 @@ const fetchWithOpenMeteo = async (lat: string, lon: string) => {
     const localToday = new Date(Date.now() + timezoneOffset * 1000).toISOString().split('T')[0];
 
     for (let i = 0; i < daily.time.length; i++) {
-         // FIXED BUG: Date shift causing previous day to appear.
-         // Open-Meteo returns YYYY-MM-DD. We force it to Noon UTC (T12:00:00Z)
-         // Then subtract the offset. This ensures that when the frontend ADDS the offset back,
-         // it lands on Noon of the correct day, safe from midnight rollover issues.
          const baseTime = new Date(`${daily.time[i]}T12:00:00Z`).getTime() / 1000;
          const dayTime = baseTime - timezoneOffset;
 
          const dayString = daily.time[i];
          
-         // STRICTLY filter for today onwards. Using >= ensures we include today but exclude yesterday.
          if (dayString >= localToday && dailyForecast.length < 7) {
               dailyForecast.push({
                 dt: dayTime,
                 temperature: daily.temperature_2m_max[i],
                 conditionIcon: mapOpenMeteoCodeToEmoji(daily.weather_code[i]),
+                description: mapWmoCodeToDescription(daily.weather_code[i]),
                 pop: daily.precipitation_probability_max[i] / 100,
             });
          }
@@ -241,6 +239,7 @@ const fetchWithOneCall = async (lat: string, lon: string) => {
             dt: item.dt,
             temperature: item.temp,
             conditionIcon: mapOwmIconToEmoji(item.weather[0].icon),
+            description: item.weather[0].description.charAt(0).toUpperCase() + item.weather[0].description.slice(1),
             pop: item.pop,
         }));
 
@@ -248,6 +247,7 @@ const fetchWithOneCall = async (lat: string, lon: string) => {
         dt: item.dt,
         temperature: item.temp.max,
         conditionIcon: mapOwmIconToEmoji(item.weather[0].icon),
+        description: item.weather[0].description.charAt(0).toUpperCase() + item.weather[0].description.slice(1),
         pop: item.pop,
     }));
 
@@ -322,6 +322,7 @@ const fetchWithFreeTier = async (lat: string, lon: string) => {
         dt: item.dt,
         temperature: item.main.temp,
         conditionIcon: mapOwmIconToEmoji(item.weather[0].icon),
+        description: item.weather[0].description.charAt(0).toUpperCase() + item.weather[0].description.slice(1),
         pop: item.pop,
     }));
     
@@ -346,7 +347,8 @@ const fetchWithFreeTier = async (lat: string, lon: string) => {
                     dt: item.dt, 
                     temps: [],
                     icons: [],
-                    pops: []
+                    pops: [],
+                    descriptions: [] // Collect descriptions
                 });
             }
             
@@ -354,6 +356,7 @@ const fetchWithFreeTier = async (lat: string, lon: string) => {
             dayData.temps.push(item.main.temp);
             dayData.icons.push(item.weather[0].icon);
             dayData.pops.push(item.pop);
+            dayData.descriptions.push(item.weather[0].description);
         }
     });
 
@@ -361,12 +364,14 @@ const fetchWithFreeTier = async (lat: string, lon: string) => {
         const maxTemp = Math.max(...day.temps);
         const midIndex = Math.floor(day.icons.length / 2);
         const icon = day.icons[midIndex];
+        const desc = day.descriptions[midIndex]; // Use mid-day description
         const maxPop = Math.max(...day.pops);
 
         return {
             dt: day.dt,
             temperature: maxTemp,
             conditionIcon: mapOwmIconToEmoji(icon),
+            description: desc.charAt(0).toUpperCase() + desc.slice(1),
             pop: maxPop
         };
     });
