@@ -59,40 +59,59 @@ const HourlyForecastComponent: React.FC<HourlyForecastProps> = ({ data, timezone
   return (
     <div className={`relative rounded-3xl ${density.padding} ${cardClass} animate-enter delay-200`}>
       <h3 className={`${density.sectionTitle} font-medium text-gray-300 px-2 uppercase tracking-wide`}>Previsão por hora</h3>
-      {/* Added pb-10 to allow space for the popups without being clipped by overflow-x-auto */}
-      <div ref={scrollRef} className="flex space-x-3 overflow-x-auto pb-10 -mx-2 px-2 scroll-smooth no-scrollbar">
-        {data.map((item, index) => (
-          <div key={index} className="relative group">
-              <button 
-                onClick={() => handleItemClick(index)}
-                // Changed focus ring to inset to prevent clipping
-                className={`flex flex-col items-center justify-between space-y-1 flex-shrink-0 w-16 py-2 text-center bg-white/5 border border-white/5 rounded-2xl hover:bg-white/10 transition-all focus:outline-none focus:ring-2 focus:ring-white/20 focus:ring-inset ${activeIndex === index ? 'bg-white/10 ring-2 ring-white/20 ring-inset' : ''}`}
-              >
-                <span className={`${density.subtext} text-gray-400 font-medium`}>{formatHour(item.dt)}</span>
-                <span className="text-2xl my-1 filter drop-shadow-sm">{item.conditionIcon}</span>
-                <span className={`font-bold ${density.text}`}>{Math.round(item.temperature)}°</span>
-                <div className="h-4 flex items-end">
-                    {typeof item.pop === 'number' && item.pop > 0 && (
-                        <div className={`flex items-center gap-1 text-[9px] ${classes.text} font-bold`}>
-                            <UmbrellaIcon className="w-3 h-3" />
-                            <span>{Math.round(item.pop * 100)}%</span>
-                        </div>
-                    )}
-                </div>
-              </button>
-              
-              {/* Local Popup - Positioned absolute relative to the button */}
-              {activeIndex === index && item.description && (
-                  <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 z-20 animate-enter-pop">
-                      <div className="bg-gray-800 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg shadow-xl border border-white/10 whitespace-nowrap relative">
-                          {/* Tiny arrow pointing up */}
-                          <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-800 border-l border-t border-white/10 transform rotate-45"></div>
-                          <span className="relative z-10">{item.description}</span>
-                      </div>
+      {/* Increased padding-bottom to 12 (3rem) to accommodate popups without clipping */}
+      <div ref={scrollRef} className="flex space-x-3 overflow-x-auto pb-12 -mx-2 px-2 scroll-smooth no-scrollbar">
+        {data.map((item, index) => {
+          // Dynamic positioning logic to prevent overflow
+          const isFirst = index === 0;
+          const isSecond = index === 1;
+          const isLast = index === data.length - 1;
+          const isSecondToLast = index === data.length - 2;
+
+          let containerAlign = "left-1/2 -translate-x-1/2";
+          let arrowAlign = "left-1/2 -translate-x-1/2";
+
+          // Adjust alignment for edge items
+          if (isFirst || isSecond) {
+              containerAlign = "left-0 translate-x-0";
+              arrowAlign = "left-8 -translate-x-1/2";
+          } else if (isLast || isSecondToLast) {
+              containerAlign = "right-0 translate-x-0 left-auto";
+              arrowAlign = "right-8 translate-x-1/2 left-auto";
+          }
+
+          return (
+            <div key={index} className="relative group">
+                <button 
+                  onClick={() => handleItemClick(index)}
+                  className={`flex flex-col items-center justify-between space-y-1 flex-shrink-0 w-16 py-2 text-center bg-white/5 border border-white/5 rounded-2xl hover:bg-white/10 transition-all focus:outline-none focus:ring-2 focus:ring-white/20 focus:ring-inset ${activeIndex === index ? 'bg-white/10 ring-2 ring-white/20 ring-inset' : ''}`}
+                >
+                  <span className={`${density.subtext} text-gray-400 font-medium`}>{formatHour(item.dt)}</span>
+                  <span className="text-2xl my-1 filter drop-shadow-sm">{item.conditionIcon}</span>
+                  <span className={`font-bold ${density.text}`}>{Math.round(item.temperature)}°</span>
+                  <div className="h-4 flex items-end">
+                      {typeof item.pop === 'number' && item.pop > 0 && (
+                          <div className={`flex items-center gap-1 text-[9px] ${classes.text} font-bold`}>
+                              <UmbrellaIcon className="w-3 h-3" />
+                              <span>{Math.round(item.pop * 100)}%</span>
+                          </div>
+                      )}
                   </div>
-              )}
-          </div>
-        ))}
+                </button>
+                
+                {/* Local Popup - Solid Background, Positioned Smartly */}
+                {activeIndex === index && item.description && (
+                    <div className={`absolute top-full mt-3 ${containerAlign} z-50 animate-enter-pop min-w-[140px]`}>
+                        <div className="bg-[#111827] text-white text-[11px] font-bold px-4 py-2 rounded-xl shadow-2xl border border-gray-700 whitespace-nowrap relative">
+                            {/* Tiny arrow pointing up */}
+                            <div className={`absolute -top-1.5 w-3 h-3 bg-[#111827] border-l border-t border-gray-700 transform rotate-45 ${arrowAlign}`}></div>
+                            <span className="relative z-10">{item.description}</span>
+                        </div>
+                    </div>
+                )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
