@@ -1,26 +1,132 @@
 
-# Meteor v3.5.0 ☄️
+# Meteor ☄️
 
-### Plataforma de Inteligência Climática e Resiliência Ambiental
+![Version](https://img.shields.io/badge/version-3.5.0-blue.svg)
+![React](https://img.shields.io/badge/React-19-61dafb.svg)
+![Vite](https://img.shields.io/badge/Vite-7-646cff.svg)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6.svg)
+![Tailwind](https://img.shields.io/badge/Tailwind-3-38bdf8.svg)
 
-![Status do Projeto](https://img.shields.io/badge/Status-Versão_Final-cyan?style=for-the-badge)
-![AI Power](https://img.shields.io/badge/Powered_by-Google_Gemini-purple?style=for-the-badge)
+**Meteor** é uma aplicação web progressiva (PWA) de inteligência climática. Combina dados meteorológicos precisos de múltiplas fontes com uma assistente de IA generativa contextual (powered by Gemini) para fornecer previsões, alertas e insights personalizados em tempo real.
 
-O **Meteor** é a evolução tecnológica do projeto acadêmico **RS Alerta**. Esta versão v3.5.0 finaliza a unificação visual e restaura a organização de configurações solicitada.
-
----
-
-## 🚀 Novidades da Versão 3.5.0 (Final Cut)
-
-*   **💎 4 Níveis de Transparência:**
-    *   **Sólido:** Opacidade total.
-    *   **Sutil:** 96% de opacidade, sem desfoque (foco em leitura).
-    *   **Equilibrado:** 85% de opacidade com desfoque médio.
-    *   **Vidro:** 60% de opacidade com desfoque profundo (blur 2xl).
-*   **⚙️ Configurações Restauradas:** O menu de ajustes segue estritamente o padrão da v3.3, com a transparência integrada à aba Visual.
-*   **🧠 Insights Otimizados:** Controle total sobre os resumos climáticos, incluindo a opção de desligar a animação de destaque ("Pulse").
-*   **🎮 Consistência de Interface:** Correção definitiva das classes CSS para garantir que Headers, Menus e Cards tenham o mesmo comportamento visual quando o efeito de vidro está ativo.
+O projeto utiliza uma arquitetura **BFF (Backend-for-Frontend)** via Netlify Functions para garantir segurança das chaves de API e performance.
 
 ---
 
-Desenvolvido com 💙 por **Elias Juriatti Rodrigues Nunes** e focado em Salvar Vidas.
+## ✨ Funcionalidades Principais (v3.5.0)
+
+*   **🌦️ Clima em Tempo Real:**
+    *   Suporte a múltiplas fontes de dados: **OpenWeather (OneCall 3.0 & Free)** e **Open-Meteo**.
+    *   Fallback automático inteligente em caso de falha de API ou limites excedidos.
+    *   Previsão horária e diária (7 dias).
+    *   Qualidade do Ar (AQI) e componentes poluentes.
+    *   Alertas meteorológicos oficiais.
+
+*   **🤖 Meteor AI (Assistente Inteligente):**
+    *   Baseada no **Google Gemini 2.5 Flash Lite**.
+    *   Contexto completo: A IA "vê" o clima da sua tela, hora local e histórico de conversa.
+    *   **Ferramentas (Stealth Tools):** A IA pode decidir autonomamente buscar dados na Web (Google Search) ou consultar o clima de outras cidades globais.
+    *   Respostas formatadas em Markdown com fontes citadas.
+
+*   **🎨 Experiência Visual Imersiva:**
+    *   **Motor de Temas Dinâmico:** A cor do app muda conforme o clima (Sol, Chuva, Nublado, Noite).
+    *   **Sistema de Transparência:** 4 modos (Sólido, Sutil, Equilibrado, Vidro/Glassmorphism).
+    *   **Animações:** Chuva processual customizável, transições suaves e modo de desempenho.
+    *   Mapas interativos com camadas de temperatura, chuva, vento, nuvens e pressão.
+
+*   **⚙️ Personalização Profunda:**
+    *   Instruções de personalidade para a IA.
+    *   Modo de economia de desempenho.
+    *   Layouts de desktop configuráveis (Lateral, Balanceado, Dividido).
+    *   Backup e Importação de dados (Configurações, Histórico de Chat, Cache).
+
+---
+
+## 🛠️ Stack Tecnológica
+
+*   **Frontend:** React 19, TypeScript, Vite 7.
+*   **Estilização:** Tailwind CSS.
+*   **Mapas:** Leaflet + OpenStreetMap + Camadas OpenWeather.
+*   **Backend (Serverless):** Netlify Functions (Node.js).
+*   **IA:** Google GenAI SDK (`@google/genai`).
+*   **Gerenciamento de Estado:** React Context API + LocalStorage.
+
+---
+
+## 🚀 Como Rodar Localmente
+
+Para rodar o projeto com todas as funcionalidades (IA e Clima), é necessário usar o **Netlify CLI**, pois as chaves de API são protegidas no lado do servidor e não funcionam apenas com o Vite.
+
+### 1. Pré-requisitos
+*   Node.js (v18+)
+*   NPM ou Yarn
+*   Git
+*   Netlify CLI global (`npm install -g netlify-cli`)
+
+### 2. Instalação
+
+```bash
+# Clone o repositório
+git clone https://github.com/seu-usuario/meteor.git
+cd meteor
+
+# Instale as dependências
+npm install
+```
+
+### 3. Configuração (.env)
+
+Crie um arquivo `.env` na raiz do projeto com as chaves de API necessárias:
+
+```env
+# Google Gemini API (https://aistudio.google.com/)
+GEMINI_API="sua_chave_aqui"
+
+# OpenWeatherMap API (https://openweathermap.org/)
+CLIMA_API="sua_chave_aqui"
+
+# Google Custom Search API (Para capacidade de busca da IA)
+SEARCH_API="sua_chave_google_search"
+SEARCH_ID="seu_search_engine_id"
+
+# Unsplash API (Opcional - Para imagens de fundo das cidades)
+UNSPLASH_ACESS_KEY="sua_chave_unsplash"
+```
+
+### 4. Execução
+
+Use o Netlify CLI para iniciar o servidor de desenvolvimento. Isso permitirá que o frontend (Vite) se comunique com as funções serverless localmente.
+
+```bash
+netlify dev
+```
+O app estará disponível em `http://localhost:8888`.
+
+> **Nota:** Rodar apenas `npm run dev` iniciará apenas o frontend, mas as requisições de clima e IA falharão (404/500) pois dependem das Netlify Functions.
+
+---
+
+## 📂 Estrutura do Projeto
+
+*   `/src` (Raiz): Código fonte do Frontend.
+    *   `/components`: UI modular (Weather, AI, Map, Settings).
+    *   `/services`: Camada de serviço para comunicação com o BFF.
+    *   `/context`: Gestão de estado global (ThemeContext).
+*   `/netlify/functions`: **Backend Serverless**.
+    *   `weather.ts`: Proxy e lógica de cache/fallback para APIs de clima.
+    *   `gemini.ts`: Orquestrador da IA, injeção de prompt de sistema e ferramentas.
+    *   `search.ts`: Proxy para Google Custom Search.
+
+---
+
+## 🔒 Privacidade e Dados
+
+*   **Local-First:** Histórico de chat e configurações são salvos apenas no LocalStorage do navegador.
+*   **Cache:** Dados meteorológicos são cacheados localmente para reduzir chamadas de API.
+*   **Segurança:** Nenhuma chave de API é exposta no código do cliente.
+
+---
+
+## 📄 Licença
+
+Distribuído sob a licença MIT.
