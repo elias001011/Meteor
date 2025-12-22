@@ -28,10 +28,10 @@ const ForecastDetailModal: React.FC<ForecastDetailModalProps> = ({ isOpen, onClo
     if (!isOpen || !data) return null;
 
     return (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center pointer-events-none">
-            {/* Minimal Floating Toast - Solid & Auto-fading */}
-            <div className="bg-gray-900 border border-gray-700 shadow-2xl px-6 py-3 rounded-full animate-fast-pop flex items-center justify-center">
-                <span className="text-white font-bold capitalize text-sm tracking-wide">
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[9999] pointer-events-none w-full flex justify-center px-4">
+            {/* Minimal Floating Toast - Pílula Sólida Inferior */}
+            <div className="bg-gray-900 border border-gray-700 shadow-[0_0_15px_rgba(0,0,0,0.5)] px-6 py-3 rounded-full animate-fast-pop flex items-center justify-center min-w-[150px]">
+                <span className="text-white font-bold capitalize text-sm tracking-wide text-center">
                     {data.description}
                 </span>
             </div>
