@@ -87,51 +87,65 @@ export const ThemeProvider: React.FC<{
 }) => {
     const currentClasses = THEME_DEFINITIONS[theme] || THEME_DEFINITIONS.purple;
     const currentDensity = DENSITY_DEFINITIONS[layoutDensity] || DENSITY_DEFINITIONS.comfortable;
-    const baseDark = 'bg-slate-900'; 
-
+    
+    // Base Color Strategy: Always use Gray 900 (#111827) or Slate 900 (#0f172a) as the base.
+    // We avoid switching between 'slate-950' and 'slate-900' to prevent color jumps.
+    // The visual difference comes purely from opacity (alpha channel) and blur.
+    
     const getFinalStyle = useMemo(() => (scopeType: keyof GlassScope) => {
-        const isHeader = scopeType === 'header';
-        const borderClass = isHeader ? 'border-b border-white/10' : 'border border-white/10 shadow-lg';
-        
-        // 1. PERFORMANCE MODE: Solid opaque
+        // Base structure: Background + Border + Shadow
+        // Using `bg-gray-900` (Tailwind default palette for dark mode consistency)
+        const baseBorder = 'border border-white/10';
+        const shadow = 'shadow-lg';
+
+        // 1. PERFORMANCE MODE: Always Solid, No Blur, No Transparency
         if (performanceMode) {
-             return `bg-slate-900 ${borderClass}`;
+             return `bg-gray-900 ${baseBorder} ${shadow}`;
         }
 
-        // 2. MODO SÓLIDO: Zero transparency
-        if (transparencyMode === 'off') {
-            return `bg-slate-950 ${borderClass}`;
-        }
-
-        // 3. SCOPE CHECK: Fallback to high opacity if scope is disabled
+        // 2. SCOPE DISABLED: If this specific element shouldn't have glass/transparency
         if (!glassScope[scopeType]) {
-            return `bg-slate-900/95 ${borderClass}`; 
+            return `bg-gray-900 ${baseBorder} ${shadow}`;
         }
 
-        // 4. TRANSPARENCY MODES
+        // 3. TRANSPARENCY MODES
         switch (transparencyMode) {
+            case 'off': 
+                // Solid: 100% Opacity
+                return `bg-gray-900 ${baseBorder} ${shadow}`;
+            
             case 'subtle': 
-                return `bg-slate-900/96 ${borderClass}`;
+                // Subtle: High Opacity (95%), No Blur (Clean look)
+                return `bg-gray-900/95 ${baseBorder} ${shadow}`;
+            
             case 'balanced': 
-                return `bg-slate-900/85 ${borderClass}`;
-            case 'glass': 
-                return `bg-slate-900/40 backdrop-blur-2xl ${borderClass} shadow-2xl`;
+                // Balanced: Medium Opacity (80%), No Blur (Clean look)
+                return `bg-gray-900/80 ${baseBorder} ${shadow}`;
+            
             case 'transparent': 
-                return `bg-slate-900/70 ${borderClass}`;
+                // Transparent (Legacy/Raw): Lower Opacity (70%), No Blur
+                return `bg-gray-900/70 ${baseBorder} ${shadow}`;
+
+            case 'glass': 
+                // Glass: Low Opacity (60%) + Heavy Blur
+                return `bg-gray-900/60 backdrop-blur-xl ${baseBorder} shadow-2xl`;
+            
             default:
-                return `bg-slate-900 ${borderClass}`;
+                return `bg-gray-900 ${baseBorder} ${shadow}`;
         }
 
     }, [transparencyMode, glassScope, performanceMode]);
 
-    const headerClass = getFinalStyle('header');
+    const headerClass = getFinalStyle('header').replace('border ', 'border-b ').replace('shadow-lg', '');
     const cardClass = getFinalStyle('cards');
-    const glassClass = getFinalStyle('overlays');
+    const glassClass = getFinalStyle('overlays'); // Used for modals, dropdowns
+    
+    // Mini widgets always keep a bit of transparency/blur for contrast against the cards
     const miniClass = `bg-white/10 border border-white/10 backdrop-blur-md`; 
 
     const appBackgroundClass = backgroundMode === 'solid' 
-        ? 'bg-slate-950'
-        : 'bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-800 via-slate-950 to-black bg-fixed';
+        ? 'bg-gray-950' // Slightly darker than cards to create depth
+        : 'bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-800 via-gray-900 to-black bg-fixed';
 
     useEffect(() => {
         if (reducedMotion || performanceMode) {
