@@ -1,7 +1,7 @@
 
 # Meteor ☄️
 
-![Version](https://img.shields.io/badge/version-3.5.0-blue.svg)
+![Version](https://img.shields.io/badge/version-3.6.0-blue.svg)
 ![React](https://img.shields.io/badge/React-19-61dafb.svg)
 ![Vite](https://img.shields.io/badge/Vite-7-646cff.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6.svg)
@@ -13,7 +13,7 @@ O projeto utiliza uma arquitetura **BFF (Backend-for-Frontend)** via Netlify Fun
 
 ---
 
-## ✨ Funcionalidades Principais (v3.5.0)
+## ✨ Funcionalidades Principais (v3.6.0)
 
 *   **🌦️ Clima em Tempo Real:**
     *   Suporte a múltiplas fontes de dados: **OpenWeather (OneCall 3.0 & Free)** e **Open-Meteo**.
@@ -27,16 +27,17 @@ O projeto utiliza uma arquitetura **BFF (Backend-for-Frontend)** via Netlify Fun
     *   Contexto completo: A IA "vê" o clima da sua tela, hora local e histórico de conversa.
     *   **Ferramentas (Stealth Tools):** A IA pode decidir autonomamente buscar dados na Web (Google Search) ou consultar o clima de outras cidades globais.
     *   Respostas formatadas em Markdown com fontes citadas.
+    *   **Segurança Reforçada:** Diretrizes estritas contra injeção de prompt.
 
 *   **🎨 Experiência Visual Imersiva:**
     *   **Motor de Temas Dinâmico:** A cor do app muda conforme o clima (Sol, Chuva, Nublado, Noite).
-    *   **Sistema de Transparência:** 4 modos (Sólido, Sutil, Equilibrado, Vidro/Glassmorphism).
-    *   **Animações:** Chuva processual customizável, transições suaves e modo de desempenho.
+    *   **Sistema de Transparência 2.0:** Modos Sólido, Sutil, Equilibrado e Vidro padronizados.
+    *   **Otimização Inteligente:** Configurações padrão ajustadas automaticamente para Mobile (Desempenho) ou Desktop (Qualidade).
     *   Mapas interativos com camadas de temperatura, chuva, vento, nuvens e pressão.
 
 *   **⚙️ Personalização Profunda:**
     *   Instruções de personalidade para a IA.
-    *   Modo de economia de desempenho.
+    *   **Modo Desempenho Remodelado:** Otimização agressiva de renderização.
     *   Layouts de desktop configuráveis (Lateral, Balanceado, Dividido).
     *   Backup e Importação de dados (Configurações, Histórico de Chat, Cache).
 

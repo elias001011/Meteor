@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import type { AppSettings, View, DataSource, AppTheme, TransparencyMode, ClockDisplayMode, BackgroundMode, MapTheme, BorderEffectMode, LayoutDensity, DesktopLayout } from '../../types';
 import { getSettings, resetSettings, resetCache, resetAllData, exportAppData } from '../../services/settingsService';
@@ -114,15 +115,15 @@ const SettingsView: React.FC<SettingsViewProps> = ({
         { id: '50-50', label: 'Dividido (50/50)' }
     ];
     
-    const selectStyle = `w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 text-gray-200 focus:ring-2 outline-none ${classes.ring} appearance-none cursor-pointer hover:bg-white/5 transition-colors ${density.text}`;
-    const inputStyle = `w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 text-gray-200 focus:ring-2 outline-none ${classes.ring} placeholder-gray-500 transition-colors ${density.text}`;
+    const selectStyle = `w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-gray-200 focus:ring-2 outline-none ${classes.ring} appearance-none cursor-pointer hover:bg-white/5 transition-colors ${density.text}`;
+    const inputStyle = `w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-gray-200 focus:ring-2 outline-none ${classes.ring} placeholder-gray-500 transition-colors ${density.text}`;
     const optionClass = "bg-slate-900 text-white py-2";
 
     const ToggleSwitch = ({ checked, onChange, disabled = false, activeColorClass }: { checked: boolean, onChange: () => void, disabled?: boolean, activeColorClass?: string }) => (
         <button 
             onClick={onChange}
             disabled={disabled}
-            className={`relative w-12 h-7 rounded-full transition-all duration-300 ease-in-out focus:outline-none flex-shrink-0 active:scale-95 ${checked ? (activeColorClass || classes.bg) + ` shadow-[0_0_10px_rgba(0,0,0,0.3)]` : 'bg-gray-700'} ${disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:brightness-110'}`}
+            className={`relative w-12 h-7 rounded-full transition-all duration-300 ease-in-out focus:outline-none flex-shrink-0 active:scale-95 ${checked ? (activeColorClass || classes.bg) + ` shadow-[0_0_10px_rgba(0,0,0,0.3)]` : 'bg-gray-700'} ${disabled ? 'cursor-not-allowed opacity-40 saturate-0' : 'cursor-pointer hover:brightness-110'}`}
         >
             <span className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow-sm transform transition-all duration-300 ease-in-out ${checked ? 'left-6' : 'left-1'}`} />
         </button>
@@ -141,10 +142,19 @@ const SettingsView: React.FC<SettingsViewProps> = ({
         );
     };
 
+    const DisabledOverlay = ({ children }: { children?: React.ReactNode }) => (
+        <div className="relative">
+            <div className="absolute inset-0 z-10 bg-gray-900/50 backdrop-blur-[1px] rounded-xl flex items-center justify-center border border-white/5">
+                <span className="text-[10px] font-bold text-white bg-black/60 px-2 py-1 rounded border border-white/10">Controlado pelo Modo Desempenho</span>
+            </div>
+            <div className="opacity-40 pointer-events-none grayscale">{children}</div>
+        </div>
+    );
+
     // Helper to determine the active "Main" transparency tab (Off, Transparent, Glass)
     const activeTransparencyTab = settings.transparencyMode === 'glass' ? 'glass' : (settings.transparencyMode === 'off' ? 'off' : 'transparent');
 
-    // --- RENDER FUNCTIONS BASED ON v3.3 Spec ---
+    // --- RENDER FUNCTIONS ---
 
     const renderGeneral = () => (
         <div className={`space-y-6 animate-enter`}>
@@ -159,12 +169,12 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                 </div>
             )}
 
-            {/* 2. Modo Desempenho */}
+            {/* 2. Modo Desempenho (Renamed) */}
             <section className={`${cardClass} rounded-3xl ${density.padding} border-l-4`} style={{ borderLeftColor: classes.hex }}>
                  <div className="flex items-center justify-between">
                     <div className="flex flex-col gap-0.5">
                         <span className="text-white font-bold text-lg">Modo Desempenho</span>
-                        <span className={`text-xs ${density.subtext} text-gray-400`}>Prioriza velocidade sobre efeitos visuais.</span>
+                        <span className={`text-xs ${density.subtext} text-gray-400`}>Desliga transparências, blur e animações para máxima velocidade.</span>
                     </div>
                     <ToggleSwitch checked={settings.performanceMode} onChange={() => handleSave({ performanceMode: !settings.performanceMode })} activeColorClass={classes.bg} />
                 </div>
@@ -176,17 +186,45 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                 <div className={density.settingsGap}>
                     <div className="flex flex-col gap-2">
                         <label className={`${density.text} text-sm font-medium text-gray-300`}>Comportamento ao abrir</label>
-                        <select value={settings.startupBehavior} onChange={(e) => { const val = e.target.value as any; handleSave({ startupBehavior: val }); if (val === 'specific_location') onOpenCitySelection(); }} className={selectStyle}>
+                        <select value={settings.startupBehavior} onChange={(e) => { const val = e.target.value as any; handleSave({ startupBehavior: val }); if (val === 'specific_location' && !settings.specificLocation) onOpenCitySelection(); }} className={selectStyle}>
                             <option value="idle" className={optionClass}>Tela Inicial (Boas-vindas)</option>
                             <option value="last_location" className={optionClass}>Carregar Última Localização</option>
                             <option value="specific_location" className={optionClass}>Carregar Localização Específica</option>
                             <option value="custom_section" className={optionClass}>Abrir em uma Seção (ex: Chat)</option>
                         </select>
                     </div>
+                    
+                    {/* Seletor de Seção Específica */}
+                    {settings.startupBehavior === 'custom_section' && (
+                        <div className="flex flex-col gap-2 animate-enter pl-4 border-l-2 border-gray-700">
+                            <label className={`${density.text} text-sm font-medium text-gray-300`}>Selecione a Seção</label>
+                            <select 
+                                value={settings.startupSection || 'weather'} 
+                                onChange={(e) => handleSave({ startupSection: e.target.value as View })} 
+                                className={selectStyle}
+                            >
+                                <option value="weather" className={optionClass}>Clima</option>
+                                <option value="map" className={optionClass}>Mapa</option>
+                                <option value="ai" className={optionClass}>IA (Chat)</option>
+                                <option value="news" className={optionClass}>Notícias</option>
+                                <option value="tips" className={optionClass}>Dicas</option>
+                                <option value="info" className={optionClass}>Informações</option>
+                            </select>
+                        </div>
+                    )}
+
+                    {/* Seletor de Local Específico com Validação */}
                     {settings.startupBehavior === 'specific_location' && (
-                        <div className="flex items-center justify-between bg-black/20 p-4 rounded-xl border border-white/5">
-                            <div><p className="text-sm text-gray-400">Local:</p><p className="font-bold text-white">{settings.specificLocation?.name || 'Nenhum'}</p></div>
-                            <button onClick={onOpenCitySelection} className={`${classes.text} text-sm hover:underline`}>Alterar</button>
+                        <div className={`flex items-center justify-between bg-black/20 p-4 rounded-xl border ${!settings.specificLocation ? 'border-red-500/50' : 'border-white/5'} mt-2 animate-enter`}>
+                            <div>
+                                <p className="text-sm text-gray-400">Local Padrão:</p>
+                                <p className={`font-bold ${!settings.specificLocation ? 'text-red-400 animate-pulse' : 'text-white'}`}>
+                                    {settings.specificLocation?.name || '⚠️ Nenhum selecionado!'}
+                                </p>
+                            </div>
+                            <button onClick={onOpenCitySelection} className={`${classes.text} text-sm hover:underline font-bold`}>
+                                {settings.specificLocation ? 'Alterar' : 'Selecionar'}
+                            </button>
                         </div>
                     )}
                 </div>
@@ -198,7 +236,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                 <div className={density.settingsGap}>
                     <div className="flex items-center justify-between">
                         <span className={`${density.text} text-white font-medium`}>Modo Tela Cheia</span>
-                        <button onClick={toggleFullscreen} className={`px-5 py-2 rounded-xl text-sm font-bold shadow-lg ${isFullscreen ? 'bg-red-500/20 text-red-300' : 'bg-white/10 text-white'}`}>{isFullscreen ? 'Sair' : 'Ativar'}</button>
+                        <button onClick={toggleFullscreen} className={`px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg ${isFullscreen ? 'bg-red-500/20 text-red-300' : 'bg-white/10 text-white'}`}>{isFullscreen ? 'Sair' : 'Ativar'}</button>
                     </div>
                     <div className="flex items-center justify-between pt-4 border-t border-white/5">
                         <span className={`${density.text} text-white font-medium`}>Iniciar em tela cheia</span>
@@ -239,16 +277,16 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                         <label className={`${density.text} font-medium text-gray-300 mb-3 block`}>Cor Principal</label>
                         <div className={`flex flex-wrap ${density.itemGap}`}>
                             {themes.map((theme) => (
-                                <button key={theme.id} onClick={() => handleSave({ themeColor: theme.id })} className={`w-10 h-10 rounded-full ${theme.color} ring-2 ${settings.themeColor === theme.id ? `ring-white scale-110` : 'ring-transparent opacity-70'}`} />
+                                <button key={theme.id} onClick={() => handleSave({ themeColor: theme.id })} className={`w-12 h-12 rounded-full ${theme.color} ring-2 ${settings.themeColor === theme.id ? `ring-white scale-110` : 'ring-transparent opacity-70'} transition-all`} aria-label={`Selecionar cor ${theme.name}`}/>
                             ))}
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* 2. Resumo do Clima (Insights) */}
+            {/* 2. Resumo do Clima (Insights) - RESTORED */}
             <section className={`${cardClass} rounded-3xl ${density.padding}`}>
-                <h3 className={`text-lg font-bold ${classes.text} mb-4`}>Resumo do Clima (Insights)</h3>
+                <h3 className={`text-lg font-bold ${classes.text} mb-4 flex items-center gap-2`}><LightbulbIcon className="w-5 h-5" /> Resumo do Clima</h3>
                 <div className={density.settingsGap}>
                     <div className="flex items-center justify-between">
                         <span className={`${density.text} text-white font-medium`}>Habilitar Resumos</span>
@@ -260,21 +298,21 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                 <div>
                                     <label className="text-xs text-gray-400 block mb-2">Estilo Visual</label>
                                     <div className="flex bg-black/20 rounded-xl p-1 border border-white/5">
-                                        <button onClick={() => handleSave({ weatherInsights: { ...settings.weatherInsights, style: 'container' } })} className={`flex-1 py-1.5 rounded-lg text-xs font-medium ${settings.weatherInsights.style === 'container' ? 'bg-white/10 text-white' : 'text-gray-400'}`}>Caixa</button>
-                                        <button onClick={() => handleSave({ weatherInsights: { ...settings.weatherInsights, style: 'clean' } })} className={`flex-1 py-1.5 rounded-lg text-xs font-medium ${settings.weatherInsights.style === 'clean' ? 'bg-white/10 text-white' : 'text-gray-400'}`}>Limpo</button>
+                                        <button onClick={() => handleSave({ weatherInsights: { ...settings.weatherInsights, style: 'container' } })} className={`flex-1 py-2 rounded-lg text-xs font-medium ${settings.weatherInsights.style === 'container' ? 'bg-white/10 text-white' : 'text-gray-400'}`}>Caixa</button>
+                                        <button onClick={() => handleSave({ weatherInsights: { ...settings.weatherInsights, style: 'clean' } })} className={`flex-1 py-2 rounded-lg text-xs font-medium ${settings.weatherInsights.style === 'clean' ? 'bg-white/10 text-white' : 'text-gray-400'}`}>Limpo</button>
                                     </div>
                                 </div>
                                 <div>
                                     <label className="text-xs text-gray-400 block mb-2">Conteúdo</label>
-                                    <select value={settings.weatherInsights.content} onChange={(e) => handleSave({ weatherInsights: { ...settings.weatherInsights, content: e.target.value as any } })} className={`${selectStyle} py-1.5 text-xs`}>
+                                    <select value={settings.weatherInsights.content} onChange={(e) => handleSave({ weatherInsights: { ...settings.weatherInsights, content: e.target.value as any } })} className={selectStyle}>
                                         <option value="both" className={optionClass}>Ambos</option>
-                                        <option value="highlight" className={optionClass}>Destaque</option>
-                                        <option value="recommendation" className={optionClass}>Recomendação</option>
+                                        <option value="highlight" className={optionClass}>Apenas Destaque</option>
+                                        <option value="recommendation" className={optionClass}>Apenas Rec.</option>
                                     </select>
                                 </div>
                             </div>
                             <div className="flex items-center justify-between">
-                                <span className={`${density.text} text-white font-medium text-sm`}>Marcador Pulsante</span>
+                                <span className={`${density.text} text-gray-300 font-medium`}>Marcador pulsante</span>
                                 <ToggleSwitch checked={settings.weatherInsights.showPulse} onChange={() => handleSave({ weatherInsights: { ...settings.weatherInsights, showPulse: !settings.weatherInsights.showPulse } })} activeColorClass={classes.bg} />
                             </div>
                         </div>
@@ -282,7 +320,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                 </div>
             </section>
 
-            {/* 3. Efeitos e Layout (INCLUDING TRANSPARENCY) */}
+            {/* 3. Efeitos e Layout */}
             <section className={`${cardClass} rounded-3xl ${density.padding}`}>
                 <h3 className={`text-lg font-bold ${classes.text} mb-4`}>Efeitos e Layout</h3>
                 <div className={density.settingsGap}>
@@ -291,13 +329,13 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                         <div>
                             <label className="text-xs text-gray-400 block mb-2">Estilo do Fundo</label>
                             <div className="flex bg-black/20 rounded-xl p-1 border border-white/5">
-                                {backgroundOptions.map((opt) => (<button key={opt.id} onClick={() => handleSave({ backgroundMode: opt.id })} className={`flex-1 py-1.5 rounded-lg text-xs font-medium ${settings.backgroundMode === opt.id ? 'bg-white/10 text-white' : 'text-gray-400'}`}>{opt.label}</button>))}
+                                {backgroundOptions.map((opt) => (<button key={opt.id} onClick={() => handleSave({ backgroundMode: opt.id })} className={`flex-1 py-2.5 rounded-lg text-xs font-medium ${settings.backgroundMode === opt.id ? 'bg-white/10 text-white' : 'text-gray-400'}`}>{opt.label}</button>))}
                             </div>
                         </div>
                         <div>
                             <label className="text-xs text-gray-400 block mb-2">Borda LED</label>
                             <div className="flex bg-black/20 rounded-xl p-1 border border-white/5">
-                                {borderEffectOptions.map((opt) => (<button key={opt.id} onClick={() => handleSave({ borderEffect: opt.id })} className={`flex-1 py-1.5 rounded-lg text-xs font-medium ${settings.borderEffect === opt.id ? 'bg-white/10 text-white' : 'text-gray-400'}`}>{opt.label}</button>))}
+                                {borderEffectOptions.map((opt) => (<button key={opt.id} onClick={() => handleSave({ borderEffect: opt.id })} className={`flex-1 py-2.5 rounded-lg text-xs font-medium ${settings.borderEffect === opt.id ? 'bg-white/10 text-white' : 'text-gray-400'}`}>{opt.label}</button>))}
                             </div>
                         </div>
                     </div>
@@ -306,49 +344,57 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                     <div className="pt-4 border-t border-white/5">
                         <label className={`${density.text} text-sm font-medium text-gray-300 mb-2 block`}>Transparência e Vidro</label>
                         
-                        {/* 1. Main Mode Selection */}
-                        <div className="flex bg-black/20 rounded-xl p-1 border border-white/5 mb-3">
-                            <button 
-                                onClick={() => handleSave({ transparencyMode: 'off' })} 
-                                className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${activeTransparencyTab === 'off' ? 'bg-white/10 text-white shadow-sm' : 'text-gray-400'}`}
-                            >
-                                Sólido
-                            </button>
-                            <button 
-                                onClick={() => handleSave({ transparencyMode: settings.transparencyMode === 'balanced' ? 'balanced' : 'subtle' })} 
-                                className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${activeTransparencyTab === 'transparent' ? 'bg-white/10 text-white shadow-sm' : 'text-gray-400'}`}
-                            >
-                                Transparente
-                            </button>
-                            <button 
-                                onClick={() => handleSave({ transparencyMode: 'glass' })} 
-                                className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${activeTransparencyTab === 'glass' ? 'bg-white/10 text-white shadow-sm' : 'text-gray-400'}`}
-                            >
-                                Vidro
-                            </button>
-                        </div>
-
-                        {/* 2. Sub-options for Transparent Mode */}
-                        {activeTransparencyTab === 'transparent' && (
-                            <div className="pl-4 border-l-2 border-gray-700 animate-enter">
-                                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Intensidade</h4>
-                                <div className="flex bg-black/20 rounded-xl p-1 border border-white/5 w-fit">
-                                    <button onClick={() => handleSave({ transparencyMode: 'subtle' })} className={`px-4 py-1.5 rounded-lg text-xs font-medium ${settings.transparencyMode === 'subtle' ? 'bg-white/10 text-white' : 'text-gray-400'}`}>Sutil (96%)</button>
-                                    <button onClick={() => handleSave({ transparencyMode: 'balanced' })} className={`px-4 py-1.5 rounded-lg text-xs font-medium ${settings.transparencyMode === 'balanced' ? 'bg-white/10 text-white' : 'text-gray-400'}`}>Equilibrado (93%)</button>
+                        {isPerformanceMode ? (
+                            <DisabledOverlay>
+                                 <div className="flex bg-black/20 rounded-xl p-1 border border-white/5 mb-3 h-12"></div>
+                            </DisabledOverlay>
+                        ) : (
+                            <>
+                                {/* 1. Main Mode Selection */}
+                                <div className="flex bg-black/20 rounded-xl p-1 border border-white/5 mb-3 overflow-x-auto">
+                                    <button 
+                                        onClick={() => handleSave({ transparencyMode: 'off' })} 
+                                        className={`flex-1 min-w-[70px] py-2.5 rounded-lg text-xs font-medium transition-all ${activeTransparencyTab === 'off' ? 'bg-white/10 text-white shadow-sm' : 'text-gray-400'}`}
+                                    >
+                                        Sólido
+                                    </button>
+                                    <button 
+                                        onClick={() => handleSave({ transparencyMode: settings.transparencyMode === 'balanced' ? 'balanced' : 'subtle' })} 
+                                        className={`flex-1 min-w-[70px] py-2.5 rounded-lg text-xs font-medium transition-all ${activeTransparencyTab === 'transparent' ? 'bg-white/10 text-white shadow-sm' : 'text-gray-400'}`}
+                                    >
+                                        Transparente
+                                    </button>
+                                    <button 
+                                        onClick={() => handleSave({ transparencyMode: 'glass' })} 
+                                        className={`flex-1 min-w-[70px] py-2.5 rounded-lg text-xs font-medium transition-all ${activeTransparencyTab === 'glass' ? 'bg-white/10 text-white shadow-sm' : 'text-gray-400'}`}
+                                    >
+                                        Vidro (Blur)
+                                    </button>
                                 </div>
-                            </div>
-                        )}
 
-                        {/* 3. Scope Toggles for Glass Mode */}
-                        {activeTransparencyTab === 'glass' && !settings.performanceMode && (
-                            <div className="pl-4 border-l-2 border-gray-700 space-y-2 animate-enter">
-                                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Aplicar Efeito em:</h4>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={settings.glassScope.header} onChange={() => handleSave({ glassScope: { ...settings.glassScope, header: !settings.glassScope.header } })} className="accent-cyan-500" /><span className="text-sm text-gray-300">Cabeçalho (Header)</span></label>
-                                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={settings.glassScope.cards} onChange={() => handleSave({ glassScope: { ...settings.glassScope, cards: !settings.glassScope.cards } })} className="accent-cyan-500" /><span className="text-sm text-gray-300">Cartões e Widgets</span></label>
-                                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={settings.glassScope.overlays} onChange={() => handleSave({ glassScope: { ...settings.glassScope, overlays: !settings.glassScope.overlays } })} className="accent-cyan-500" /><span className="text-sm text-gray-300">Menus e Sobreposições</span></label>
-                                </div>
-                            </div>
+                                {/* 2. Sub-options for Transparent Mode */}
+                                {activeTransparencyTab === 'transparent' && (
+                                    <div className="pl-4 border-l-2 border-gray-700 animate-enter">
+                                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Intensidade</h4>
+                                        <div className="flex bg-black/20 rounded-xl p-1 border border-white/5 w-fit">
+                                            <button onClick={() => handleSave({ transparencyMode: 'subtle' })} className={`px-4 py-2 rounded-lg text-xs font-medium ${settings.transparencyMode === 'subtle' ? 'bg-white/10 text-white' : 'text-gray-400'}`}>Sutil (96%)</button>
+                                            <button onClick={() => handleSave({ transparencyMode: 'balanced' })} className={`px-4 py-2 rounded-lg text-xs font-medium ${settings.transparencyMode === 'balanced' ? 'bg-white/10 text-white' : 'text-gray-400'}`}>Equilibrado (93%)</button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* 3. Scope Toggles for Glass Mode */}
+                                {activeTransparencyTab === 'glass' && !settings.performanceMode && (
+                                    <div className="pl-4 border-l-2 border-gray-700 space-y-2 animate-enter">
+                                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Aplicar Efeito em:</h4>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            <label className="flex items-center gap-3 cursor-pointer p-2 rounded hover:bg-white/5"><input type="checkbox" checked={settings.glassScope.header} onChange={() => handleSave({ glassScope: { ...settings.glassScope, header: !settings.glassScope.header } })} className="accent-cyan-500 w-4 h-4" /><span className="text-sm text-gray-300">Cabeçalho (Header)</span></label>
+                                            <label className="flex items-center gap-3 cursor-pointer p-2 rounded hover:bg-white/5"><input type="checkbox" checked={settings.glassScope.cards} onChange={() => handleSave({ glassScope: { ...settings.glassScope, cards: !settings.glassScope.cards } })} className="accent-cyan-500 w-4 h-4" /><span className="text-sm text-gray-300">Cartões e Widgets</span></label>
+                                            <label className="flex items-center gap-3 cursor-pointer p-2 rounded hover:bg-white/5"><input type="checkbox" checked={settings.glassScope.overlays} onChange={() => handleSave({ glassScope: { ...settings.glassScope, overlays: !settings.glassScope.overlays } })} className="accent-cyan-500 w-4 h-4" /><span className="text-sm text-gray-300">Menus e Sobreposições</span></label>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
 
@@ -357,13 +403,13 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                          <div>
                              <label className={`${density.text} text-sm font-medium text-gray-300 mb-2 block`}>Densidade</label>
                              <div className="flex bg-black/20 rounded-xl p-1 border border-white/5">
-                                {densityOptions.map((opt) => (<button key={opt.id} onClick={() => handleSave({ layoutDensity: opt.id })} className={`flex-1 py-1.5 rounded-lg text-xs font-medium ${settings.layoutDensity === opt.id ? 'bg-white/10 text-white' : 'text-gray-400'}`}>{opt.label}</button>))}
+                                {densityOptions.map((opt) => (<button key={opt.id} onClick={() => handleSave({ layoutDensity: opt.id })} className={`flex-1 py-2 rounded-lg text-xs font-medium ${settings.layoutDensity === opt.id ? 'bg-white/10 text-white' : 'text-gray-400'}`}>{opt.label}</button>))}
                             </div>
                         </div>
                          <div>
                              <label className={`${density.text} text-sm font-medium text-gray-300 mb-2 block`}>Tema do Mapa</label>
                              <div className="flex bg-black/20 rounded-xl p-1 border border-white/5">
-                                {mapThemeOptions.map((opt) => (<button key={opt.id} onClick={() => handleSave({ mapTheme: opt.id })} className={`flex-1 py-1.5 rounded-lg text-xs font-medium ${settings.mapTheme === opt.id ? 'bg-white/10 text-white' : 'text-gray-400'}`}>{opt.label}</button>))}
+                                {mapThemeOptions.map((opt) => (<button key={opt.id} onClick={() => handleSave({ mapTheme: opt.id })} className={`flex-1 py-2 rounded-lg text-xs font-medium ${settings.mapTheme === opt.id ? 'bg-white/10 text-white' : 'text-gray-400'}`}>{opt.label}</button>))}
                             </div>
                         </div>
                     </div>
@@ -380,20 +426,34 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                     <div className="pt-4 border-t border-white/5 space-y-3">
                          <div className="flex items-center justify-between">
                             <span className={`${density.text} text-white font-medium`}>Remover Animações</span>
-                            <ToggleSwitch checked={settings.reducedMotion} onChange={() => handleSave({ reducedMotion: !settings.reducedMotion })} activeColorClass={classes.bg} />
+                            {isPerformanceMode ? (
+                                <span className="text-xs text-gray-500 bg-black/20 px-2 py-1 rounded">Desligado (Perf.)</span>
+                            ) : (
+                                <ToggleSwitch checked={settings.reducedMotion} onChange={() => handleSave({ reducedMotion: !settings.reducedMotion })} activeColorClass={classes.bg} />
+                            )}
                         </div>
                         <div className="flex items-center justify-between">
                             <span className={`${density.text} text-white font-medium`}>Animação de Chuva</span>
                             <ToggleSwitch checked={settings.rainAnimation.enabled} onChange={() => handleSave({ rainAnimation: { ...settings.rainAnimation, enabled: !settings.rainAnimation.enabled } })} activeColorClass={classes.bg} />
                         </div>
+                        
                         {settings.rainAnimation.enabled && (
-                             <div className="flex items-center justify-between pl-4 border-l-2 border-gray-700">
-                                <span className="text-xs text-gray-400">Intensidade Visual</span>
-                                <div className="flex bg-black/20 rounded-lg p-0.5 border border-white/5">
-                                    <button onClick={() => handleSave({ rainAnimation: { ...settings.rainAnimation, intensity: 'low' } })} className={`px-3 py-1 rounded text-xs font-medium ${settings.rainAnimation.intensity === 'low' ? 'bg-white/10 text-white' : 'text-gray-500'}`}>Leve</button>
-                                    <button onClick={() => handleSave({ rainAnimation: { ...settings.rainAnimation, intensity: 'high' } })} className={`px-3 py-1 rounded text-xs font-medium ${settings.rainAnimation.intensity === 'high' ? 'bg-white/10 text-white' : 'text-gray-500'}`}>Forte</button>
+                             isPerformanceMode ? (
+                                 <DisabledOverlay>
+                                     <div className="flex items-center justify-between pl-4 border-l-2 border-gray-700">
+                                         <span className="text-xs text-gray-400">Intensidade Visual</span>
+                                         <div className="flex bg-black/20 rounded-lg p-0.5 border border-white/5 h-8 w-24"></div>
+                                     </div>
+                                 </DisabledOverlay>
+                             ) : (
+                                <div className="flex items-center justify-between pl-4 border-l-2 border-gray-700">
+                                    <span className="text-xs text-gray-400">Intensidade Visual</span>
+                                    <div className="flex bg-black/20 rounded-lg p-0.5 border border-white/5">
+                                        <button onClick={() => handleSave({ rainAnimation: { ...settings.rainAnimation, intensity: 'low' } })} className={`px-4 py-1.5 rounded text-xs font-medium ${settings.rainAnimation.intensity === 'low' ? 'bg-white/10 text-white' : 'text-gray-500'}`}>Leve</button>
+                                        <button onClick={() => handleSave({ rainAnimation: { ...settings.rainAnimation, intensity: 'high' } })} className={`px-4 py-1.5 rounded text-xs font-medium ${settings.rainAnimation.intensity === 'high' ? 'bg-white/10 text-white' : 'text-gray-500'}`}>Forte</button>
+                                    </div>
                                 </div>
-                            </div>
+                             )
                         )}
                     </div>
                 </div>
@@ -412,7 +472,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                     </div>
                     <div className="flex flex-col gap-2">
                          <label className={`${density.text} text-sm font-medium text-gray-300`}>Instruções de Personalidade</label>
-                         <textarea value={settings.userAiInstructions || ''} onChange={(e) => handleSave({ userAiInstructions: e.target.value })} placeholder="Digite suas preferências..." className={`${inputStyle} min-h-[100px] resize-none`} maxLength={200} />
+                         <textarea value={settings.userAiInstructions || ''} onChange={(e) => handleSave({ userAiInstructions: e.target.value })} placeholder="Ex: Seja engraçada, Fale como um pirata..." className={`${inputStyle} min-h-[100px] resize-none`} maxLength={200} />
+                         <p className="text-xs text-gray-500">Nota: Instruções que tentem burlar as diretrizes de segurança ou solicitar injeção de prompt serão ignoradas pelo modelo.</p>
                     </div>
                 </div>
             </section>
@@ -420,7 +481,9 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                 <AlertTriangleIcon className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
                 <div className="space-y-1">
                     <strong className="text-yellow-400 text-sm block">Política de Segurança & Diretrizes Éticas</strong> 
-                    <p className="text-xs text-gray-300 leading-relaxed">Informação sobre o uso de IA generativa avançada e diretrizes de segurança.</p>
+                    <p className="text-xs text-gray-300 leading-relaxed">
+                        O Meteor utiliza modelos de IA generativa avançados. É estritamente proibido tentar realizar "jailbreak", injeção de prompt, ou utilizar a IA para gerar conteúdo de ódio, discriminação ou atividades ilegais. O sistema possui filtros de segurança ativos.
+                    </p>
                 </div>
              </div>
         </div>
@@ -445,16 +508,16 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                         <ToggleSwitch checked={settings.saveChatHistory} onChange={() => handleSave({ saveChatHistory: !settings.saveChatHistory })} activeColorClass={classes.bg} />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                        <button onClick={handleExport} className="bg-black/20 hover:bg-white/10 border border-white/10 text-white py-3 rounded-xl font-medium flex items-center justify-center gap-2 text-sm">Exportar Dados</button>
-                        <button onClick={onOpenImport} className="bg-black/20 hover:bg-white/10 border border-white/10 text-white py-3 rounded-xl font-medium flex items-center justify-center gap-2 text-sm">Importar Dados</button>
+                        <button onClick={handleExport} className="bg-black/20 hover:bg-white/10 border border-white/10 text-white py-4 rounded-xl font-medium flex items-center justify-center gap-2 text-sm transition-colors">Exportar Dados</button>
+                        <button onClick={onOpenImport} className="bg-black/20 hover:bg-white/10 border border-white/10 text-white py-4 rounded-xl font-medium flex items-center justify-center gap-2 text-sm transition-colors">Importar Dados</button>
                     </div>
                     <div className="border-t border-white/5 pt-6 space-y-4">
                         <h4 className="text-red-400 text-xs font-bold uppercase tracking-wider mb-2">Zona de Perigo</h4>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <button onClick={() => handleReset('settings')} className="border border-red-500/30 text-red-300 hover:bg-red-500/10 py-3 rounded-xl text-sm">Resetar Ajustes</button>
-                            <button onClick={() => handleReset('cache')} className="border border-red-500/30 text-red-300 hover:bg-red-500/10 py-3 rounded-xl text-sm">Limpar Cache</button>
-                            <button onClick={() => handleReset('history')} className="border border-red-500/30 text-red-300 hover:bg-red-500/10 py-3 rounded-xl text-sm">Limpar Histórico IA</button>
-                            <button onClick={() => handleReset('all')} className="bg-red-500/80 hover:bg-red-600 text-white py-3 rounded-xl text-sm font-bold shadow-lg shadow-red-900/20 border border-red-400/50">Resetar Tudo</button>
+                            <button onClick={() => handleReset('settings')} className="border border-red-500/30 text-red-300 hover:bg-red-500/10 py-3 rounded-xl text-sm transition-colors">Resetar Ajustes</button>
+                            <button onClick={() => handleReset('cache')} className="border border-red-500/30 text-red-300 hover:bg-red-500/10 py-3 rounded-xl text-sm transition-colors">Limpar Cache</button>
+                            <button onClick={() => handleReset('history')} className="border border-red-500/30 text-red-300 hover:bg-red-500/10 py-3 rounded-xl text-sm transition-colors">Limpar Histórico IA</button>
+                            <button onClick={() => handleReset('all')} className="bg-red-500/80 hover:bg-red-600 text-white py-3 rounded-xl text-sm font-bold shadow-lg shadow-red-900/20 border border-red-400/50 transition-colors">Resetar Tudo</button>
                         </div>
                     </div>
                 </div>
@@ -477,16 +540,16 @@ const SettingsView: React.FC<SettingsViewProps> = ({
             <section className={`${cardClass} rounded-3xl ${density.padding}`}>
                 <h3 className={`text-lg font-bold ${classes.text} mb-4`}>Links Úteis</h3>
                 <div className="grid grid-cols-1 gap-3">
-                    <a href="https://policies-meteor-ai.netlify.app/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 rounded-xl bg-black/20 border border-white/5 hover:bg-white/10 transition-all"><div className={`p-2 rounded-lg bg-gray-800 text-gray-400`}><FileTextIcon className="w-5 h-5" /></div><div className="flex-1"><h4 className="text-sm font-bold text-white">Política de Privacidade</h4></div><ChevronLeftIcon className="w-4 h-4 text-gray-500 rotate-180" /></a>
-                    <a href="https://sobre-meteor-ai.netlify.app/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 rounded-xl bg-black/20 border border-white/5 hover:bg-white/10 transition-all"><div className={`p-2 rounded-lg bg-gray-800 text-gray-400`}><GlobeIcon className="w-5 h-5" /></div><div className="flex-1"><h4 className="text-sm font-bold text-white">Sobre o Projeto</h4></div><ChevronLeftIcon className="w-4 h-4 text-gray-500 rotate-180" /></a>
-                    <a href="https://github.com/elias001011/Meteor" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 rounded-xl bg-black/20 border border-white/5 hover:bg-white/10 transition-all"><div className={`p-2 rounded-lg bg-gray-800 text-gray-400`}><GithubIcon className="w-5 h-5" /></div><div className="flex-1"><h4 className="text-sm font-bold text-white">GitHub</h4></div><ChevronLeftIcon className="w-4 h-4 text-gray-500 rotate-180" /></a>
+                    <a href="https://policies-meteor-ai.netlify.app/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-4 rounded-xl bg-black/20 border border-white/5 hover:bg-white/10 transition-all"><div className={`p-2 rounded-lg bg-gray-800 text-gray-400`}><FileTextIcon className="w-5 h-5" /></div><div className="flex-1"><h4 className="text-sm font-bold text-white">Política de Privacidade</h4></div><ChevronLeftIcon className="w-4 h-4 text-gray-500 rotate-180" /></a>
+                    <a href="https://sobre-meteor-ai.netlify.app/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-4 rounded-xl bg-black/20 border border-white/5 hover:bg-white/10 transition-all"><div className={`p-2 rounded-lg bg-gray-800 text-gray-400`}><GlobeIcon className="w-5 h-5" /></div><div className="flex-1"><h4 className="text-sm font-bold text-white">Sobre o Projeto</h4></div><ChevronLeftIcon className="w-4 h-4 text-gray-500 rotate-180" /></a>
+                    <a href="https://github.com/elias001011/Meteor" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-4 rounded-xl bg-black/20 border border-white/5 hover:bg-white/10 transition-all"><div className={`p-2 rounded-lg bg-gray-800 text-gray-400`}><GithubIcon className="w-5 h-5" /></div><div className="flex-1"><h4 className="text-sm font-bold text-white">GitHub</h4></div><ChevronLeftIcon className="w-4 h-4 text-gray-500 rotate-180" /></a>
                 </div>
             </section>
-             <div className="pt-2">
+             <div className="pt-2 pb-6">
                 <button onClick={onOpenChangelog} className={`w-full group relative overflow-hidden rounded-2xl border border-white/10 bg-gray-900/60 hover:bg-gray-900/80 transition-all p-4 text-left flex items-center justify-between`}>
                     <div className="flex items-center gap-4 relative z-10">
                         <div className={`p-3 rounded-full bg-gradient-to-br ${classes.gradient} shadow-lg`}><SparklesIcon className="w-5 h-5 text-white" /></div>
-                        <div><p className="text-xs text-gray-400 font-medium uppercase tracking-wider mb-0.5">Meteor App</p><p className="text-white font-bold">Versão 3.5.0</p><p className="text-xs text-gray-500 mt-0.5">Desenvolvido por @elias_jrnunes</p></div>
+                        <div><p className="text-xs text-gray-400 font-medium uppercase tracking-wider mb-0.5">Meteor App</p><p className="text-white font-bold">Versão 3.6.0</p><p className="text-xs text-gray-500 mt-0.5">Desenvolvido por @elias_jrnunes</p></div>
                     </div>
                     <ChevronLeftIcon className="w-5 h-5 rotate-180 text-gray-500" />
                 </button>

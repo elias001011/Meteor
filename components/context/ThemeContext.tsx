@@ -1,4 +1,5 @@
 
+
 import React, { createContext, useContext, useEffect, useMemo } from 'react';
 import type { AppTheme, TransparencyMode, BackgroundMode, LayoutDensity, GlassScope } from '../../types';
 
@@ -89,24 +90,29 @@ export const ThemeProvider: React.FC<{
     const currentDensity = DENSITY_DEFINITIONS[layoutDensity] || DENSITY_DEFINITIONS.comfortable;
     const baseDark = 'bg-[#111827]'; 
 
-    // --- MOTOR DE ESTILO v3.5 (CORRIGIDO) ---
+    // --- MOTOR DE ESTILO v3.6.0 ---
     const getFinalStyle = useMemo(() => (scopeType: keyof GlassScope) => {
         const isHeader = scopeType === 'header';
         const borderClass = isHeader ? 'border-b border-white/10' : 'border border-white/10 shadow-lg';
         
-        // 1. MODO SÓLIDO (OFF)
+        // 1. PERFORMANCE MODE OVERRIDE
+        if (performanceMode) {
+             return `${baseDark} ${borderClass}`;
+        }
+
+        // 2. MODO SÓLIDO (OFF)
         if (transparencyMode === 'off') {
             return `${baseDark} ${borderClass}`;
         }
 
-        // 2. VERIFICAÇÃO DE ESCOPO
-        // Se o usuário desativou o efeito para este elemento específico, caímos para 'Sutil'
+        // 3. VERIFICAÇÃO DE ESCOPO (GLASS SCOPE)
+        // Se o usuário desativou o efeito para este elemento, caímos para 'Sutil'
         const canUseEffect = glassScope[scopeType];
         if (!canUseEffect) {
             return `bg-[#111827]/[0.96] ${borderClass}`; 
         }
 
-        // 3. APLICAÇÃO DOS MODOS VISUAIS
+        // 4. APLICAÇÃO DOS MODOS VISUAIS
         switch (transparencyMode) {
             case 'subtle': 
                 // "Sutil" -> 96% Opacidade, ZERO BLUR (Fundo sólido mas levemente transparente)
@@ -117,12 +123,12 @@ export const ThemeProvider: React.FC<{
                 return `bg-[#111827]/[0.93] ${borderClass}`;
 
             case 'glass': 
-                // "Vidro" -> 60% Opacidade + BLUR PESADO (Se performance permitir)
-                if (performanceMode) {
-                    // Fallback de performance para Equilibrado
-                    return `bg-[#111827]/[0.93] ${borderClass}`;
-                }
+                // "Vidro" -> 60% Opacidade + BLUR
                 return `bg-[#111827]/60 backdrop-blur-2xl ${borderClass} shadow-2xl`;
+
+            case 'transparent': 
+                 // "Transparente (Novo)" -> 70% Opacidade, SEM BLUR (Performance Mobile)
+                return `bg-[#111827]/70 ${borderClass}`;
 
             default:
                 return `${baseDark} ${borderClass}`;
@@ -133,7 +139,7 @@ export const ThemeProvider: React.FC<{
     // Aplicação das classes
     const headerClass = getFinalStyle('header');
     const cardClass = getFinalStyle('cards');
-    const glassClass = getFinalStyle('overlays'); // Usado pelo BottomNav Menu
+    const glassClass = getFinalStyle('overlays'); // Padronizado para Modais e Menus
     
     const miniClass = cardClass; 
 

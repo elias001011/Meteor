@@ -1,4 +1,5 @@
 
+
 import React, { useEffect, useRef, useState } from 'react';
 import type { HourlyForecast } from '../../types';
 import { UmbrellaIcon } from '../icons';
@@ -59,7 +60,7 @@ const HourlyForecastComponent: React.FC<HourlyForecastProps> = ({ data, timezone
           <button 
             key={index} 
             onClick={() => handleItemClick(item.description)}
-            className="flex flex-col items-center justify-between space-y-1 flex-shrink-0 w-16 py-2 text-center bg-white/5 border border-white/5 rounded-2xl hover:bg-white/10 transition-all focus:outline-none focus:ring-2 focus:ring-white/20"
+            className="flex flex-col items-center justify-between space-y-1 flex-shrink-0 w-16 py-2 text-center bg-white/5 border border-white/5 rounded-2xl hover:bg-white/10 transition-all focus:outline-none focus:ring-2 focus:ring-white/20 focus:ring-offset-2 focus:ring-offset-transparent"
           >
             <span className={`${density.subtext} text-gray-400 font-medium`}>{formatHour(item.dt)}</span>
             <span className="text-2xl my-1 filter drop-shadow-sm">{item.conditionIcon}</span>
@@ -76,10 +77,10 @@ const HourlyForecastComponent: React.FC<HourlyForecastProps> = ({ data, timezone
         ))}
       </div>
       
-      {/* Toast Notification */}
+      {/* Toast Notification (Center Bottom, Higher to clear Nav) */}
       {toastMessage && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 animate-enter-pop pointer-events-none">
-              <div className="bg-gray-900/95 backdrop-blur-md text-white text-xs font-bold px-4 py-2 rounded-full shadow-2xl border border-white/10 whitespace-nowrap">
+          <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[150] animate-enter-pop pointer-events-none">
+              <div className="bg-gray-900/95 backdrop-blur-md text-white text-xs font-bold px-4 py-2.5 rounded-full shadow-2xl border border-white/10 whitespace-nowrap">
                   {toastMessage}
               </div>
           </div>
