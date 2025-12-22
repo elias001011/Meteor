@@ -117,11 +117,18 @@ export type BackgroundMode = 'gradient' | 'solid';
 export type MapTheme = 'light' | 'dark';
 export type BorderEffectMode = 'none' | 'top' | 'bottom';
 export type LayoutDensity = 'comfortable' | 'compact';
+export type DesktopLayout = '25-75' | '40-60' | '50-50';
 
 export interface GlassScope {
     header: boolean;
     cards: boolean;
     overlays: boolean; // Modals, Dropdowns, Nav
+}
+
+export interface WeatherInsightsConfig {
+    enabled: boolean;
+    style: 'container' | 'clean'; // 'container' = boxed (glass), 'clean' = text only
+    content: 'highlight' | 'recommendation' | 'both';
 }
 
 export interface AppSettings {
@@ -144,6 +151,7 @@ export interface AppSettings {
     borderEffect: BorderEffectMode; // LED-like border effect position
     mapTheme: MapTheme;
     layoutDensity: LayoutDensity; // Compact vs Comfortable
+    desktopLayout: DesktopLayout; // New: Proporção do layout no PC
     showScrollbars: boolean;
     performanceMode: boolean; // Performance Mode
     reducedMotion: boolean; // New: Remove Animations
@@ -151,6 +159,7 @@ export interface AppSettings {
         enabled: boolean;
         intensity: 'low' | 'high';
     };
+    weatherInsights: WeatherInsightsConfig; // New v3.0 Feature
 }
 
 export interface ExportData {

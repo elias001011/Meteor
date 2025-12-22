@@ -10,13 +10,13 @@ interface AdditionalInfoProps {
 }
 
 const InfoItem: React.FC<{ icon: React.ReactNode; label: string; value: string | number; iconSize: string; textSize: string; subtextSize: string }> = ({ icon, label, value, iconSize, textSize, subtextSize }) => (
-    <div className="flex items-center gap-3 p-2 rounded-xl transition-colors hover:bg-white/5">
-        <div className={`bg-white/10 rounded-full p-2 shadow-inner`}>
+    <div className="flex items-center gap-3 p-2 rounded-xl transition-colors hover:bg-white/5 min-w-0">
+        <div className={`bg-white/10 rounded-full p-2 shadow-inner flex-shrink-0`}>
             {icon}
         </div>
-        <div>
-            <p className={`text-gray-400 font-medium uppercase tracking-wide ${subtextSize}`}>{label}</p>
-            <p className={`font-bold text-slate-100 ${textSize}`}>{value}</p>
+        <div className="min-w-0 flex-1">
+            <p className={`text-gray-400 font-medium uppercase tracking-wide truncate ${subtextSize}`}>{label}</p>
+            <p className={`font-bold text-slate-100 truncate ${textSize}`}>{value}</p>
         </div>
     </div>
 );
@@ -64,8 +64,9 @@ const AdditionalInfo: React.FC<AdditionalInfoProps> = ({ data }) => {
   };
 
   return (
-    <div className={`rounded-3xl ${density.padding} ${cardClass} animate-enter delay-100`}>
-        <div className={`grid grid-cols-2 sm:grid-cols-3 ${density.gap} gap-y-2`}>
+    <div className={`rounded-3xl ${density.padding} ${cardClass} animate-enter delay-100 flex flex-col justify-center`}>
+        {/* Adjusted grid to avoid forcing 3 cols on XL screens where the container might be narrow (25/75 layout) */}
+        <div className={`grid grid-cols-2 ${density.gap} gap-y-2`}>
             <InfoItem icon={<SunriseIcon className={iconClass} />} label="Nascer" value={formatTime(data.sunrise)} {...itemProps} />
             <InfoItem icon={<SunsetIcon className={iconClass} />} label="Pôr" value={formatTime(data.sunset)} {...itemProps} />
             <InfoItem icon={<WindIcon className={iconClass} />} label="Vento" value={`${data.windSpeed} km/h${windDirection}`} {...itemProps} />

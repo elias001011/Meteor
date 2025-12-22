@@ -17,9 +17,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, onRegene
   const [showInfo, setShowInfo] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
 
-  // Simple formatter
+  // Enhanced Formatter for cleaner AI output
   const renderFormattedText = (text: string) => {
-    // Split by newlines to handle block elements
     const lines = text.split('\n');
     
     return lines.map((line, i) => {
@@ -28,12 +27,12 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, onRegene
         if (line.startsWith('## ')) return <h2 key={i} className="text-lg font-bold mt-4 mb-2 text-white">{line.substring(3)}</h2>;
         if (line.startsWith('# ')) return <h1 key={i} className="text-xl font-bold mt-4 mb-2 text-white border-b border-white/10 pb-1">{line.substring(2)}</h1>;
         
-        // Lists (Bullet)
-        if (line.trim().startsWith('- ')) {
+        // Lists (Bullet) - Handles "- " and "* "
+        if (line.trim().match(/^[-*]\s/)) {
              return (
                 <div key={i} className="flex gap-2 ml-2 my-1">
-                    <span className="text-gray-400">•</span>
-                    <span className="flex-1">{parseInlineFormatting(line.substring(2))}</span>
+                    <span className="text-gray-400 font-bold">•</span>
+                    <span className="flex-1">{parseInlineFormatting(line.trim().substring(2))}</span>
                 </div>
              );
         }
@@ -42,17 +41,28 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, onRegene
         if (line.trim() === '') return <div key={i} className="h-2"></div>;
 
         // Paragraphs
-        return <p key={i} className="my-0.5">{parseInlineFormatting(line)}</p>;
+        return <p key={i} className="my-0.5 leading-relaxed">{parseInlineFormatting(line)}</p>;
     });
   };
 
   const parseInlineFormatting = (text: string) => {
-      // Very basic parser for **bold** and *italic*
+      // Improved Regex to capture **bold**, *italic*, and `code` more reliably
       const parts = text.split(/(\*\*.*?\*\*|\*.*?\*|`.*?`)/g);
+      
       return parts.map((part, j) => {
-          if (part.startsWith('**') && part.endsWith('**')) return <strong key={j} className="text-white font-bold">{part.substring(2, part.length - 2)}</strong>;
-          if (part.startsWith('*') && part.endsWith('*')) return <em key={j} className="italic text-gray-200">{part.substring(1, part.length - 1)}</em>;
-          if (part.startsWith('`') && part.endsWith('`')) return <code key={j} className="bg-black/30 px-1 py-0.5 rounded text-xs font-mono text-cyan-300">{part.substring(1, part.length - 1)}</code>;
+          if (part.startsWith('**') && part.endsWith('**')) {
+              return <strong key={j} className="text-white font-bold">{part.substring(2, part.length - 2)}</strong>;
+          }
+          if (part.startsWith('*') && part.endsWith('*')) {
+              // Check if it's a "floating" asterisk or real italic
+              if (part.length > 2) {
+                  return <em key={j} className="italic text-gray-200">{part.substring(1, part.length - 1)}</em>;
+              }
+              return part;
+          }
+          if (part.startsWith('`') && part.endsWith('`')) {
+              return <code key={j} className="bg-black/30 px-1 py-0.5 rounded text-xs font-mono text-cyan-300">{part.substring(1, part.length - 1)}</code>;
+          }
           return part;
       });
   };
@@ -95,7 +105,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, onRegene
         {isModel && message.text.length > 0 && (
             <div className="flex items-center gap-1 mt-2 ml-1 opacity-100 transition-opacity">
                 <button onClick={handleCopy} className="p-1.5 text-gray-500 hover:text-white hover:bg-gray-800 rounded-lg transition-colors" title="Copiar texto">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2-2v1"></path></svg>
                 </button>
                 <button onClick={handleSpeak} className={`p-1.5 rounded-lg transition-colors ${isSpeaking ? 'text-cyan-400 bg-cyan-400/10' : 'text-gray-500 hover:text-white hover:bg-gray-800'}`} title={isSpeaking ? "Parar leitura" : "Ler em voz alta"}>
                     {isSpeaking ? (

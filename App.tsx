@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import WeatherView from './components/weather/WeatherView';
 import AiView from './components/ai/AiView';
@@ -147,6 +148,23 @@ const AppContent: React.FC<{
     // Remove animation class if performance mode is on
     const animationClass = isPerformanceMode ? '' : 'animate-enter';
 
+    // Desktop Grid Logic
+    const getDesktopGrid = () => {
+        const layout = settings.desktopLayout || '40-60';
+        switch (layout) {
+            case '25-75':
+                return { left: 'lg:col-span-3', right: 'lg:col-span-9' };
+            case '50-50':
+                return { left: 'lg:col-span-6', right: 'lg:col-span-6' };
+            case '40-60':
+            default:
+                // 5 cols (41%) / 7 cols (58%) is close to 40/60 on a 12 grid
+                return { left: 'lg:col-span-5', right: 'lg:col-span-7' };
+        }
+    };
+    
+    const gridCols = getDesktopGrid();
+
     return (
         <div className={`relative text-white min-h-screen font-sans flex flex-col h-screen overflow-hidden transition-colors duration-500 ${appBackgroundClass}`}>
             {/* Rain Animation Layer - Z-Index 0 puts it behind content (z-10) but above background */}
@@ -175,12 +193,18 @@ const AppContent: React.FC<{
                 {/* --- DESKTOP VIEW --- */}
                 <div className="hidden lg:block h-full overflow-y-auto pt-16">
                     {view === 'weather' && (
-                        <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 p-6 h-full ${animationClass}`}>
-                            <div className="overflow-y-auto pr-2 space-y-6">
+                        <div className={`grid grid-cols-1 lg:grid-cols-12 gap-6 p-6 h-full ${animationClass}`}>
+                            <div className={`${gridCols.left} overflow-y-auto pr-2 space-y-6`}>
                                 <DesktopWeather {...weatherProps} />
                             </div>
-                            <div className="h-full rounded-3xl overflow-hidden shadow-2xl border border-white/10">
-                                <MapView lat={props.currentCoords?.lat} lon={props.currentCoords?.lon} theme={settings.mapTheme} />
+                            <div className={`${gridCols.right} h-full rounded-3xl overflow-hidden shadow-2xl border border-white/10`}>
+                                {/* Key prop forces re-render when layout changes, fixing Leaflet resize bugs */}
+                                <MapView 
+                                    key={settings.desktopLayout} 
+                                    lat={props.currentCoords?.lat} 
+                                    lon={props.currentCoords?.lon} 
+                                    theme={settings.mapTheme} 
+                                />
                             </div>
                         </div>
                     )}
