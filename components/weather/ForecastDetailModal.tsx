@@ -1,5 +1,6 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 interface ForecastDetailModalProps {
     isOpen: boolean;
@@ -14,6 +15,12 @@ interface ForecastDetailModalProps {
 }
 
 const ForecastDetailModal: React.FC<ForecastDetailModalProps> = ({ isOpen, onClose, data }) => {
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+        return () => setMounted(false);
+    }, []);
     
     // Auto-close after 2 seconds
     useEffect(() => {
@@ -25,17 +32,21 @@ const ForecastDetailModal: React.FC<ForecastDetailModalProps> = ({ isOpen, onClo
         }
     }, [isOpen, data, onClose]);
 
-    if (!isOpen || !data) return null;
+    if (!isOpen || !data || !mounted) return null;
 
-    return (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[9999] pointer-events-none w-full flex justify-center px-4">
+    // Usamos Portal para jogar o elemento direto no body.
+    // Isso garante que o position: fixed seja relativo à TELA (viewport)
+    // e não ao container pai (que pode ter transform/overflow que quebra o fixed).
+    return createPortal(
+        <div className="fixed bottom-24 left-0 right-0 z-[9999] pointer-events-none flex justify-center px-4">
             {/* Minimal Floating Toast - Pílula Sólida Inferior */}
-            <div className="bg-gray-900 border border-gray-700 shadow-[0_0_15px_rgba(0,0,0,0.5)] px-6 py-3 rounded-full animate-fast-pop flex items-center justify-center min-w-[150px]">
-                <span className="text-white font-bold capitalize text-sm tracking-wide text-center">
+            <div className="bg-gray-900 border border-gray-700 shadow-[0_4px_20px_rgba(0,0,0,0.6)] px-6 py-3 rounded-full animate-fast-pop flex items-center justify-center min-w-[140px] max-w-[80%]">
+                <span className="text-white font-bold capitalize text-sm tracking-wide text-center truncate">
                     {data.description}
                 </span>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 
