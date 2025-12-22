@@ -9,16 +9,9 @@ interface DailyForecastProps {
   timezoneOffset?: number;
 }
 
-interface PopupState {
-    show: boolean;
-    x: number;
-    y: number;
-    text: string;
-}
-
 const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data, timezoneOffset = 0 }) => {
   const { classes, cardClass, density } = useTheme();
-  const [popup, setPopup] = useState<PopupState | null>(null);
+  const [activeInfo, setActiveInfo] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   const getDayLabel = (dt: number) => {
@@ -36,43 +29,30 @@ const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data, timezoneOf
     return dayName.charAt(0).toUpperCase() + dayName.slice(1, -1); 
   };
 
-  const handleItemClick = (e: React.MouseEvent<HTMLButtonElement>, description?: string) => {
+  const handleItemClick = (description?: string) => {
       if (!description) return;
-
-      const rect = e.currentTarget.getBoundingClientRect();
-      const centerX = rect.left + rect.width / 2;
-      
-      setPopup({
-          show: true,
-          x: centerX,
-          y: rect.top,
-          text: description
-      });
-
+      setActiveInfo(description);
       if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => {
-          setPopup(null);
-      }, 2500);
+      timerRef.current = setTimeout(() => setActiveInfo(null), 3000);
   };
 
-  useEffect(() => {
-      const handleScroll = () => { if (popup) setPopup(null); };
-      window.addEventListener('scroll', handleScroll, { passive: true });
-      return () => {
-          window.removeEventListener('scroll', handleScroll);
-          if (timerRef.current) clearTimeout(timerRef.current);
-      };
-  }, [popup]);
-
   return (
-    <div className={`relative rounded-3xl ${density.padding} ${cardClass} animate-enter delay-300`}>
-      <h3 className={`${density.sectionTitle} font-medium text-gray-300 px-2 uppercase tracking-wide`}>Próximos Dias</h3>
+    <div className={`relative rounded-3xl ${density.padding} ${cardClass} animate-enter transition-all duration-300`}>
+      <div className="flex items-center justify-between mb-3 px-2">
+          <h3 className={`${density.sectionTitle} font-medium text-gray-300 uppercase tracking-wide m-0`}>Próximos Dias</h3>
+          {activeInfo && (
+              <span className="text-[10px] text-cyan-400 font-bold animate-fade-in truncate ml-4 bg-cyan-400/10 px-2 py-0.5 rounded-full">
+                {activeInfo}
+              </span>
+          )}
+      </div>
+      
       <div className="space-y-1">
         {data.map((item, index) => (
           <button 
             key={index}
-            onClick={(e) => handleItemClick(e, item.description)}
-            className={`w-full grid grid-cols-4 items-center p-2 rounded-xl hover:bg-white/5 transition-colors group focus:outline-none focus:ring-1 focus:ring-white/10`}
+            onClick={() => handleItemClick(item.description)}
+            className={`w-full grid grid-cols-4 items-center p-3 rounded-xl hover:bg-white/5 transition-colors group active:scale-[0.98]`}
           >
             <span className={`font-medium text-gray-200 group-hover:text-white ${density.text} text-left`}>{getDayLabel(item.dt)}</span>
             <div className={`flex justify-center items-center gap-1 ${density.subtext} ${classes.text} font-medium`}>
@@ -88,20 +68,6 @@ const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data, timezoneOf
           </button>
         ))}
       </div>
-
-      {/* Fixed Popup Portal-like */}
-      {popup && popup.show && (
-          <div 
-            className="fixed z-[9999] bg-[#111827] border border-white/20 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-2xl animate-enter-pop pointer-events-none whitespace-nowrap"
-            style={{ 
-                left: popup.x, 
-                top: popup.y - 12, 
-                transform: 'translate(-50%, -100%)' 
-            }}
-          >
-              {popup.text}
-          </div>
-      )}
     </div>
   );
 };
