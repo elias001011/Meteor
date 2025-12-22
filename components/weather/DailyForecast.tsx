@@ -85,13 +85,11 @@ const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data, timezoneOf
                 <span className={`font-bold text-right ${density.text}`}>{Math.round(item.temperature)}°</span>
               </button>
               
-               {/* Local Popup - Solid and Clear */}
+               {/* Local Popup - PILL SHAPE, NO ARROW, SOLID */}
                {activeIndex === index && item.description && (
                   <div className="absolute top-full mt-1 left-1/2 -translate-x-1/2 z-50 animate-enter-pop w-full flex justify-center pointer-events-none">
-                      <div className="bg-[#111827] text-white text-xs font-bold px-4 py-2 rounded-xl shadow-2xl border border-gray-700 whitespace-nowrap relative">
-                           {/* Tiny arrow pointing up */}
-                          <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-[#111827] border-l border-t border-gray-700 transform rotate-45"></div>
-                          <span className="relative z-10">{item.description}</span>
+                      <div className="bg-[#111827] text-white text-xs font-bold px-4 py-1.5 rounded-2xl shadow-xl border border-white/10 whitespace-nowrap">
+                          {item.description}
                       </div>
                   </div>
               )}

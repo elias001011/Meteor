@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import type { WeatherData, HourlyForecast, DailyForecast } from '../../types';
 import { useTheme } from '../context/ThemeContext';
@@ -22,7 +23,7 @@ const getRandomPhrase = (phrases: string[]) => {
 };
 
 const WeatherInsights: React.FC<WeatherInsightsProps> = ({ current, hourly, daily }) => {
-    const { classes, cardClass, density } = useTheme();
+    const { classes, cardClass, density, isPerformanceMode } = useTheme();
     const settings = getSettings();
     const config = settings.weatherInsights;
 
@@ -349,9 +350,15 @@ const WeatherInsights: React.FC<WeatherInsightsProps> = ({ current, hourly, dail
             pulseColor = "bg-blue-400";
         }
 
+        // Logic to remove animation if Reduced Motion or Performance Mode is on
+        const shouldAnimate = !settings.reducedMotion && !isPerformanceMode;
+
         return (
-            <span className="relative flex h-3 w-3 mr-2 mt-1.5 flex-shrink-0">
-                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${pulseColor} opacity-75`}></span>
+            // Changed margins to ensure alignment with baseline
+            <span className="relative flex h-3 w-3 mr-2 self-center flex-shrink-0">
+                {shouldAnimate && (
+                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${pulseColor} opacity-75`}></span>
+                )}
                 <span className={`relative inline-flex rounded-full h-3 w-3 ${pulseColor}`}></span>
             </span>
         );
@@ -363,7 +370,8 @@ const WeatherInsights: React.FC<WeatherInsightsProps> = ({ current, hourly, dail
                 <div className="flex flex-col gap-2">
                     {showHighlight && (
                         <div>
-                            <h3 className={`${density.sectionTitle} font-bold text-white mb-1 flex items-start leading-snug`}>
+                            {/* Changed items-start to items-baseline and adjusted span wrapping for better dot alignment */}
+                            <h3 className={`${density.sectionTitle} font-bold text-white mb-1 flex items-baseline leading-snug`}>
                                 <PulseIndicator />
                                 <span>{highlight}</span>
                             </h3>
@@ -379,7 +387,7 @@ const WeatherInsights: React.FC<WeatherInsightsProps> = ({ current, hourly, dail
         return (
             <div className={`px-2 py-4 animate-enter flex flex-col gap-2`}>
                  {showHighlight && (
-                    <h3 className={`text-xl md:text-2xl font-bold text-white tracking-tight drop-shadow-md flex items-start leading-snug`}>
+                    <h3 className={`text-xl md:text-2xl font-bold text-white tracking-tight drop-shadow-md flex items-baseline leading-snug`}>
                          <PulseIndicator />
                          <span>{highlight}</span>
                     </h3>

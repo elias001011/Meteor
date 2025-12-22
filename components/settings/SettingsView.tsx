@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect } from 'react';
 import type { AppSettings, View, DataSource, AppTheme, TransparencyMode, ClockDisplayMode, BackgroundMode, MapTheme, BorderEffectMode, LayoutDensity, DesktopLayout } from '../../types';
 import { getSettings, resetSettings, resetCache, resetAllData, exportAppData } from '../../services/settingsService';
@@ -529,7 +528,10 @@ const SettingsView: React.FC<SettingsViewProps> = ({
         <div className={`space-y-6 animate-enter`}>
             <section className={`${cardClass} rounded-3xl ${density.padding} border-l-4 relative overflow-hidden`} style={{ borderLeftColor: classes.hex }}>
                 <div className="relative z-10">
-                    <h3 className={`text-lg font-bold text-white mb-2 flex items-center gap-2`}><HeartIcon className={`w-5 h-5 ${classes.text} fill-current animate-pulse`} /> Apoie o Projeto</h3>
+                    <h3 className={`text-lg font-bold text-white mb-2 flex items-center gap-2`}>
+                        <HeartIcon className={`w-5 h-5 ${classes.text} fill-current ${!isPerformanceMode && !settings.reducedMotion ? 'animate-pulse' : ''}`} /> 
+                        Apoie o Projeto
+                    </h3>
                     <div className="bg-black/30 rounded-xl p-4 border border-white/10 mb-4 flex flex-col gap-1">
                         <p className="text-xs text-gray-400 uppercase tracking-wider font-bold">Chave Pix (Aleatória)</p>
                         <code className={`font-mono ${classes.text} text-sm break-all select-all`}>8001be0f-4952-4ef8-b2a5-9bafe691c65c</code>

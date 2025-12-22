@@ -59,8 +59,8 @@ const HourlyForecastComponent: React.FC<HourlyForecastProps> = ({ data, timezone
   return (
     <div className={`relative rounded-3xl ${density.padding} ${cardClass} animate-enter delay-200`}>
       <h3 className={`${density.sectionTitle} font-medium text-gray-300 px-2 uppercase tracking-wide`}>Previsão por hora</h3>
-      {/* Increased padding-bottom to 12 (3rem) to accommodate popups without clipping */}
-      <div ref={scrollRef} className="flex space-x-3 overflow-x-auto pb-12 -mx-2 px-2 scroll-smooth no-scrollbar">
+      {/* Reduced padding bottom slightly, just enough for the small popup */}
+      <div ref={scrollRef} className="flex space-x-3 overflow-x-auto pb-4 -mx-2 px-2 scroll-smooth no-scrollbar">
         {data.map((item, index) => {
           // Dynamic positioning logic to prevent overflow
           const isFirst = index === 0;
@@ -69,15 +69,12 @@ const HourlyForecastComponent: React.FC<HourlyForecastProps> = ({ data, timezone
           const isSecondToLast = index === data.length - 2;
 
           let containerAlign = "left-1/2 -translate-x-1/2";
-          let arrowAlign = "left-1/2 -translate-x-1/2";
-
+          
           // Adjust alignment for edge items
           if (isFirst || isSecond) {
               containerAlign = "left-0 translate-x-0";
-              arrowAlign = "left-8 -translate-x-1/2";
           } else if (isLast || isSecondToLast) {
               containerAlign = "right-0 translate-x-0 left-auto";
-              arrowAlign = "right-8 translate-x-1/2 left-auto";
           }
 
           return (
@@ -99,13 +96,11 @@ const HourlyForecastComponent: React.FC<HourlyForecastProps> = ({ data, timezone
                   </div>
                 </button>
                 
-                {/* Local Popup - Solid Background, Positioned Smartly */}
+                {/* Local Popup - PILL SHAPE, NO ARROW, SOLID */}
                 {activeIndex === index && item.description && (
-                    <div className={`absolute top-full mt-3 ${containerAlign} z-50 animate-enter-pop min-w-[140px]`}>
-                        <div className="bg-[#111827] text-white text-[11px] font-bold px-4 py-2 rounded-xl shadow-2xl border border-gray-700 whitespace-nowrap relative">
-                            {/* Tiny arrow pointing up */}
-                            <div className={`absolute -top-1.5 w-3 h-3 bg-[#111827] border-l border-t border-gray-700 transform rotate-45 ${arrowAlign}`}></div>
-                            <span className="relative z-10">{item.description}</span>
+                    <div className={`absolute top-full mt-1 ${containerAlign} z-50 animate-enter-pop min-w-[120px] pointer-events-none`}>
+                        <div className="bg-[#111827] text-white text-[10px] font-bold px-3 py-1.5 rounded-2xl shadow-xl border border-white/10 whitespace-nowrap text-center">
+                            {item.description}
                         </div>
                     </div>
                 )}
