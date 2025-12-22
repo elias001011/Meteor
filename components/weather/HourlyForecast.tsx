@@ -1,7 +1,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import type { HourlyForecast } from '../../types';
-import { UmbrellaIcon, InfoIcon } from '../icons';
+import { UmbrellaIcon } from '../icons';
 import { useTheme } from '../context/ThemeContext';
 import ForecastDetailModal from './ForecastDetailModal';
 
@@ -62,14 +62,16 @@ const HourlyForecastComponent: React.FC<HourlyForecastProps> = ({ data, timezone
                     <span className={`${density.subtext} text-gray-400 font-medium group-hover:text-white`}>{formatHour(item.dt)}</span>
                     <span className="text-2xl my-1 transform group-hover:scale-110 transition-transform">{item.conditionIcon}</span>
                     <span className={`font-bold ${density.text}`}>{Math.round(item.temperature)}°</span>
-                    <div className="h-4 flex items-center justify-center">
+                    
+                    {/* Container de Chuva: Se não tiver chuva, fica vazio mantendo a altura */}
+                    <div className="h-4 w-full flex items-center justify-center">
                         {typeof item.pop === 'number' && item.pop > 0.05 ? (
                             <div className={`flex items-center gap-0.5 text-[9px] ${classes.text} font-bold`}>
                                 <UmbrellaIcon className="w-2.5 h-2.5" />
                                 <span>{Math.round(item.pop * 100)}%</span>
                             </div>
                         ) : (
-                            <InfoIcon className="w-2.5 h-2.5 text-gray-600 opacity-20" />
+                            <div className="w-2.5 h-2.5" /> 
                         )}
                     </div>
                 </button>
