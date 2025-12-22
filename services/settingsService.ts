@@ -6,47 +6,70 @@ const SETTINGS_KEY = 'meteor_settings';
 const WEATHER_CACHE_PREFIX = 'weather_data_';
 const AI_USAGE_KEY = 'meteor_ai_usage'; // Key used in geminiService.ts
 
+// Helper to detect if user is on mobile
+const isMobileDevice = (): boolean => {
+    if (typeof window === 'undefined') return false;
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 1024;
+};
+
+// Generate defaults based on platform
+const getPlatformDefaults = (): Partial<AppSettings> => {
+    const isMobile = isMobileDevice();
+    
+    if (isMobile) {
+        // Mobile Defaults (Performance Focused)
+        return {
+            transparencyMode: 'balanced', // User requested 'Equilibrado' as default
+            borderEffect: 'bottom',
+            layoutDensity: 'compact',
+            rainAnimation: { enabled: true, intensity: 'low' },
+            reducedMotion: true, // Disable global animations by default
+            showScrollbars: false
+        };
+    } else {
+        // Desktop Defaults (Visuals Focused)
+        return {
+            transparencyMode: 'glass', // Blur enabled
+            borderEffect: 'top',
+            layoutDensity: 'comfortable',
+            rainAnimation: { enabled: true, intensity: 'high' },
+            reducedMotion: false,
+            showScrollbars: true
+        };
+    }
+};
+
 const DEFAULT_SETTINGS: AppSettings = {
     userName: '',
     userAiInstructions: '',
     showClock: true,
-    clockDisplayMode: 'always', // Default to showing it always
+    clockDisplayMode: 'always',
     startFullscreen: false,
     weatherSource: 'auto',
     startupBehavior: 'idle',
-    saveChatHistory: false, // Default to NOT saving history
-    startupSection: 'weather', // Default to Weather to avoid crashes
+    saveChatHistory: false,
+    startupSection: 'weather',
     themeColor: 'purple',
     dynamicTheme: false,
-    transparencyMode: 'glass', // Default to Glass
-    glassScope: { // Default all enabled
+    glassScope: {
         header: true,
         cards: true,
         overlays: true
     },
-    backgroundMode: 'gradient', // Default to Gradient
-    borderEffect: 'top', // Default to Top as requested
-    mapTheme: 'light', // Default to Light as requested
-    layoutDensity: 'comfortable', // Default
-    desktopLayout: '40-60', // New Default Layout
-    showScrollbars: false, // Default to OFF for a cleaner, mobile-first UI
-    performanceMode: false, // Default OFF
-    reducedMotion: false, // Default OFF
-    rainAnimation: {
-        enabled: true,
-        intensity: 'low'
-    },
+    backgroundMode: 'gradient',
+    mapTheme: 'light',
+    desktopLayout: '40-60',
     weatherInsights: {
         enabled: true,
-        style: 'clean', // Changed to 'clean' by default as requested in v3.1
+        style: 'clean',
         content: 'both',
         showPulse: true
-    }
+    },
+    performanceMode: false,
+    ...getPlatformDefaults() as any // Merge platform specific defaults
 };
 
 // --- SECURITY HELPERS ---
-// Simple obfuscation to prevent "Clear Text Storage" alerts in static analysis.
-// Handles Unicode characters correctly (for emojis, accents, etc).
 const encodeData = (data: string): string => {
     try {
         return btoa(encodeURIComponent(data).replace(/%([0-9A-F]{2})/g,
@@ -54,7 +77,7 @@ const encodeData = (data: string): string => {
         );
     } catch (e) {
         console.error("Encoding failed", e);
-        return data; // Fallback
+        return data;
     }
 };
 
@@ -64,7 +87,7 @@ const decodeData = (data: string): string => {
             return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
         }).join(''));
     } catch (e) {
-        return data; // Fallback (likely plain JSON)
+        return data; 
     }
 };
 // ------------------------
@@ -76,10 +99,7 @@ export const getSettings = (): AppSettings => {
         
         let parsed: any;
 
-        // Migration Logic: Check if it's legacy Clear Text JSON or new Encoded Data
-        // JSON objects start with '{'. Base64 usually doesn't (unless valid JSON is just a number, which isn't the case here).
         if (stored.trim().startsWith('{')) {
-            // Legacy format (Clear Text)
             try {
                 parsed = JSON.parse(stored);
             } catch (e) {
@@ -87,12 +107,10 @@ export const getSettings = (): AppSettings => {
                 return DEFAULT_SETTINGS;
             }
         } else {
-            // New format (Encoded)
             try {
                 const decoded = decodeData(stored);
                 parsed = JSON.parse(decoded);
             } catch (e) {
-                // If decode fails, try parsing raw just in case
                 try {
                      parsed = JSON.parse(stored);
                 } catch (e2) {
@@ -102,10 +120,9 @@ export const getSettings = (): AppSettings => {
             }
         }
         
-        // --- START MIGRATION LOGIC (Data Structure) ---
+        // --- START MIGRATION LOGIC ---
         let migratedSettings = { ...parsed };
 
-        // Migrate legacy fields
         if (typeof parsed.glassEffectEnabled === 'boolean') {
             migratedSettings.transparencyMode = parsed.glassEffectEnabled ? 'glass' : 'off';
             delete migratedSettings.glassEffectEnabled;
@@ -120,7 +137,6 @@ export const getSettings = (): AppSettings => {
              migratedSettings.transparencyMode = parsed.enableTransparency ? 'glass' : 'off';
              delete migratedSettings.enableTransparency;
         }
-        // Migrate boolean enableTopBorder to borderEffect string
         if (typeof parsed.enableTopBorder === 'boolean') {
             migratedSettings.borderEffect = parsed.enableTopBorder ? 'top' : 'none';
             delete migratedSettings.enableTopBorder;
@@ -151,7 +167,6 @@ export const getSettings = (): AppSettings => {
 
 export const saveSettings = (settings: AppSettings) => {
     try {
-        // Encode the JSON string before saving to satisfy security scanners
         const json = JSON.stringify(settings);
         const encoded = encodeData(json);
         localStorage.setItem(SETTINGS_KEY, encoded);
@@ -216,7 +231,6 @@ export const importAppData = (
         const data: ExportData & { lastCoords?: any } = JSON.parse(jsonContent);
 
         if (options.importSettings && data.settings) {
-            // Merge with defaults to ensure new keys (like reducedMotion, layoutDensity) are present
             const mergedSettings = { 
                 ...DEFAULT_SETTINGS, 
                 ...data.settings,

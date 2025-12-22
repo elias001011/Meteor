@@ -75,7 +75,7 @@ const DataSourceModal: React.FC<DataSourceModalProps> = ({
         aria-labelledby="dataSourceModalTitle"
     >
         <div 
-            className={`${glassClass} border border-gray-700/50 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col relative`}
+            className={`${glassClass} border border-gray-700/50 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col relative pb-safe`}
             onClick={e => e.stopPropagation()}
         >
             <header className="flex items-center justify-between p-4 border-b border-white/10 flex-shrink-0">

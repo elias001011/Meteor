@@ -17,31 +17,33 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, onRegene
   const [showInfo, setShowInfo] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
 
-  // Enhanced Formatter for cleaner AI output
+  // Enhanced Formatter for cleaner AI output with BETTER SPACING
   const renderFormattedText = (text: string) => {
     const lines = text.split('\n');
     
     return lines.map((line, i) => {
-        // Headers
-        if (line.startsWith('### ')) return <h3 key={i} className="text-md font-bold mt-3 mb-1 text-white">{line.substring(4)}</h3>;
-        if (line.startsWith('## ')) return <h2 key={i} className="text-lg font-bold mt-4 mb-2 text-white">{line.substring(3)}</h2>;
-        if (line.startsWith('# ')) return <h1 key={i} className="text-xl font-bold mt-4 mb-2 text-white border-b border-white/10 pb-1">{line.substring(2)}</h1>;
+        // Headers - Added 'text-cyan-200' for better distinction and larger margins
+        if (line.startsWith('### ')) return <h3 key={i} className="text-base font-bold mt-6 mb-3 text-cyan-200 uppercase tracking-wide border-b border-white/5 pb-1">{parseInlineFormatting(line.substring(4))}</h3>;
+        if (line.startsWith('## ')) return <h2 key={i} className="text-lg font-bold mt-6 mb-3 text-white border-b border-white/10 pb-2">{parseInlineFormatting(line.substring(3))}</h2>;
+        if (line.startsWith('# ')) return <h1 key={i} className="text-xl font-bold mt-6 mb-4 text-white border-b border-white/20 pb-2">{parseInlineFormatting(line.substring(2))}</h1>;
         
-        // Lists (Bullet) - Handles "- " and "* "
+        // Lists (Bullet) - Handles "- " and "* " with indent support
         if (line.trim().match(/^[-*]\s/)) {
+             // Check for indentation (simple check for 2 spaces)
+             const isIndented = line.startsWith('  ') || line.startsWith('\t');
              return (
-                <div key={i} className="flex gap-2 ml-2 my-1">
-                    <span className="text-gray-400 font-bold">•</span>
-                    <span className="flex-1">{parseInlineFormatting(line.trim().substring(2))}</span>
+                <div key={i} className={`flex gap-3 my-2 ${isIndented ? 'ml-6' : 'ml-1'}`}>
+                    <span className="text-cyan-500 font-bold mt-1.5 text-[8px] flex-shrink-0">●</span>
+                    <span className="flex-1 leading-relaxed text-gray-200">{parseInlineFormatting(line.trim().substring(2))}</span>
                 </div>
              );
         }
 
-        // Empty lines
-        if (line.trim() === '') return <div key={i} className="h-2"></div>;
+        // Empty lines - Preserve vertical rhythm
+        if (line.trim() === '') return <div key={i} className="h-3"></div>;
 
-        // Paragraphs
-        return <p key={i} className="my-0.5 leading-relaxed">{parseInlineFormatting(line)}</p>;
+        // Paragraphs - Increased margin (my-2) for better readability "with spaces"
+        return <p key={i} className="my-3 leading-7 text-gray-100">{parseInlineFormatting(line)}</p>;
     });
   };
 
@@ -56,12 +58,12 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, onRegene
           if (part.startsWith('*') && part.endsWith('*')) {
               // Check if it's a "floating" asterisk or real italic
               if (part.length > 2) {
-                  return <em key={j} className="italic text-gray-200">{part.substring(1, part.length - 1)}</em>;
+                  return <em key={j} className="italic text-gray-300">{part.substring(1, part.length - 1)}</em>;
               }
               return part;
           }
           if (part.startsWith('`') && part.endsWith('`')) {
-              return <code key={j} className="bg-black/30 px-1 py-0.5 rounded text-xs font-mono text-cyan-300">{part.substring(1, part.length - 1)}</code>;
+              return <code key={j} className="bg-black/40 border border-white/10 px-1.5 py-0.5 rounded text-xs font-mono text-cyan-300">{part.substring(1, part.length - 1)}</code>;
           }
           return part;
       });
@@ -86,16 +88,16 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, onRegene
 
   return (
     <div className={`flex items-end ${isModel ? 'justify-start' : 'justify-end'} group animate-enter`}>
-      <div className="flex flex-col max-w-[85%] md:max-w-2xl w-full">
+      <div className="flex flex-col max-w-[90%] md:max-w-2xl w-full">
         {/* Bubble */}
         <div
-          className={`px-5 py-4 rounded-2xl shadow-sm ${
+          className={`px-6 py-5 rounded-3xl shadow-sm ${
             isModel
-              ? 'bg-gray-800/90 border border-gray-700/50 rounded-bl-none text-gray-100'
+              ? 'bg-gray-800/95 border border-gray-700/50 rounded-bl-none text-gray-100'
               : `${classes.bg} text-white rounded-br-none shadow-lg shadow-${classes.text.split('-')[1]}-500/20`
           }`}
         >
-          <div className="text-base leading-relaxed space-y-1 break-words">
+          <div className="text-base leading-relaxed break-words">
             {isModel ? renderFormattedText(message.text) : message.text}
             {!isModel && message.text.length === 0 ? '...' : ''}
           </div>

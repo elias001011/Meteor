@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import WeatherView from './components/weather/WeatherView';
 import AiView from './components/ai/AiView';
@@ -25,10 +26,10 @@ import { ThemeProvider, useTheme } from './components/context/ThemeContext';
 
 // Rain animation component defined locally
 const RainAnimation: React.FC<{ intensity: 'low' | 'high' }> = ({ intensity }) => {
-    // RECALIBRATED LOGIC v3.5: Balanced approach.
-    // Low: 80 drops (Visible but light)
-    // High: 200 drops (Heavy but optimized)
-    const numberOfDrops = intensity === 'high' ? 200 : 80;
+    // RECALIBRATED LOGIC v3.6: Balanced approach.
+    // Low: 50 drops (Subtle)
+    // High: 150 drops (Visible but not overwhelming)
+    const numberOfDrops = intensity === 'high' ? 150 : 50;
     
     return (
         <div className="fixed inset-0 w-full h-full z-0 pointer-events-none overflow-hidden">
@@ -137,7 +138,14 @@ const AppContent: React.FC<{
         onToggleSearch: props.onToggleSearch
     };
     
-    const animationClass = isPerformanceMode ? '' : 'animate-enter';
+    // Performance Mode Overrides for Animation
+    const animationClass = (settings.reducedMotion || isPerformanceMode) ? '' : 'animate-enter';
+    
+    // Performance Mode Logic for Rain: 
+    // If Performance Mode is ON: Force rain to 'low' if it was enabled.
+    // If Settings say disabled, keep disabled.
+    const showRain = settings.rainAnimation.enabled && isRaining;
+    const rainIntensity = isPerformanceMode ? 'low' : settings.rainAnimation.intensity;
 
     const getDesktopGrid = () => {
         const layout = settings.desktopLayout || '40-60';
@@ -152,8 +160,8 @@ const AppContent: React.FC<{
 
     return (
         <div className={`relative text-white min-h-screen font-sans flex flex-col h-screen overflow-hidden transition-colors duration-500 ${appBackgroundClass}`}>
-            {view === 'weather' && isRaining && settings.rainAnimation.enabled && !isPerformanceMode && (
-                <RainAnimation intensity={settings.rainAnimation.intensity} />
+            {view === 'weather' && showRain && (
+                <RainAnimation intensity={rainIntensity} />
             )}
 
             <Header 

@@ -1,4 +1,5 @@
 
+
 import React, { useState, useRef, useEffect } from 'react';
 import type { DailyForecast } from '../../types';
 import { UmbrellaIcon } from '../icons';
@@ -82,10 +83,10 @@ const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data, timezoneOf
         ))}
       </div>
 
-      {/* Toast Notification */}
+      {/* Toast Notification (Center Bottom, Higher to clear Nav) */}
       {toastMessage && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 animate-enter-pop pointer-events-none">
-              <div className="bg-gray-900/95 backdrop-blur-md text-white text-xs font-bold px-4 py-2 rounded-full shadow-2xl border border-white/10 whitespace-nowrap">
+          <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[150] animate-enter-pop pointer-events-none">
+              <div className="bg-gray-900/95 backdrop-blur-md text-white text-xs font-bold px-4 py-2.5 rounded-full shadow-2xl border border-white/10 whitespace-nowrap">
                   {toastMessage}
               </div>
           </div>

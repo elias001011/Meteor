@@ -1,4 +1,5 @@
 
+
 import React, { useEffect } from 'react';
 import { XIcon, SparklesIcon, AlertTriangleIcon } from '../icons';
 import { useTheme } from '../context/ThemeContext';
@@ -27,14 +28,23 @@ const ChangelogModal: React.FC<any> = ({ isOpen, onClose }) => {
 
     const versions = [
         {
+            version: "3.6.0",
+            title: "Performance 2.0 & Otimização Mobile",
+            changes: [
+                "Modo Desempenho Remodelado: Otimização agressiva que desliga transparências e animações para máxima fluidez em dispositivos antigos.",
+                "Adaptação Inteligente: O Meteor agora detecta se você está no celular ou PC e ajusta as configurações iniciais automaticamente (Qualidade vs Performance).",
+                "UI Refinada: Correção de menus cortados, anéis de foco e melhor posicionamento de notificações (toasts).",
+                "Segurança: Reforço nas diretrizes de IA e transparência sobre uso de dados.",
+                "Animações: Chuva recalibrada e menus mais ágeis."
+            ]
+        },
+        {
             version: "3.5.0",
             title: "Finalização Visual & Organização",
             changes: [
                 "4 Níveis de Transparência: Sólido, Sutil (96%), Equilibrado (85%) e Vidro (60%).",
-                "Consistência Absoluta: Correção do motor de estilo para garantir que Menus e Configurações usem exatamente o mesmo efeito de vidro que o Cabeçalho.",
-                "Settings v3.3 Legacy: Restauração da estrutura de menus clássica, com Transparência integrada à aba Visual.",
-                "Insights Control: Nova opção para ativar/desativar a animação de pulso e cor nos resumos climáticos.",
-                "Chuva Ajustada: Intensidade visual calibrada para maior conforto."
+                "Consistência Absoluta: Correção do motor de estilo para garantir consistência visual.",
+                "Insights Control: Nova opção para ativar/desativar a animação de pulso."
             ]
         },
         {
@@ -45,21 +55,13 @@ const ChangelogModal: React.FC<any> = ({ isOpen, onClose }) => {
                 "Modo Transparente sem desfoque (foco em legibilidade).",
                 "Efeito de Chuva Boostado."
             ]
-        },
-        {
-            version: "3.3.0",
-            title: "Inteligência & Refinamento",
-            changes: [
-                "Weather Insights 2.0: Novo algoritmo de detecção de destaques.",
-                "Segurança: Reforço nas diretrizes de formatação da IA.",
-            ]
         }
     ];
 
     return (
         <div className="fixed inset-0 bg-black/80 z-[150] flex items-center justify-center p-4 pb-20 backdrop-blur-sm h-screen w-screen animate-enter">
             <div 
-                className={`${glassClass} w-full max-w-lg max-h-[80vh] flex flex-col rounded-3xl shadow-2xl border border-white/10 overflow-hidden`}
+                className={`${glassClass} w-full max-w-lg max-h-[80vh] flex flex-col rounded-3xl shadow-2xl border border-white/10 overflow-hidden pb-safe`}
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}
