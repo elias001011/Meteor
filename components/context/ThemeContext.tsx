@@ -1,5 +1,4 @@
 
-
 import React, { createContext, useContext, useEffect, useMemo } from 'react';
 import type { AppTheme, TransparencyMode, BackgroundMode, LayoutDensity, GlassScope } from '../../types';
 
@@ -88,64 +87,51 @@ export const ThemeProvider: React.FC<{
 }) => {
     const currentClasses = THEME_DEFINITIONS[theme] || THEME_DEFINITIONS.purple;
     const currentDensity = DENSITY_DEFINITIONS[layoutDensity] || DENSITY_DEFINITIONS.comfortable;
-    const baseDark = 'bg-[#111827]'; 
+    const baseDark = 'bg-slate-900'; 
 
-    // --- MOTOR DE ESTILO v3.6.0 ---
     const getFinalStyle = useMemo(() => (scopeType: keyof GlassScope) => {
         const isHeader = scopeType === 'header';
         const borderClass = isHeader ? 'border-b border-white/10' : 'border border-white/10 shadow-lg';
         
-        // 1. PERFORMANCE MODE OVERRIDE
+        // 1. PERFORMANCE MODE: Solid opaque
         if (performanceMode) {
-             return `${baseDark} ${borderClass}`;
+             return `bg-slate-900 ${borderClass}`;
         }
 
-        // 2. MODO SÓLIDO (OFF)
+        // 2. MODO SÓLIDO: Zero transparency
         if (transparencyMode === 'off') {
-            return `${baseDark} ${borderClass}`;
+            return `bg-slate-950 ${borderClass}`;
         }
 
-        // 3. VERIFICAÇÃO DE ESCOPO (GLASS SCOPE)
-        // Se o usuário desativou o efeito para este elemento, caímos para 'Sutil'
-        const canUseEffect = glassScope[scopeType];
-        if (!canUseEffect) {
-            return `bg-[#111827]/[0.96] ${borderClass}`; 
+        // 3. SCOPE CHECK: Fallback to high opacity if scope is disabled
+        if (!glassScope[scopeType]) {
+            return `bg-slate-900/95 ${borderClass}`; 
         }
 
-        // 4. APLICAÇÃO DOS MODOS VISUAIS
+        // 4. TRANSPARENCY MODES
         switch (transparencyMode) {
             case 'subtle': 
-                // "Sutil" -> 96% Opacidade, ZERO BLUR (Fundo sólido mas levemente transparente)
-                return `bg-[#111827]/[0.96] ${borderClass}`;
-            
+                return `bg-slate-900/96 ${borderClass}`;
             case 'balanced': 
-                // "Equilibrado" -> 93% Opacidade, ZERO BLUR
-                return `bg-[#111827]/[0.93] ${borderClass}`;
-
+                return `bg-slate-900/85 ${borderClass}`;
             case 'glass': 
-                // "Vidro" -> 60% Opacidade + BLUR
-                return `bg-[#111827]/60 backdrop-blur-2xl ${borderClass} shadow-2xl`;
-
+                return `bg-slate-900/40 backdrop-blur-2xl ${borderClass} shadow-2xl`;
             case 'transparent': 
-                 // "Transparente (Novo)" -> 70% Opacidade, SEM BLUR (Performance Mobile)
-                return `bg-[#111827]/70 ${borderClass}`;
-
+                return `bg-slate-900/70 ${borderClass}`;
             default:
-                return `${baseDark} ${borderClass}`;
+                return `bg-slate-900 ${borderClass}`;
         }
 
     }, [transparencyMode, glassScope, performanceMode]);
 
-    // Aplicação das classes
     const headerClass = getFinalStyle('header');
     const cardClass = getFinalStyle('cards');
-    const glassClass = getFinalStyle('overlays'); // Padronizado para Modais e Menus
-    
-    const miniClass = cardClass; 
+    const glassClass = getFinalStyle('overlays');
+    const miniClass = `bg-white/10 border border-white/10 backdrop-blur-md`; 
 
     const appBackgroundClass = backgroundMode === 'solid' 
-        ? baseDark
-        : 'bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#1f2937] via-[#111827] to-black bg-fixed';
+        ? 'bg-slate-950'
+        : 'bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-800 via-slate-950 to-black bg-fixed';
 
     useEffect(() => {
         if (reducedMotion || performanceMode) {
