@@ -1,5 +1,4 @@
 
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import WeatherView from './components/weather/WeatherView';
 import AiView from './components/ai/AiView';
@@ -26,16 +25,16 @@ import { ThemeProvider, useTheme } from './components/context/ThemeContext';
 
 // Rain animation component defined locally
 const RainAnimation: React.FC<{ intensity: 'low' | 'high' }> = ({ intensity }) => {
-    // Adjusted density: Low is very subtle (15), High is moderate (160)
-    const numberOfDrops = intensity === 'high' ? 160 : 15;
+    // RECALIBRATED LOGIC v3.5: Balanced approach.
+    // Low: 80 drops (Visible but light)
+    // High: 200 drops (Heavy but optimized)
+    const numberOfDrops = intensity === 'high' ? 200 : 80;
     
     return (
         <div className="fixed inset-0 w-full h-full z-0 pointer-events-none overflow-hidden">
             {Array.from({ length: numberOfDrops }).map((_, i) => {
-                // Randomize delay to prevent "waves" of rain
                 const delay = Math.random() * -5;
-                // Faster speed for longer "streak" look
-                const duration = (0.5 + Math.random() * 0.3);
+                const duration = (0.4 + Math.random() * 0.4);
                 
                 return (
                     <div
@@ -45,12 +44,10 @@ const RainAnimation: React.FC<{ intensity: 'low' | 'high' }> = ({ intensity }) =
                             left: `${Math.random() * 100}%`,
                             animationDuration: `${duration}s`,
                             animationDelay: `${delay}s`,
-                            // DRASTICALLY REDUCED OPACITY to ensure it looks "behind" the glass cards
-                            opacity: Math.random() * 0.15 + 0.05, 
-                            // Softer gradient
-                            background: 'linear-gradient(to bottom, rgba(56, 189, 248, 0) 0%, rgba(56, 189, 248, 0.4) 100%)',
+                            opacity: Math.random() * 0.3 + 0.1, 
+                            background: 'linear-gradient(to bottom, rgba(56, 189, 248, 0) 0%, rgba(186, 230, 253, 0.6) 100%)',
                             width: '1px', 
-                            height: `${Math.random() * 80 + 80}px`
+                            height: `${Math.random() * 100 + 100}px`
                         }}
                     />
                 );
@@ -66,7 +63,6 @@ const AppContent: React.FC<{
     handleClearChatHistory: () => void;
     view: View;
     setView: (v: View) => void;
-    // ... other props passed down ...
     messages: ChatMessage[];
     isSending: boolean;
     chatInputText: string;
@@ -92,7 +88,6 @@ const AppContent: React.FC<{
     setIsDataSourceModalOpen: (o: boolean) => void;
     appError: string | null;
     setAppError: (e: string | null) => void;
-    // Modals Handlers
     onOpenImport: () => void;
     onOpenChangelog: () => void;
     onOpenSettingsCity: () => void;
@@ -100,7 +95,6 @@ const AppContent: React.FC<{
     const { appBackgroundClass, isPerformanceMode } = useTheme();
     const { settings, view, weatherInfo, weatherStatus, appError } = props;
     
-    // Enhanced detection for rain conditions including drizzle, thunderstorms, etc.
     const condition = weatherInfo.weatherData?.condition?.toLowerCase() || '';
     const isRaining = condition.includes('chuv') || 
                       condition.includes('rain') || 
@@ -126,8 +120,6 @@ const AppContent: React.FC<{
         onRetry: () => {
             if (props.currentCoords) {
                 props.handleFetchWeather(props.currentCoords, props.currentCityInfo || undefined, props.preferredDataSource)
-            } else {
-                // Reset to idle logic handled in parent or by passing setter
             }
         },
         onDataSourceInfoClick: () => props.setIsDataSourceModalOpen(true),
@@ -145,21 +137,14 @@ const AppContent: React.FC<{
         onToggleSearch: props.onToggleSearch
     };
     
-    // Remove animation class if performance mode is on
     const animationClass = isPerformanceMode ? '' : 'animate-enter';
 
-    // Desktop Grid Logic
     const getDesktopGrid = () => {
         const layout = settings.desktopLayout || '40-60';
         switch (layout) {
-            case '25-75':
-                return { left: 'lg:col-span-3', right: 'lg:col-span-9' };
-            case '50-50':
-                return { left: 'lg:col-span-6', right: 'lg:col-span-6' };
-            case '40-60':
-            default:
-                // 5 cols (41%) / 7 cols (58%) is close to 40/60 on a 12 grid
-                return { left: 'lg:col-span-5', right: 'lg:col-span-7' };
+            case '25-75': return { left: 'lg:col-span-3', right: 'lg:col-span-9' };
+            case '50-50': return { left: 'lg:col-span-6', right: 'lg:col-span-6' };
+            case '40-60': default: return { left: 'lg:col-span-5', right: 'lg:col-span-7' };
         }
     };
     
@@ -167,7 +152,6 @@ const AppContent: React.FC<{
 
     return (
         <div className={`relative text-white min-h-screen font-sans flex flex-col h-screen overflow-hidden transition-colors duration-500 ${appBackgroundClass}`}>
-            {/* Rain Animation Layer - Z-Index 0 puts it behind content (z-10) but above background */}
             {view === 'weather' && isRaining && settings.rainAnimation.enabled && !isPerformanceMode && (
                 <RainAnimation intensity={settings.rainAnimation.intensity} />
             )}
@@ -176,7 +160,7 @@ const AppContent: React.FC<{
                 activeView={view} 
                 setView={props.setView} 
                 showClock={settings.showClock} 
-                borderEffect={isPerformanceMode ? 'none' : settings.borderEffect}
+                borderEffect={settings.borderEffect}
             />
             
             {appError && <ErrorPopup message={appError} onClose={() => props.setAppError(null)} />}
@@ -190,7 +174,6 @@ const AppContent: React.FC<{
             />
 
             <main className="relative z-10 flex-1 h-full overflow-hidden">
-                {/* --- DESKTOP VIEW --- */}
                 <div className="hidden lg:block h-full overflow-y-auto pt-16">
                     {view === 'weather' && (
                         <div className={`grid grid-cols-1 lg:grid-cols-12 gap-6 p-6 h-full ${animationClass}`}>
@@ -198,22 +181,12 @@ const AppContent: React.FC<{
                                 <DesktopWeather {...weatherProps} />
                             </div>
                             <div className={`${gridCols.right} h-full rounded-3xl overflow-hidden shadow-2xl border border-white/10`}>
-                                {/* Key prop forces re-render when layout changes, fixing Leaflet resize bugs */}
-                                <MapView 
-                                    key={settings.desktopLayout} 
-                                    lat={props.currentCoords?.lat} 
-                                    lon={props.currentCoords?.lon} 
-                                    theme={settings.mapTheme} 
-                                />
+                                <MapView key={settings.desktopLayout} lat={props.currentCoords?.lat} lon={props.currentCoords?.lon} theme={settings.mapTheme} />
                             </div>
                         </div>
                     )}
                     {view === 'ai' && <div className={`h-full ${animationClass}`}><AiView {...aiViewProps} /></div>}
-                    {view === 'map' && (
-                        <div className={`h-full ${animationClass}`}>
-                            <MapView lat={props.currentCoords?.lat} lon={props.currentCoords?.lon} theme={settings.mapTheme} />
-                        </div>
-                    )}
+                    {view === 'map' && <div className={`h-full ${animationClass}`}><MapView lat={props.currentCoords?.lat} lon={props.currentCoords?.lon} theme={settings.mapTheme} /></div>}
                     {view === 'news' && <div className={animationClass}><PlaceholderView title="Notícias" /></div>}
                     {view === 'settings' && <div className={animationClass}>
                         <SettingsView 
@@ -229,7 +202,6 @@ const AppContent: React.FC<{
                     {view === 'info' && <div className={animationClass}><PlaceholderView title="Informações" /></div>}
                 </div>
 
-                {/* --- MOBILE VIEW --- */}
                 <div className="lg:hidden h-full">
                     <div className={`${view === 'weather' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24 pt-16 ${animationClass}`}>
                         <WeatherView {...weatherProps} />
@@ -281,16 +253,13 @@ const App: React.FC = () => {
   const [isSending, setIsSending] = useState(false);
   const [isSearchEnabled, setIsSearchEnabled] = useState(false);
   
-  // Speech Recognition state
   const [isListening, setIsListening] = useState(false);
   const [chatInputText, setChatInputText] = useState('');
   const recognitionRef = useRef<any>(null); 
   const [appError, setAppError] = useState<string | null>(null);
 
-  // App Settings
   const [settings, setSettings] = useState<AppSettings>(getSettings());
 
-  // Weather state
   const [weatherInfo, setWeatherInfo] = useState<Partial<AllWeatherData>>({});
   const [weatherStatus, setWeatherStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [weatherError, setWeatherError] = useState<string | null>(null);
@@ -298,16 +267,13 @@ const App: React.FC = () => {
   const [currentCityInfo, setCurrentCityInfo] = useState<{name: string, country: string} | null>(null);
   const [isDataSourceModalOpen, setIsDataSourceModalOpen] = useState(false);
   
-  // Global Modal States (Hoisted from SettingsView)
   const [showImportModal, setShowImportModal] = useState(false);
   const [showChangelogModal, setShowChangelogModal] = useState(false);
-  const [showSettingsCityModal, setShowSettingsCityModal] = useState(false); // For setting default location
-  const [showOnboardingModal, setShowOnboardingModal] = useState(false); // New Onboarding State
+  const [showSettingsCityModal, setShowSettingsCityModal] = useState(false);
+  const [showOnboardingModal, setShowOnboardingModal] = useState(false);
 
-  // Synced with Settings.weatherSource but allows temporary override via Modal
   const [preferredDataSource, setPreferredDataSource] = useState<DataSource | 'auto'>('auto');
   
-  // Dynamic Theme State
   const [activeTheme, setActiveTheme] = useState<AppTheme>(settings.themeColor);
 
   const { weatherData, dataSource, lastUpdated } = weatherInfo;
@@ -320,7 +286,6 @@ const App: React.FC = () => {
     }
   }, [settings.showScrollbars]);
 
-  // Load chat history if enabled (Run once on mount)
   useEffect(() => {
     if (settings.saveChatHistory) {
         const savedHistory = localStorage.getItem('chat_history');
@@ -337,7 +302,6 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // Save chat history when messages update
   useEffect(() => {
     if (settings.saveChatHistory) {
         if (messages.length > 0) {
@@ -348,7 +312,6 @@ const App: React.FC = () => {
     }
   }, [messages, settings.saveChatHistory]);
   
-  // Check for Onboarding status on mount
   useEffect(() => {
       const hasSeenIntro = localStorage.getItem('meteor_intro_seen');
       if (!hasSeenIntro) {
@@ -362,8 +325,8 @@ const App: React.FC = () => {
   };
 
   const handleSettingsChange = (newSettings: AppSettings) => {
-    saveSettings(newSettings); // Persist to localStorage
-    setSettings(newSettings); // Update state
+    saveSettings(newSettings); 
+    setSettings(newSettings); 
   };
   
   const handleClearChatHistory = useCallback(() => {
@@ -371,7 +334,6 @@ const App: React.FC = () => {
       localStorage.removeItem('chat_history');
   }, []);
 
-  // Handlers for Settings Imports
   const handleImportData = (content: string, options: any) => {
       const success = importAppData(content, options);
       if (success) {
@@ -383,10 +345,7 @@ const App: React.FC = () => {
       setShowImportModal(false);
   };
 
-  // Dynamic Theme Logic
   useEffect(() => {
-      // Allow theme calculation even in Performance Mode if desired, 
-      // as color changes are cheap. Only heavier effects are disabled in ThemeContext.
       if (!settings.dynamicTheme) {
           setActiveTheme(settings.themeColor);
           return;
@@ -417,15 +376,13 @@ const App: React.FC = () => {
       }
   }, [settings.dynamicTheme, settings.themeColor, weatherData, settings.performanceMode]);
 
-  // PWA Theme Color Update
   useEffect(() => {
       const metaThemeColor = document.querySelector('meta[name="theme-color"]');
       if (metaThemeColor) {
-          metaThemeColor.setAttribute('content', settings.performanceMode ? '#0f172a' : '#0f172a');
+          metaThemeColor.setAttribute('content', '#0f172a');
       }
   }, [settings.performanceMode]);
 
-  // Initialization Logic based on Settings
   useEffect(() => {
       const initApp = () => {
           const savedSettings = getSettings();
@@ -471,7 +428,6 @@ const App: React.FC = () => {
           }
       };
       initApp();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -482,7 +438,6 @@ const App: React.FC = () => {
   }, [settings.weatherSource]);
 
 
-  // Setup Speech Recognition
   useEffect(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SpeechRecognition) {
@@ -576,7 +531,6 @@ const App: React.FC = () => {
     const modelMessage: ChatMessage = { id: (Date.now() + 1).toString(), role: 'model', text: '', sources: [] };
     setMessages(prev => [...prev, modelMessage]);
     
-    // Only send messages (no default greeting in history now)
     const history: Content[] = messages.map(msg => ({ 
         role: msg.role,
         parts: [{ text: msg.text }]
@@ -587,7 +541,6 @@ const App: React.FC = () => {
     });
 
     const performChatRequest = async (searchData: SearchResultItem[] | null) => {
-        // Passing full weather info to geminiService
         const stream = streamChatResponse(query, history, weatherInfo, searchData, timeContext, isSearchEnabled);
         let fullText = '';
         const allSources: GroundingSource[] = [];
@@ -646,11 +599,9 @@ const App: React.FC = () => {
     
     let searchResults: SearchResultItem[] | null = null;
     
-    // If search is manually enabled by the toggle, perform search immediately
     if (isSearchEnabled) {
       setIsSending(true); 
        try {
-        // Append date for context
         const dateQuery = `${text} ${new Date().toLocaleDateString('pt-BR')}`;
         searchResults = await getSearchResults(dateQuery);
       } catch (e) {
@@ -722,35 +673,19 @@ const App: React.FC = () => {
         setIsDataSourceModalOpen={setIsDataSourceModalOpen}
         appError={appError}
         setAppError={setAppError}
-        // Handlers for root modals
         onOpenImport={() => setShowImportModal(true)}
         onOpenChangelog={() => setShowChangelogModal(true)}
         onOpenSettingsCity={() => setShowSettingsCityModal(true)}
       />
       
-      {/* GLOBAL MODALS RENDERED AT ROOT */}
-      {showOnboardingModal && (
-          <OnboardingModal onClose={handleOnboardingClose} />
-      )}
-
-      <ImportModal 
-          isOpen={showImportModal}
-          onClose={() => setShowImportModal(false)}
-          onImport={handleImportData}
-      />
-      
-      <ChangelogModal 
-          isOpen={showChangelogModal}
-          onClose={() => setShowChangelogModal(false)}
-      />
-      
+      {showOnboardingModal && <OnboardingModal onClose={handleOnboardingClose} />}
+      <ImportModal isOpen={showImportModal} onClose={() => setShowImportModal(false)} onImport={handleImportData} />
+      <ChangelogModal isOpen={showChangelogModal} onClose={() => setShowChangelogModal(false)} />
       <CitySelectionModal 
           isOpen={showSettingsCityModal}
           onClose={() => {
               setShowSettingsCityModal(false);
-              if (!settings.specificLocation) {
-                   setAppError("Nenhuma localização selecionada.");
-              }
+              if (!settings.specificLocation) setAppError("Nenhuma localização selecionada.");
           }}
           onSelect={(city) => {
               handleSettingsChange({ ...settings, specificLocation: city });

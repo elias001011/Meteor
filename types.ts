@@ -1,5 +1,4 @@
 
-
 export type View = 'weather' | 'ai' | 'map' | 'news' | 'settings' | 'tips' | 'info';
 
 export interface WeatherData {
@@ -46,6 +45,7 @@ export interface HourlyForecast {
   temperature: number;
   conditionIcon: string;
   pop?: number;
+  description?: string; // New: Text description for accessibility/toasts
 }
 
 export interface DailyForecast {
@@ -53,6 +53,7 @@ export interface DailyForecast {
   temperature: number;
   conditionIcon: string;
   pop?: number;
+  description?: string; // New: Text description for accessibility/toasts
 }
 
 export interface GroundingSource {
@@ -111,7 +112,7 @@ export interface SearchResultItem {
 
 export type StartupBehavior = 'last_location' | 'idle' | 'specific_location' | 'custom_section';
 export type AppTheme = 'cyan' | 'blue' | 'purple' | 'emerald' | 'rose' | 'amber';
-export type TransparencyMode = 'off' | 'low' | 'glass';
+export type TransparencyMode = 'off' | 'subtle' | 'balanced' | 'glass'; // Updated modes
 export type ClockDisplayMode = 'always' | 'different_zone' | 'never';
 export type BackgroundMode = 'gradient' | 'solid';
 export type MapTheme = 'light' | 'dark';
@@ -129,6 +130,7 @@ export interface WeatherInsightsConfig {
     enabled: boolean;
     style: 'container' | 'clean'; // 'container' = boxed (glass), 'clean' = text only
     content: 'highlight' | 'recommendation' | 'both';
+    showPulse: boolean; // New: Toggle the colored pulse animation
 }
 
 export interface AppSettings {
