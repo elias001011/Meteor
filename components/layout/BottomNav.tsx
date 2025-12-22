@@ -1,9 +1,3 @@
-
-
-
-
-
-
 import React, { useState, useEffect, useRef } from 'react';
 import type { View } from '../../types';
 import { HomeIcon, MapIcon, NewspaperIcon, SettingsIcon, SparklesIcon, LightbulbIcon, InfoIcon, MoreHorizontalIcon } from '../icons';
@@ -66,7 +60,8 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeView, setView }) => {
         ></div>
       )}
 
-      <div className={`relative bottom-4 ${glassClass} border border-gray-700/50 rounded-full max-w-lg mx-auto h-16 flex justify-around items-center shadow-lg z-[100]`}>
+      {/* Main Nav Container - Uses glassClass from context which now correctly handles performance/solid/glass modes */}
+      <div className={`relative bottom-4 ${glassClass} rounded-full max-w-lg mx-auto h-16 flex justify-around items-center shadow-lg z-[100]`}>
         <NavItem activeColorClass={classes.text} icon={<HomeIcon className="w-6 h-6" />} label="Clima" isActive={activeView === 'weather'} onClick={() => setView('weather')} />
         <NavItem activeColorClass={classes.text} icon={<MapIcon className="w-6 h-6" />} label="Mapa" isActive={activeView === 'map'} onClick={() => setView('map')} />
         <NavItem activeColorClass={classes.text} icon={<SparklesIcon className="w-6 h-6" />} label="IA" isActive={activeView === 'ai'} onClick={() => setView('ai')} />
@@ -75,8 +70,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeView, setView }) => {
         {/* Anchored More Menu */}
         <div className="relative flex items-center justify-center" ref={menuRef}>
             {isMoreMenuOpen && (
-                // Added explicit bg-gray-900/95 to fix transparency issue when glass effects are weak
-                <div className={`absolute bottom-full right-0 mb-3 ${glassClass} bg-gray-900/95 backdrop-blur-xl border border-gray-600/50 rounded-2xl shadow-2xl flex flex-col items-start p-2 gap-1 animate-enter-pop min-w-[140px] z-[150]`}>
+                <div className={`absolute bottom-full right-0 mb-3 ${glassClass} !bg-[#0f172a]/90 backdrop-blur-xl rounded-2xl shadow-2xl flex flex-col items-start p-2 gap-1 animate-enter-pop min-w-[140px] z-[150]`}>
                     <NavItem activeColorClass={classes.text} icon={<NewspaperIcon className="w-5 h-5" />} label="Notícias" isActive={activeView === 'news'} onClick={() => handleMoreClick('news')} className="w-full !flex-row !justify-start gap-3 !h-10 px-2" />
                     <NavItem activeColorClass={classes.text} icon={<InfoIcon className="w-5 h-5" />} label="Informações" isActive={activeView === 'info'} onClick={() => handleMoreClick('info')} className="w-full !flex-row !justify-start gap-3 !h-10 px-2" />
                     <NavItem activeColorClass={classes.text} icon={<SettingsIcon className="w-5 h-5" />} label="Ajustes" isActive={activeView === 'settings'} onClick={() => handleMoreClick('settings')} className="w-full !flex-row !justify-start gap-3 !h-10 px-2" />

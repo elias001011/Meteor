@@ -28,12 +28,18 @@ const DEFAULT_SETTINGS: AppSettings = {
     borderEffect: 'top', // Default to Top as requested
     mapTheme: 'light', // Default to Light as requested
     layoutDensity: 'comfortable', // Default
+    desktopLayout: '40-60', // New Default Layout
     showScrollbars: false, // Default to OFF for a cleaner, mobile-first UI
     performanceMode: false, // Default OFF
     reducedMotion: false, // Default OFF
     rainAnimation: {
         enabled: true,
         intensity: 'low'
+    },
+    weatherInsights: {
+        enabled: true,
+        style: 'clean', // Changed to 'clean' by default as requested in v3.1
+        content: 'both'
     }
 };
 
@@ -130,6 +136,10 @@ export const getSettings = (): AppSettings => {
             rainAnimation: {
                 ...DEFAULT_SETTINGS.rainAnimation,
                 ...(migratedSettings.rainAnimation || {})
+            },
+            weatherInsights: {
+                ...DEFAULT_SETTINGS.weatherInsights,
+                ...(migratedSettings.weatherInsights || {})
             }
         };
     } catch (e) {
@@ -216,6 +226,10 @@ export const importAppData = (
                 rainAnimation: {
                     ...DEFAULT_SETTINGS.rainAnimation,
                     ...(data.settings.rainAnimation || {})
+                },
+                weatherInsights: {
+                    ...DEFAULT_SETTINGS.weatherInsights,
+                    ...(data.settings.weatherInsights || {})
                 }
             };
             saveSettings(mergedSettings);

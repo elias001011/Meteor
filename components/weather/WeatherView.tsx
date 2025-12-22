@@ -1,5 +1,9 @@
 
 
+
+
+
+
 import React from 'react';
 import type { WeatherData, HourlyForecast, DailyForecast, AirQualityData, CitySearchResult, WeatherAlert, DataSource, ClockDisplayMode } from '../../types';
 import SearchBar from './SearchBar';
@@ -12,6 +16,7 @@ import LoadingSpinner from '../common/LoadingSpinner';
 import ErrorDisplay from '../common/ErrorDisplay';
 import Alerts from './Alerts';
 import DataSourceInfo from './DataSourceInfo';
+import WeatherInsights from './WeatherInsights';
 import { SparklesIcon } from '../icons';
 import { useTheme } from '../context/ThemeContext';
 
@@ -93,9 +98,18 @@ const WeatherView: React.FC<WeatherViewProps> = ({
     if (status === 'success' && weatherData) {
         return (
             <div className={`p-4 sm:${density.padding} ${density.gap} flex flex-col`}>
+                {/* 1. Busca */}
                 <SearchBar onCitySelect={onCitySelect} onGeolocate={onGeolocate} />
+                
+                {/* 2. Container Principal */}
                 <CurrentWeather data={weatherData} clockDisplayMode={clockDisplayMode} />
+                
+                {/* 3. Weather Insights (Resumo) */}
+                <WeatherInsights current={weatherData} hourly={hourlyForecast} daily={dailyForecast} />
+                
+                {/* 4. Alertas */}
                 {dataSource !== 'open-meteo' && <Alerts alerts={alerts} />}
+                
                 <AdditionalInfo data={weatherData} />
                 {airQualityData && <AirQuality data={airQualityData} />}
                 <HourlyForecastComponent data={hourlyForecast} timezoneOffset={weatherData.timezoneOffset} />

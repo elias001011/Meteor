@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="pt-BR" class="h-full">
   <head>
@@ -131,11 +133,22 @@
           animation: popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       }
       
-      /* Utility to disable animations via JS toggle if needed */
-      /* Excludes .raindrop so weather animations persist even if UI motion is reduced */
+      /* --- REDUCED MOTION --- */
+      /* Kill all transitions and animations, BUT ensure elements are visible */
       .reduce-motion *:not(.raindrop) {
+        animation-duration: 0.001s !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001s !important;
+      }
+      
+      /* Force elements that depend on animations to appear instantly */
+      .reduce-motion .animate-enter,
+      .reduce-motion .animate-enter-pop,
+      .reduce-motion .animate-spin,
+      .reduce-motion .animate-pulse {
         animation: none !important;
-        transition: none !important;
+        opacity: 1 !important;
+        transform: none !important;
       }
       
       /* Staggered delays for children */
@@ -161,7 +174,8 @@
 }
 </script>
 </head>
-  <body class="h-full text-slate-100 selection:bg-cyan-500/30">
+  <!-- Fixed background color to avoid Flashbang on theme switch -->
+  <body class="h-full text-slate-100 selection:bg-cyan-500/30" style="background-color: #0f172a;">
     <div id="root" class="h-full"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

@@ -1,3 +1,5 @@
+
+
 import React, { useEffect } from 'react';
 import { XIcon, SparklesIcon, AlertTriangleIcon } from '../icons';
 import { useTheme } from '../context/ThemeContext';
@@ -5,9 +7,10 @@ import { useTheme } from '../context/ThemeContext';
 interface ChangelogModalProps {
     isOpen: boolean;
     onClose: () => void;
+    onSelect: (city: any) => void;
 }
 
-const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose }) => {
+const ChangelogModal: React.FC<any> = ({ isOpen, onClose }) => {
     const { glassClass, classes } = useTheme();
 
     useEffect(() => {
@@ -25,13 +28,51 @@ const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose }) => {
 
     const versions = [
         {
+            version: "3.3.0",
+            title: "Inteligência & Refinamento",
+            changes: [
+                "Weather Insights 2.0: Novo algoritmo de detecção de destaques (Chuva parando, nascer do sol, alertas UV) que roda localmente.",
+                "Settings UI: Menu de abas flutuante agora respeita a cor do tema e a transparência selecionada.",
+                "AI Format: Melhoria na renderização de texto (negrito e listas) nas respostas do chat.",
+                "Segurança: Reforço nas diretrizes de formatação da IA e validação de prompts.",
+                "Correções diversas de estilo e layout."
+            ]
+        },
+        {
+            version: "3.2.0",
+            title: "Reforma Visual e UX",
+            changes: [
+                "Nova organização da tela de Ajustes em abas (Geral, Visual, IA, Dados, Sobre).",
+                "Menu de configurações integrado visualmente à barra superior para melhor contraste.",
+                "Melhoria na legibilidade do modo 'Vidro' (Glassmorphism) nos menus.",
+                "Adição de diretrizes de segurança explícitas na configuração da IA."
+            ]
+        },
+        {
+            version: "3.1.0",
+            title: "Refinamento Visual",
+            changes: [
+                "Layout Desktop Personalizável: Escolha a proporção entre o Clima e o Mapa (40/60, 50/50 ou 25/75) nas configurações.",
+                "Reordenação lógica dos elementos: Busca > Clima Atual > Resumo > Alertas.",
+                "Weather Insights agora utiliza o layout 'Limpo' por padrão para um visual mais leve."
+            ]
+        },
+        {
+            version: "3.0.0",
+            title: "Insights & Organização",
+            changes: [
+                "Novo sistema 'Resumo do Clima' (Weather Insights): Destaques de mudança de tempo e recomendações diárias no topo da tela.",
+                "Organização completa do menu de configurações para melhor navegação.",
+                "Modos de visualização 'Limpo' e 'Caixa' para os resumos climáticos."
+            ]
+        },
+        {
             version: "2.5.0",
             title: "Revolução na Inteligência",
             changes: [
                 "Reimplementação completa do sistema de IA para maior precisão e velocidade.",
                 "Nova integração de ferramentas 'Stealth Mode' para consultas climáticas globais sem comandos visíveis.",
-                "Capacidade aprimorada de realizar buscas na web automaticamente.",
-                "Ajustes finos de performance e correções de interface."
+                "Capacidade aprimorada de realizar buscas na web automaticamente."
             ]
         },
         {
@@ -40,8 +81,7 @@ const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose }) => {
             changes: [
                 "Refinamento visual completo (Glassmorphism aprimorado).",
                 "Adição de efeitos de LED e bordas dinâmicas.",
-                "Novos modos de personalização (Minimalista vs. Gradiente).",
-                "Otimização de performance e animações fluidas."
+                "Novos modos de personalização (Minimalista vs. Gradiente)."
             ]
         },
         {
@@ -49,35 +89,7 @@ const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose }) => {
             title: "Estabilidade & Segurança",
             changes: [
                 "Implementação do sistema robusto de Fallbacks (OneCall -> Free -> Open-Meteo).",
-                "Remoção da ferramenta de 'Instruções Personalizadas' da IA por vulnerabilidades de injeção de prompt.",
                 "Melhorias na gestão de cache para economia de dados."
-            ]
-        },
-        {
-            version: "1.0.0",
-            title: "Lançamento Oficial",
-            changes: [
-                "Integração completa com Google Gemini 2.5.",
-                "Mapas interativos com camadas de clima.",
-                "Suporte a PWA (Instalação nativa).",
-                "Sistema de temas dinâmicos baseados no clima."
-            ]
-        },
-        {
-            version: "0.5.0",
-            title: "Beta Público",
-            changes: [
-                "Adição de seções (Notícias, Dicas, Mapa).",
-                "Correção de bugs críticos na geolocalização.",
-                "Primeira versão da interface de chat."
-            ]
-        },
-        {
-            version: "0.0.1",
-            title: "O Início",
-            changes: [
-                "Funcionalidade básica de clima.",
-                "Conceito inicial derivado do projeto RS Alerta."
             ]
         }
     ];

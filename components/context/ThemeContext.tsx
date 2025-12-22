@@ -135,10 +135,10 @@ const ThemeContext = createContext<ThemeContextProps>({
     theme: 'purple',
     transparencyMode: 'glass',
     classes: THEME_DEFINITIONS.purple,
-    glassClass: 'bg-black/40 backdrop-blur-xl border border-white/10',
-    cardClass: 'bg-white/5 backdrop-blur-lg border border-white/5',
-    headerClass: 'bg-[#131B2E]/70 backdrop-blur-md border-b border-white/5',
-    appBackgroundClass: 'bg-slate-900',
+    glassClass: 'bg-[#0f172a]/60 backdrop-blur-xl border border-white/10',
+    cardClass: 'bg-[#0f172a]/60 backdrop-blur-xl border border-white/10',
+    headerClass: 'bg-[#0f172a]/60 backdrop-blur-xl border-b border-white/10',
+    appBackgroundClass: 'bg-[#0f172a]',
     isPerformanceMode: false,
     density: DENSITY_DEFINITIONS.comfortable
 });
@@ -166,23 +166,38 @@ export const ThemeProvider: React.FC<{
     const currentClasses = THEME_DEFINITIONS[theme] || THEME_DEFINITIONS.purple;
     const currentDensity = DENSITY_DEFINITIONS[layoutDensity] || DENSITY_DEFINITIONS.comfortable;
     
-    // Definitions for 'Low/Hybrid' mode (fallback if Glass is off OR Scope is disabled for that item)
-    const lowGlass = 'bg-slate-900/95 border border-white/10';
-    const lowCard = 'bg-slate-800/80 border border-white/5';
-    const lowHeader = 'bg-[#0f172a]/90 backdrop-blur-sm border-b border-white/5';
+    // --- DEFINITIONS FOR DIFFERENT MODES (MATCHING HEADER STYLE) ---
 
-    // Definitions for 'Glass' mode
-    const highGlass = 'bg-black/60 backdrop-blur-2xl border border-white/10 shadow-2xl'; // Darker glass for readability
-    const highCard = 'bg-white/5 backdrop-blur-md border border-white/10 shadow-lg hover:bg-white/10 transition-colors duration-300';
-    const highHeader = 'bg-[#0f172a]/70 backdrop-blur-md border-b border-white/5';
+    // Base Colors - UNIFIED TO DEEP DARK (#0f172a)
+    // Removed #1e293b to fix the "washed out" look in solid/hybrid modes.
+    const baseDark = 'bg-[#0f172a]'; 
+    const baseCard = 'bg-[#0f172a]'; 
 
-    // Generic overlay glass (modals, nav bars)
+    // 1. SOLID / PERFORMANCE MODE (No Blur, 100% Opacity)
+    // "Sólido é sólido"
+    // We add a subtle white/10 border to define edges since bg is same as body.
+    const solidOverlay = `${baseDark} border border-white/10 shadow-xl`;
+    const solidCard = `${baseCard} border border-white/10 shadow-none`; 
+    const solidHeader = `${baseDark} border-b border-white/10`;
+
+    // 2. HYBRID / LOW (Semi-Transparent, NO BLUR)
+    // "Híbrido é só semi transparente, seco mesmo"
+    // 90% opacity for readability, ZERO filter.
+    const hybridOverlay = `${baseDark}/90 border border-white/10 shadow-xl`; 
+    const hybridCard = `${baseCard}/90 border border-white/10 shadow-md`;
+    const hybridHeader = `${baseDark}/90 border-b border-white/10`;
+
+    // 3. GLASS / HIGH (Transparency + High Blur)
+    // "Vidro DEVE TER A PORRA DO EFEITO DE VIDRO"
+    // 60% opacity + backdrop-blur-xl
+    const glassOverlay = `${baseDark}/60 backdrop-blur-xl border border-white/10 shadow-2xl`; 
+    const glassCard = `${baseCard}/60 backdrop-blur-xl border border-white/10 shadow-lg hover:bg-white/5 transition-colors duration-300`;
+    const glassHeader = `${baseDark}/60 backdrop-blur-xl border-b border-white/10`;
+
+    // Initialize Variables
     let glassClass = '';
-    // Card container glass (weather widgets, settings sections)
     let cardClass = '';
-    // Header specific style
     let headerClass = '';
-    // Background
     let appBackgroundClass = '';
 
     // Apply Reduced Motion Class to Body
@@ -195,44 +210,44 @@ export const ThemeProvider: React.FC<{
     }, [reducedMotion, performanceMode]);
 
     if (performanceMode) {
-        // --- PERFORMANCE MODE ON: REMOVE BLUR, SHADOWS, GRADIENTS ---
-        glassClass = 'bg-gray-900 border border-gray-700'; // Solid background, no blur
-        cardClass = 'bg-gray-800 border border-gray-700'; // Solid cards
-        headerClass = 'bg-gray-900 border-b border-gray-700'; // Solid header
-        appBackgroundClass = 'bg-[#0f172a]'; // Solid slate background
+        // --- PERFORMANCE MODE ON: FORCE SOLID ---
+        glassClass = solidOverlay;
+        cardClass = solidCard;
+        headerClass = solidHeader;
+        appBackgroundClass = baseDark; 
     } else {
-        // --- NORMAL MODE ---
+        // --- NORMAL MODES ---
         
-        // 1. Overlays (Modals, Nav)
-        // Check if Glass Mode IS selected AND Scope is enabled
+        // 1. Overlays (Modals, Nav, Dropdowns)
         if (transparencyMode === 'glass' && glassScope.overlays) {
-            glassClass = highGlass;
+            glassClass = glassOverlay;
         } else if (transparencyMode === 'off') {
-            glassClass = 'bg-slate-900 border border-gray-700';
+            glassClass = solidOverlay;
         } else {
-            glassClass = lowGlass; // Hybrid or Scope Disabled
+            // Low/Hybrid falls here
+            glassClass = hybridOverlay;
         }
 
-        // 2. Cards (Widgets)
+        // 2. Cards (Widgets, Sections)
         if (transparencyMode === 'glass' && glassScope.cards) {
-            cardClass = highCard;
+            cardClass = glassCard;
         } else if (transparencyMode === 'off') {
-            cardClass = 'bg-slate-800 border border-gray-700';
+            cardClass = solidCard;
         } else {
-            cardClass = lowCard; // Hybrid or Scope Disabled
+            cardClass = hybridCard;
         }
 
         // 3. Header
         if (transparencyMode === 'glass' && glassScope.header) {
-            headerClass = highHeader;
+            headerClass = glassHeader;
         } else if (transparencyMode === 'off') {
-            headerClass = 'bg-[#0f172a] border-b border-gray-800';
+            headerClass = solidHeader;
         } else {
-            headerClass = lowHeader; // Hybrid or Scope Disabled
+            headerClass = hybridHeader;
         }
         
         appBackgroundClass = backgroundMode === 'solid' 
-            ? 'bg-[#0f172a]' 
+            ? baseDark
             : 'bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#1e293b] via-[#0f172a] to-black bg-fixed';
     }
 

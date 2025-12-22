@@ -1,6 +1,8 @@
 
+
 import React from 'react';
 import ChatInput from './ChatInput';
+import { useTheme } from '../context/ThemeContext';
 
 interface MobileAiControlsProps {
     isVisible: boolean;
@@ -17,10 +19,11 @@ interface MobileAiControlsProps {
 
 const MobileAiControls: React.FC<MobileAiControlsProps> = (props) => {
     const { isVisible, onSendMessage, isSending, ...chatInputProps } = props;
+    const { glassClass } = useTheme();
     
     return (
         <div className={`fixed bottom-20 inset-x-0 z-40 p-4 transition-all duration-300 ease-in-out ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'}`}>
-             <div className="bg-gray-800/80 backdrop-blur-lg border border-gray-700/50 p-2 rounded-2xl shadow-lg">
+             <div className={`${glassClass} p-2 rounded-2xl shadow-lg`}>
                 <ChatInput 
                     onSendMessage={onSendMessage} 
                     isSending={isSending} 
