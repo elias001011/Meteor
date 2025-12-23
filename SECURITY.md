@@ -7,9 +7,9 @@ Atualmente o projeto se encontra na versão **3.6.0**. Todas as novas atualizaç
 
 | Versão | Suportada | Notas |
 | ------- | --------- | ----- |
-| 4.0   | ✅        | Versão estável com novas informações climáticas. |
-| 3.6.x   | ❌        | Obsoleto. |
+| 3.6.0   | ✅        | Versão estável com Modo Desempenho 2.0 e correções de UI. |
 | 3.5.x   | ❌        | Obsoleto. |
+| 3.4.x   | ❌        | Obsoleto. |
 
 
 ## Reportando uma Vulnerabilidade

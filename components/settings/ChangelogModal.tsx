@@ -28,12 +28,12 @@ const ChangelogModal: React.FC<any> = ({ isOpen, onClose }) => {
     const versions = [
         {
             version: "4.0.0",
-            title: "Ultimate Lifestyle Update",
+            title: "Simplicidade e Detalhes",
             changes: [
-                "Lifestyle Insights: Novo container inteligente com índices de Corrida, Mosquitos, Direção e Proteção UV.",
-                "Visual Aprimorado: Design em lista vertical ('Painel de Controle') para informações extras, facilitando a leitura.",
-                "Previsão Detalhada: Agora você pode ver a pressão atmosférica, ponto de orvalho e nuvens diretamente nos cards de previsão.",
-                "Correções de UI: Ajustes finos no layout e pop-ups inteligentes para textos longos."
+                "Previsão Detalhada: Agora você pode ver a pressão atmosférica, ponto de orvalho e nuvens diretamente nos cards de previsão ao ativar o modo avançado.",
+                "Interface Inteligente: O painel de informações agora se adapta perfeitamente ao tamanho da sua tela (Mobile, Tablet e Desktop).",
+                "Pop-ups Simples: Clique em qualquer informação (Vento, Umidade, etc.) para ver o valor completo sem cortes.",
+                "Limpeza Visual: Removemos elementos desnecessários para focar no que importa: dados precisos e rápidos."
             ]
         },
         {

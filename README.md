@@ -15,14 +15,10 @@ O projeto utiliza uma arquitetura **BFF (Backend-for-Frontend)** via Netlify Fun
 
 ## ✨ Funcionalidades Principais (v4.0.0)
 
-*   **🧬 Lifestyle Insights (Novo):**
-    *   Análise algorítmica para atividades do dia a dia.
-    *   Índices calculados para: **Corrida**, **Direção Segura**, **Golden Hour**, **Atividade de Mosquitos** e **Proteção UV**.
-    *   Design em lista vertical intuitiva com suporte a leitura detalhada.
-
 *   **🔍 Previsão Avançada:**
     *   Modo de visualização "Complexo" para detalhamento técnico (Pressão, Ponto de Orvalho, Rajadas).
     *   Interação granular com cartões horários e diários.
+    *   **UI Inteligente:** O painel de informações se reorganiza automaticamente (2, 3 ou 4 colunas) dependendo do tamanho da tela.
 
 *   **🌦️ Clima em Tempo Real:**
     *   Suporte a múltiplas fontes de dados: **OpenWeather (OneCall 3.0 & Free)** e **Open-Meteo**.

@@ -467,54 +467,6 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
     
     try {
         switch (endpoint) {
-            case 'extras': {
-                // NEW: Independent endpoint for extra insights (Marine, Pollen)
-                const lat = params.lat;
-                const lon = params.lon;
-                if (!lat || !lon) return { statusCode: 400, body: JSON.stringify({ message: "Lat/Lon obrigatórios." }) };
-
-                // Open-Meteo Pollen (Air Quality API)
-                const pollenUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,olive_pollen,ragweed_pollen`;
-                
-                // Open-Meteo Marine
-                const marineUrl = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&current=wave_height,sea_water_temperature`;
-
-                const [pollenRes, marineRes] = await Promise.all([fetch(pollenUrl), fetch(marineUrl)]);
-                
-                let pollenData = null;
-                if (pollenRes.ok) {
-                    const data = await pollenRes.json();
-                    if (data.current) {
-                        pollenData = {
-                            alder: data.current.alder_pollen,
-                            birch: data.current.birch_pollen,
-                            grass: data.current.grass_pollen,
-                            mugwort: data.current.mugwort_pollen,
-                            olive: data.current.olive_pollen,
-                            ragweed: data.current.ragweed_pollen,
-                        };
-                    }
-                }
-
-                let marineData = null;
-                if (marineRes.ok) {
-                    const data = await marineRes.json();
-                    // Marine API sometimes returns empty or null if inland. Check values.
-                    if (data.current && data.current.wave_height !== null) {
-                        marineData = {
-                            wave_height: data.current.wave_height,
-                            sea_temperature: data.current.sea_water_temperature
-                        };
-                    }
-                }
-
-                return {
-                    statusCode: 200,
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ pollen: pollenData, marine: marineData })
-                };
-            }
-
             case 'all': {
                 const lat = params.lat;
                 const lon = params.lon;

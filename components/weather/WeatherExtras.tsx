@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { getSettings } from '../../services/settingsService';
@@ -29,21 +30,10 @@ const WeatherExtras: React.FC<WeatherExtrasProps> = ({ data }) => {
     // Fetch real data independently if enabled
     useEffect(() => {
         let isMounted = true;
-        if ((config.showPollen || config.showBeach) && data.dt) {
-            // We use a separate async fetch so we don't block the UI
-            fetchExtrasData(data.windSpeed /* hack to get lat/lon? no, need real props */, 0)
-                // Oops, need lat/lon. But WeatherData doesn't have it explicitly at top level in some interfaces,
-                // but the fetchExtrasData needs it. 
-                // However, fetching "weatherData" usually comes from a context where we have lat/lon. 
-                // Let's assume we can pass it or the component needs refactoring.
-                // WAIT: WeatherData interface DOES NOT have lat/lon. 
-                // Solution: We need to rely on the parent or cache. 
-                // BUT, looking at `DesktopWeather.tsx`, it receives `onCitySelect` etc.
-                // Let's grab coordinates from localStorage as a fallback since they are saved there by App.tsx.
-                .then(res => {}); 
-        }
         
         const fetchReal = async () => {
+            if (!config?.enabled || (!config.showPollen && !config.showBeach)) return;
+            
             try {
                 const stored = localStorage.getItem('last_coords');
                 if (stored) {
@@ -56,9 +46,7 @@ const WeatherExtras: React.FC<WeatherExtrasProps> = ({ data }) => {
             }
         };
 
-        if (config?.enabled && (config.showPollen || config.showBeach)) {
-            fetchReal();
-        }
+        fetchReal();
 
         return () => { isMounted = false; };
     }, [config, data.city]); // Re-fetch if city changes
