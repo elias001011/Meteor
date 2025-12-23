@@ -12,7 +12,7 @@ export interface WeatherData {
   humidity: number;
   pressure: number;
   imageUrl: string;
-  timezoneOffset: number; // Added timezone offset in seconds
+  timezoneOffset: number;
   uvi?: number;
   sunrise: number;
   sunset: number;
@@ -40,20 +40,50 @@ export interface AirQualityData {
     };
 }
 
+// New Interface for Open-Meteo Extras (Pollen & Marine)
+export interface ExtrasData {
+    pollen?: {
+        alder: number;
+        birch: number;
+        grass: number;
+        mugwort: number;
+        olive: number;
+        ragweed: number;
+    };
+    marine?: {
+        wave_height: number;
+        sea_temperature: number;
+    };
+}
+
 export interface HourlyForecast {
   dt: number;
   temperature: number;
   conditionIcon: string;
   pop?: number;
-  description?: string; // New: Text description for accessibility/toasts
+  description?: string; 
+  feels_like?: number;
+  humidity?: number;
+  wind_speed?: number;
+  uvi?: number;
+  pressure?: number;
+  clouds?: number;
 }
 
 export interface DailyForecast {
   dt: number;
-  temperature: number;
+  temperature: number; 
+  temperature_min?: number; 
   conditionIcon: string;
   pop?: number;
-  description?: string; // New: Text description for accessibility/toasts
+  description?: string; 
+  humidity?: number;
+  wind_speed?: number;
+  uvi?: number;
+  clouds?: number;
+  pressure?: number;
+  sunrise?: number;
+  sunset?: number;
 }
 
 export interface GroundingSource {
@@ -66,10 +96,9 @@ export interface ChatMessage {
     role: 'user' | 'model';
     text: string;
     sources?: GroundingSource[];
-    // AI Metadata
     modelUsed?: string;
     processingTime?: number;
-    toolExecuted?: string; // e.g., "Busca Web", "Consulta Clima"
+    toolExecuted?: string;
 }
 
 export interface CitySearchResult {
@@ -112,7 +141,7 @@ export interface SearchResultItem {
 
 export type StartupBehavior = 'last_location' | 'idle' | 'specific_location' | 'custom_section';
 export type AppTheme = 'cyan' | 'blue' | 'purple' | 'emerald' | 'rose' | 'amber';
-export type TransparencyMode = 'off' | 'subtle' | 'balanced' | 'glass' | 'transparent'; // Updated modes
+export type TransparencyMode = 'off' | 'subtle' | 'balanced' | 'glass' | 'transparent';
 export type ClockDisplayMode = 'always' | 'different_zone' | 'never';
 export type BackgroundMode = 'gradient' | 'solid';
 export type MapTheme = 'light' | 'dark';
@@ -120,53 +149,73 @@ export type BorderEffectMode = 'none' | 'top' | 'bottom';
 export type LayoutDensity = 'comfortable' | 'compact';
 export type DesktopLayout = '25-75' | '40-60' | '50-50';
 
+export type UnitSystem = 'metric' | 'imperial';
+export type ForecastComplexity = 'basic' | 'advanced';
+export type ForecastDetailView = 'both' | 'forecast_only' | 'daily_only';
+
 export interface GlassScope {
     header: boolean;
     cards: boolean;
-    overlays: boolean; // Modals, Dropdowns, Nav
+    overlays: boolean; 
 }
 
 export interface WeatherInsightsConfig {
     enabled: boolean;
-    style: 'container' | 'clean'; // 'container' = boxed (glass), 'clean' = text only
+    style: 'container' | 'clean';
     content: 'highlight' | 'recommendation' | 'both';
-    showPulse: boolean; // New: Toggle the colored pulse animation
+    showPulse: boolean;
+}
+
+export interface ExtrasConfig {
+    enabled: boolean;
+    showRunning: boolean;
+    showDriving: boolean;
+    showGoldenHour: boolean;
+    showBlueHour: boolean;
+    showMosquito: boolean;
+    showUV: boolean;
+    showPollen: boolean; // Uses API
+    showFlu: boolean;
+    showBeach: boolean; // Uses API
 }
 
 export interface AppSettings {
-    userName?: string; // New: User name for greeting
-    userAiInstructions?: string; // New: Custom prompt instructions
-    showClock: boolean; // System clock in header
-    clockDisplayMode: ClockDisplayMode; // Local time in weather card
+    userName?: string;
+    userAiInstructions?: string;
+    showClock: boolean;
+    clockDisplayMode: ClockDisplayMode;
     startFullscreen: boolean;
     weatherSource: DataSource | 'auto';
     startupBehavior: StartupBehavior;
-    specificLocation?: CitySearchResult; // Used if startupBehavior is 'specific_location'
-    startupSection?: View; // Used if startupBehavior is 'custom_section'
+    specificLocation?: CitySearchResult;
+    startupSection?: View;
     saveChatHistory: boolean;
-    // Visual Customization
     themeColor: AppTheme;
     dynamicTheme: boolean; 
     transparencyMode: TransparencyMode;
-    glassScope: GlassScope; // Granular control over glass effects
+    glassScope: GlassScope;
     backgroundMode: BackgroundMode; 
-    borderEffect: BorderEffectMode; // LED-like border effect position
+    borderEffect: BorderEffectMode;
     mapTheme: MapTheme;
-    layoutDensity: LayoutDensity; // Compact vs Comfortable
-    desktopLayout: DesktopLayout; // New: Proporção do layout no PC
+    layoutDensity: LayoutDensity;
+    desktopLayout: DesktopLayout;
     showScrollbars: boolean;
-    performanceMode: boolean; // Performance Mode
-    reducedMotion: boolean; // New: Remove Animations
+    performanceMode: boolean;
+    reducedMotion: boolean;
     rainAnimation: {
         enabled: boolean;
         intensity: 'low' | 'high';
     };
-    weatherInsights: WeatherInsightsConfig; // New v3.0 Feature
+    weatherInsights: WeatherInsightsConfig;
+    unitSystem: UnitSystem;
+    forecastComplexity: ForecastComplexity;
+    forecastDetailView: ForecastDetailView;
+    extrasConfig: ExtrasConfig;
 }
 
 export interface ExportData {
     settings: AppSettings;
-    chatHistory: ChatMessage[]; // Placeholder for structure
-    weatherCache: Record<string, any>; // Raw cache dump
+    chatHistory: ChatMessage[];
+    weatherCache: Record<string, any>;
     timestamp: number;
 }
