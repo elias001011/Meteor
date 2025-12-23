@@ -1,4 +1,5 @@
 
+
 import type { AppSettings, ExportData } from '../types';
 
 const SETTINGS_KEY = 'meteor_settings';
@@ -70,7 +71,7 @@ const DEFAULT_SETTINGS: AppSettings = {
     forecastComplexity: 'advanced', // Default to Advanced/Complex modal
     forecastDetailView: 'both',
     extrasConfig: {
-        enabled: true, // Default enabled
+        enabled: true,
         showRunning: true,
         showDriving: true,
         showGoldenHour: true,

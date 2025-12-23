@@ -12,7 +12,6 @@ import ErrorDisplay from '../common/ErrorDisplay';
 import Alerts from './Alerts';
 import DataSourceInfo from './DataSourceInfo';
 import WeatherInsights from './WeatherInsights';
-import WeatherExtras from './WeatherExtras';
 import { SparklesIcon } from '../icons';
 import { useTheme } from '../context/ThemeContext';
 
@@ -108,9 +107,6 @@ const DesktopWeather: React.FC<DesktopWeatherProps> = ({
                 <HourlyForecastComponent data={hourlyForecast} timezoneOffset={weatherData.timezoneOffset} />
                 <DailyForecastComponent data={dailyForecast} timezoneOffset={weatherData.timezoneOffset} />
                 
-                {/* 6. V4.0 Extras Container (Optional) */}
-                <WeatherExtras data={weatherData} />
-
                 <DataSourceInfo source={dataSource} lastUpdated={lastUpdated} onClick={onDataSourceInfoClick} />
             </div>
         );

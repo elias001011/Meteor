@@ -326,9 +326,9 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                 </div>
             </section>
 
-             {/* 3. Extras & Advanced (V4.0) */}
+             {/* 3. Detalhes (V4.0) */}
              <section className={`${cardClass} rounded-3xl ${density.padding}`}>
-                <h3 className={`text-lg font-bold ${classes.text} mb-4 flex items-center gap-2`}><SettingsIcon className="w-5 h-5" /> Extras & Detalhes</h3>
+                <h3 className={`text-lg font-bold ${classes.text} mb-4 flex items-center gap-2`}><SettingsIcon className="w-5 h-5" /> Detalhes</h3>
                 <div className={density.settingsGap}>
                     {/* Visualização Complexa */}
                     <div className="flex items-center justify-between">
@@ -346,30 +346,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                 <option value="forecast_only" className={optionClass}>Apenas Horária</option>
                                 <option value="daily_only" className={optionClass}>Apenas Diária</option>
                             </select>
-                        </div>
-                    )}
-
-                    <div className="h-[1px] bg-white/5 w-full my-2" />
-
-                    {/* Container Extra (Lifestyle) */}
-                    <div className="flex items-center justify-between">
-                         <div>
-                            <span className={`${density.text} text-white font-medium block`}>Insights Extras</span>
-                            <span className="text-[10px] text-gray-500">Container de Corrida, Dirigir, Mosquitos...</span>
-                        </div>
-                        <ToggleSwitch checked={settings.extrasConfig?.enabled || false} onChange={() => handleSave({ extrasConfig: { ...settings.extrasConfig, enabled: !settings.extrasConfig?.enabled } })} activeColorClass={classes.bg} />
-                    </div>
-                    {settings.extrasConfig?.enabled && (
-                        <div className="grid grid-cols-3 gap-2 mt-2 animate-enter">
-                             <button onClick={() => handleSave({ extrasConfig: { ...settings.extrasConfig, showRunning: !settings.extrasConfig.showRunning } })} className={`text-[10px] py-1.5 rounded border border-white/5 transition-colors ${settings.extrasConfig.showRunning ? 'bg-white/10 text-white' : 'text-gray-500 hover:bg-white/5'}`}>Corrida</button>
-                             <button onClick={() => handleSave({ extrasConfig: { ...settings.extrasConfig, showDriving: !settings.extrasConfig.showDriving } })} className={`text-[10px] py-1.5 rounded border border-white/5 transition-colors ${settings.extrasConfig.showDriving ? 'bg-white/10 text-white' : 'text-gray-500 hover:bg-white/5'}`}>Dirigir</button>
-                             <button onClick={() => handleSave({ extrasConfig: { ...settings.extrasConfig, showGoldenHour: !settings.extrasConfig.showGoldenHour } })} className={`text-[10px] py-1.5 rounded border border-white/5 transition-colors ${settings.extrasConfig.showGoldenHour ? 'bg-white/10 text-white' : 'text-gray-500 hover:bg-white/5'}`}>Golden</button>
-                             <button onClick={() => handleSave({ extrasConfig: { ...settings.extrasConfig, showBlueHour: !settings.extrasConfig.showBlueHour } })} className={`text-[10px] py-1.5 rounded border border-white/5 transition-colors ${settings.extrasConfig.showBlueHour ? 'bg-white/10 text-white' : 'text-gray-500 hover:bg-white/5'}`}>Blue Hour</button>
-                             <button onClick={() => handleSave({ extrasConfig: { ...settings.extrasConfig, showMosquito: !settings.extrasConfig.showMosquito } })} className={`text-[10px] py-1.5 rounded border border-white/5 transition-colors ${settings.extrasConfig.showMosquito ? 'bg-white/10 text-white' : 'text-gray-500 hover:bg-white/5'}`}>Mosquitos</button>
-                             <button onClick={() => handleSave({ extrasConfig: { ...settings.extrasConfig, showUV: !settings.extrasConfig.showUV } })} className={`text-[10px] py-1.5 rounded border border-white/5 transition-colors ${settings.extrasConfig.showUV ? 'bg-white/10 text-white' : 'text-gray-500 hover:bg-white/5'}`}>Proteção UV</button>
-                             <button onClick={() => handleSave({ extrasConfig: { ...settings.extrasConfig, showPollen: !settings.extrasConfig.showPollen } })} className={`text-[10px] py-1.5 rounded border border-white/5 transition-colors ${settings.extrasConfig.showPollen ? 'bg-white/10 text-white' : 'text-gray-500 hover:bg-white/5'}`}>Pólen</button>
-                             <button onClick={() => handleSave({ extrasConfig: { ...settings.extrasConfig, showFlu: !settings.extrasConfig.showFlu } })} className={`text-[10px] py-1.5 rounded border border-white/5 transition-colors ${settings.extrasConfig.showFlu ? 'bg-white/10 text-white' : 'text-gray-500 hover:bg-white/5'}`}>Risco Gripe</button>
-                             <button onClick={() => handleSave({ extrasConfig: { ...settings.extrasConfig, showBeach: !settings.extrasConfig.showBeach } })} className={`text-[10px] py-1.5 rounded border border-white/5 transition-colors ${settings.extrasConfig.showBeach ? 'bg-white/10 text-white' : 'text-gray-500 hover:bg-white/5'}`}>Praia/Piscina</button>
                         </div>
                     )}
                 </div>
