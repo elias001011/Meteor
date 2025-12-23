@@ -1,5 +1,4 @@
 
-
 import React, { useEffect } from 'react';
 import { XIcon, SparklesIcon, AlertTriangleIcon } from '../icons';
 import { useTheme } from '../context/ThemeContext';
@@ -28,14 +27,22 @@ const ChangelogModal: React.FC<any> = ({ isOpen, onClose }) => {
 
     const versions = [
         {
+            version: "4.0.0",
+            title: "Ultimate Lifestyle Update",
+            changes: [
+                "Lifestyle Insights: Novo container inteligente com índices de Corrida, Mosquitos, Direção e Proteção UV.",
+                "Visual Aprimorado: Design em lista vertical ('Painel de Controle') para informações extras, facilitando a leitura.",
+                "Previsão Detalhada: Agora você pode ver a pressão atmosférica, ponto de orvalho e nuvens diretamente nos cards de previsão.",
+                "Correções de UI: Ajustes finos no layout e pop-ups inteligentes para textos longos."
+            ]
+        },
+        {
             version: "3.6.0",
             title: "Performance 2.0 & Otimização Mobile",
             changes: [
                 "Modo Desempenho Remodelado: Otimização agressiva que desliga transparências e animações para máxima fluidez em dispositivos antigos.",
                 "Adaptação Inteligente: O Meteor agora detecta se você está no celular ou PC e ajusta as configurações iniciais automaticamente (Qualidade vs Performance).",
-                "UI Refinada: Correção de menus cortados, anéis de foco e melhor posicionamento de notificações (toasts).",
-                "Segurança: Reforço nas diretrizes de IA e transparência sobre uso de dados.",
-                "Animações: Chuva recalibrada e menus mais ágeis."
+                "UI Refinada: Correção de menus cortados, anéis de foco e melhor posicionamento de notificações (toasts)."
             ]
         },
         {
@@ -43,17 +50,7 @@ const ChangelogModal: React.FC<any> = ({ isOpen, onClose }) => {
             title: "Finalização Visual & Organização",
             changes: [
                 "4 Níveis de Transparência: Sólido, Sutil (96%), Equilibrado (85%) e Vidro (60%).",
-                "Consistência Absoluta: Correção do motor de estilo para garantir consistência visual.",
                 "Insights Control: Nova opção para ativar/desativar a animação de pulso."
-            ]
-        },
-        {
-            version: "3.4.0",
-            title: "Design & Imersão",
-            changes: [
-                "Refatoração do sistema de Glassmorphism.",
-                "Modo Transparente sem desfoque (foco em legibilidade).",
-                "Efeito de Chuva Boostado."
             ]
         }
     ];

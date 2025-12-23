@@ -1,4 +1,5 @@
-import type { AllWeatherData, CitySearchResult, DataSource } from '../types';
+
+import type { AllWeatherData, CitySearchResult, DataSource, ExtrasData } from '../types';
 
 const CACHE_DURATION_MS = 50 * 60 * 1000; // 50 minutes cache
 
@@ -17,6 +18,18 @@ export const searchCities = async (city: string): Promise<CitySearchResult[]> =>
         lat: item.lat,
         lon: item.lon,
     }));
+};
+
+// Fetch Extra Insights (Pollen, Marine) - Does NOT need caching in localStorage as it's secondary/realtime
+export const fetchExtrasData = async (lat: number, lon: number): Promise<ExtrasData | null> => {
+    try {
+        const response = await fetch(`/.netlify/functions/weather?endpoint=extras&lat=${lat}&lon=${lon}`);
+        if (!response.ok) return null;
+        return await response.json();
+    } catch (e) {
+        console.warn("Failed to fetch extra insights", e);
+        return null;
+    }
 };
 
 // Main function to fetch all weather-related data via our secure BFF Netlify function

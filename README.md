@@ -1,7 +1,7 @@
 
-# Meteor ☄️
+# Meteor  ☄️
 
-![Version](https://img.shields.io/badge/version-3.6.0-blue.svg)
+![Version](https://img.shields.io/badge/version-4.0.0-purple.svg)
 ![React](https://img.shields.io/badge/React-19-61dafb.svg)
 ![Vite](https://img.shields.io/badge/Vite-7-646cff.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6.svg)
@@ -13,33 +13,33 @@ O projeto utiliza uma arquitetura **BFF (Backend-for-Frontend)** via Netlify Fun
 
 ---
 
-## ✨ Funcionalidades Principais (v3.6.0)
+## ✨ Funcionalidades Principais (v4.0.0)
+
+*   **🧬 Lifestyle Insights (Novo):**
+    *   Análise algorítmica para atividades do dia a dia.
+    *   Índices calculados para: **Corrida**, **Direção Segura**, **Golden Hour**, **Atividade de Mosquitos** e **Proteção UV**.
+    *   Design em lista vertical intuitiva com suporte a leitura detalhada.
+
+*   **🔍 Previsão Avançada:**
+    *   Modo de visualização "Complexo" para detalhamento técnico (Pressão, Ponto de Orvalho, Rajadas).
+    *   Interação granular com cartões horários e diários.
 
 *   **🌦️ Clima em Tempo Real:**
     *   Suporte a múltiplas fontes de dados: **OpenWeather (OneCall 3.0 & Free)** e **Open-Meteo**.
     *   Fallback automático inteligente em caso de falha de API ou limites excedidos.
     *   Previsão horária e diária (7 dias).
     *   Qualidade do Ar (AQI) e componentes poluentes.
-    *   Alertas meteorológicos oficiais.
 
 *   **🤖 Meteor AI (Assistente Inteligente):**
     *   Baseada no **Google Gemini 2.5 Flash Lite**.
     *   Contexto completo: A IA "vê" o clima da sua tela, hora local e histórico de conversa.
     *   **Ferramentas (Stealth Tools):** A IA pode decidir autonomamente buscar dados na Web (Google Search) ou consultar o clima de outras cidades globais.
-    *   Respostas formatadas em Markdown com fontes citadas.
     *   **Segurança Reforçada:** Diretrizes estritas contra injeção de prompt.
 
 *   **🎨 Experiência Visual Imersiva:**
     *   **Motor de Temas Dinâmico:** A cor do app muda conforme o clima (Sol, Chuva, Nublado, Noite).
     *   **Sistema de Transparência 2.0:** Modos Sólido, Sutil, Equilibrado e Vidro padronizados.
     *   **Otimização Inteligente:** Configurações padrão ajustadas automaticamente para Mobile (Desempenho) ou Desktop (Qualidade).
-    *   Mapas interativos com camadas de temperatura, chuva, vento, nuvens e pressão.
-
-*   **⚙️ Personalização Profunda:**
-    *   Instruções de personalidade para a IA.
-    *   **Modo Desempenho Remodelado:** Otimização agressiva de renderização.
-    *   Layouts de desktop configuráveis (Lateral, Balanceado, Dividido).
-    *   Backup e Importação de dados (Configurações, Histórico de Chat, Cache).
 
 ---
 
@@ -102,8 +102,6 @@ Use o Netlify CLI para iniciar o servidor de desenvolvimento. Isso permitirá qu
 netlify dev
 ```
 O app estará disponível em `http://localhost:8888`.
-
-> **Nota:** Rodar apenas `npm run dev` iniciará apenas o frontend, mas as requisições de clima e IA falharão (404/500) pois dependem das Netlify Functions.
 
 ---
 

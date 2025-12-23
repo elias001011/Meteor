@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import type { AppSettings, View, DataSource, AppTheme, TransparencyMode, ClockDisplayMode, BackgroundMode, MapTheme, BorderEffectMode, LayoutDensity, DesktopLayout } from '../../types';
+import type { AppSettings, View, DataSource, AppTheme, TransparencyMode, ClockDisplayMode, BackgroundMode, MapTheme, BorderEffectMode, LayoutDensity, DesktopLayout, UnitSystem, ForecastComplexity, ForecastDetailView } from '../../types';
 import { getSettings, resetSettings, resetCache, resetAllData, exportAppData } from '../../services/settingsService';
 import { useTheme } from '../context/ThemeContext';
 import { 
@@ -153,8 +153,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({
     // Helper to determine the active "Main" transparency tab (Off, Transparent, Glass)
     const activeTransparencyTab = settings.transparencyMode === 'glass' ? 'glass' : (settings.transparencyMode === 'off' ? 'off' : 'transparent');
 
-    // --- RENDER FUNCTIONS ---
-
     const renderGeneral = () => (
         <div className={`space-y-6 animate-enter`}>
             {/* 1. Instale o Meteor */}
@@ -257,6 +255,15 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                         <span className={`${density.text} text-white font-medium`}>Barras de Rolagem</span>
                         <ToggleSwitch checked={settings.showScrollbars} onChange={() => handleSave({ showScrollbars: !settings.showScrollbars })} activeColorClass={classes.bg} />
                     </div>
+
+                    {/* Unidades de Medida - V4.0 Feature */}
+                    <div className="flex flex-col gap-2 pt-4 border-t border-white/5">
+                         <label className={`${density.text} text-sm font-medium text-gray-300`}>Sistema de Unidades</label>
+                         <div className="flex bg-black/20 rounded-xl p-1 border border-white/5">
+                            <button onClick={() => handleSave({ unitSystem: 'metric' })} className={`flex-1 py-2 rounded-lg text-xs font-medium ${settings.unitSystem !== 'imperial' ? 'bg-white/10 text-white' : 'text-gray-400'}`}>Métrico (°C, km/h)</button>
+                            <button onClick={() => handleSave({ unitSystem: 'imperial' })} className={`flex-1 py-2 rounded-lg text-xs font-medium ${settings.unitSystem === 'imperial' ? 'bg-white/10 text-white' : 'text-gray-400'}`}>Imperial (°F, mph)</button>
+                        </div>
+                    </div>
                 </div>
             </section>
         </div>
@@ -283,8 +290,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                 </div>
             </section>
 
-            {/* 2. Resumo do Clima (Insights) - RESTORED */}
-            <section className={`${cardClass} rounded-3xl ${density.padding}`}>
+             {/* 2. Resumo do Clima (Insights) */}
+             <section className={`${cardClass} rounded-3xl ${density.padding}`}>
                 <h3 className={`text-lg font-bold ${classes.text} mb-4 flex items-center gap-2`}><LightbulbIcon className="w-5 h-5" /> Resumo do Clima</h3>
                 <div className={density.settingsGap}>
                     <div className="flex items-center justify-between">
@@ -319,7 +326,56 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                 </div>
             </section>
 
-            {/* 3. Efeitos e Layout */}
+             {/* 3. Extras & Advanced (V4.0) */}
+             <section className={`${cardClass} rounded-3xl ${density.padding}`}>
+                <h3 className={`text-lg font-bold ${classes.text} mb-4 flex items-center gap-2`}><SettingsIcon className="w-5 h-5" /> Extras & Detalhes</h3>
+                <div className={density.settingsGap}>
+                    {/* Visualização Complexa */}
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <span className={`${density.text} text-white font-medium block`}>Previsão Detalhada</span>
+                            <span className="text-[10px] text-gray-500">Exibe pop-up com UV, Vento e mais detalhes.</span>
+                        </div>
+                        <ToggleSwitch checked={settings.forecastComplexity === 'advanced'} onChange={() => handleSave({ forecastComplexity: settings.forecastComplexity === 'advanced' ? 'basic' : 'advanced' })} activeColorClass={classes.bg} />
+                    </div>
+                     {settings.forecastComplexity === 'advanced' && (
+                        <div className="pl-4 border-l-2 border-gray-700 animate-enter mt-2">
+                             <label className="text-xs text-gray-400 block mb-2">Onde exibir detalhes?</label>
+                             <select value={settings.forecastDetailView} onChange={(e) => handleSave({ forecastDetailView: e.target.value as ForecastDetailView })} className={selectStyle}>
+                                <option value="both" className={optionClass}>Ambos (Horária + Diária)</option>
+                                <option value="forecast_only" className={optionClass}>Apenas Horária</option>
+                                <option value="daily_only" className={optionClass}>Apenas Diária</option>
+                            </select>
+                        </div>
+                    )}
+
+                    <div className="h-[1px] bg-white/5 w-full my-2" />
+
+                    {/* Container Extra (Lifestyle) */}
+                    <div className="flex items-center justify-between">
+                         <div>
+                            <span className={`${density.text} text-white font-medium block`}>Insights Extras</span>
+                            <span className="text-[10px] text-gray-500">Container de Corrida, Dirigir, Mosquitos...</span>
+                        </div>
+                        <ToggleSwitch checked={settings.extrasConfig?.enabled || false} onChange={() => handleSave({ extrasConfig: { ...settings.extrasConfig, enabled: !settings.extrasConfig?.enabled } })} activeColorClass={classes.bg} />
+                    </div>
+                    {settings.extrasConfig?.enabled && (
+                        <div className="grid grid-cols-3 gap-2 mt-2 animate-enter">
+                             <button onClick={() => handleSave({ extrasConfig: { ...settings.extrasConfig, showRunning: !settings.extrasConfig.showRunning } })} className={`text-[10px] py-1.5 rounded border border-white/5 transition-colors ${settings.extrasConfig.showRunning ? 'bg-white/10 text-white' : 'text-gray-500 hover:bg-white/5'}`}>Corrida</button>
+                             <button onClick={() => handleSave({ extrasConfig: { ...settings.extrasConfig, showDriving: !settings.extrasConfig.showDriving } })} className={`text-[10px] py-1.5 rounded border border-white/5 transition-colors ${settings.extrasConfig.showDriving ? 'bg-white/10 text-white' : 'text-gray-500 hover:bg-white/5'}`}>Dirigir</button>
+                             <button onClick={() => handleSave({ extrasConfig: { ...settings.extrasConfig, showGoldenHour: !settings.extrasConfig.showGoldenHour } })} className={`text-[10px] py-1.5 rounded border border-white/5 transition-colors ${settings.extrasConfig.showGoldenHour ? 'bg-white/10 text-white' : 'text-gray-500 hover:bg-white/5'}`}>Golden</button>
+                             <button onClick={() => handleSave({ extrasConfig: { ...settings.extrasConfig, showBlueHour: !settings.extrasConfig.showBlueHour } })} className={`text-[10px] py-1.5 rounded border border-white/5 transition-colors ${settings.extrasConfig.showBlueHour ? 'bg-white/10 text-white' : 'text-gray-500 hover:bg-white/5'}`}>Blue Hour</button>
+                             <button onClick={() => handleSave({ extrasConfig: { ...settings.extrasConfig, showMosquito: !settings.extrasConfig.showMosquito } })} className={`text-[10px] py-1.5 rounded border border-white/5 transition-colors ${settings.extrasConfig.showMosquito ? 'bg-white/10 text-white' : 'text-gray-500 hover:bg-white/5'}`}>Mosquitos</button>
+                             <button onClick={() => handleSave({ extrasConfig: { ...settings.extrasConfig, showUV: !settings.extrasConfig.showUV } })} className={`text-[10px] py-1.5 rounded border border-white/5 transition-colors ${settings.extrasConfig.showUV ? 'bg-white/10 text-white' : 'text-gray-500 hover:bg-white/5'}`}>Proteção UV</button>
+                             <button onClick={() => handleSave({ extrasConfig: { ...settings.extrasConfig, showPollen: !settings.extrasConfig.showPollen } })} className={`text-[10px] py-1.5 rounded border border-white/5 transition-colors ${settings.extrasConfig.showPollen ? 'bg-white/10 text-white' : 'text-gray-500 hover:bg-white/5'}`}>Pólen</button>
+                             <button onClick={() => handleSave({ extrasConfig: { ...settings.extrasConfig, showFlu: !settings.extrasConfig.showFlu } })} className={`text-[10px] py-1.5 rounded border border-white/5 transition-colors ${settings.extrasConfig.showFlu ? 'bg-white/10 text-white' : 'text-gray-500 hover:bg-white/5'}`}>Risco Gripe</button>
+                             <button onClick={() => handleSave({ extrasConfig: { ...settings.extrasConfig, showBeach: !settings.extrasConfig.showBeach } })} className={`text-[10px] py-1.5 rounded border border-white/5 transition-colors ${settings.extrasConfig.showBeach ? 'bg-white/10 text-white' : 'text-gray-500 hover:bg-white/5'}`}>Praia/Piscina</button>
+                        </div>
+                    )}
+                </div>
+            </section>
+
+            {/* 4. Efeitos e Layout */}
             <section className={`${cardClass} rounded-3xl ${density.padding}`}>
                 <h3 className={`text-lg font-bold ${classes.text} mb-4`}>Efeitos e Layout</h3>
                 <div className={density.settingsGap}>
@@ -551,7 +607,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                 <button onClick={onOpenChangelog} className={`w-full group relative overflow-hidden rounded-2xl border border-white/10 bg-gray-900/60 hover:bg-gray-900/80 transition-all p-4 text-left flex items-center justify-between`}>
                     <div className="flex items-center gap-4 relative z-10">
                         <div className={`p-3 rounded-full bg-gradient-to-br ${classes.gradient} shadow-lg`}><SparklesIcon className="w-5 h-5 text-white" /></div>
-                        <div><p className="text-xs text-gray-400 font-medium uppercase tracking-wider mb-0.5">Meteor App</p><p className="text-white font-bold">Versão 3.6.0</p><p className="text-xs text-gray-500 mt-0.5">Desenvolvido por @elias_jrnunes</p></div>
+                        <div><p className="text-xs text-gray-400 font-medium uppercase tracking-wider mb-0.5">Meteor App</p><p className="text-white font-bold">Versão 4.0.0</p><p className="text-xs text-gray-500 mt-0.5">Desenvolvido por @elias_jrnunes</p></div>
                     </div>
                     <ChevronLeftIcon className="w-5 h-5 rotate-180 text-gray-500" />
                 </button>

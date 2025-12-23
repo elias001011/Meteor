@@ -54,8 +54,8 @@ const fetchWithOpenMeteo = async (lat: string, lon: string) => {
         latitude: lat,
         longitude: lon,
         current: 'temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,cloud_cover,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,visibility,dew_point_2m',
-        hourly: 'temperature_2m,weather_code,precipitation_probability,is_day',
-        daily: 'weather_code,temperature_2m_max,sunrise,sunset,precipitation_probability_max',
+        hourly: 'temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,precipitation_probability,is_day,wind_speed_10m,surface_pressure,cloud_cover',
+        daily: 'weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max,uv_index_max,wind_speed_10m_max',
         timezone: 'auto', // Requests correct timezone calculation from Open-Meteo
         forecast_days: '7',
     });
@@ -140,6 +140,12 @@ const fetchWithOpenMeteo = async (lat: string, lon: string) => {
             conditionIcon: mapOpenMeteoCodeToEmoji(hourly.weather_code[i], hourly.is_day[i] === 1),
             description: mapWmoCodeToDescription(hourly.weather_code[i]),
             pop: hourly.precipitation_probability[i] / 100,
+            // Extended fields
+            feels_like: hourly.apparent_temperature[i],
+            humidity: hourly.relative_humidity_2m[i],
+            wind_speed: hourly.wind_speed_10m[i],
+            pressure: hourly.surface_pressure[i],
+            clouds: hourly.cloud_cover[i]
         });
     }
     
@@ -158,9 +164,15 @@ const fetchWithOpenMeteo = async (lat: string, lon: string) => {
               dailyForecast.push({
                 dt: dayTime,
                 temperature: daily.temperature_2m_max[i],
+                temperature_min: daily.temperature_2m_min[i],
                 conditionIcon: mapOpenMeteoCodeToEmoji(daily.weather_code[i]),
                 description: mapWmoCodeToDescription(daily.weather_code[i]),
                 pop: daily.precipitation_probability_max[i] / 100,
+                // Extended Fields
+                uvi: daily.uv_index_max[i],
+                wind_speed: daily.wind_speed_10m_max[i],
+                sunrise: new Date(daily.sunrise[i]).getTime() / 1000,
+                sunset: new Date(daily.sunset[i]).getTime() / 1000,
             });
          }
     }
@@ -243,14 +255,30 @@ const fetchWithOneCall = async (lat: string, lon: string) => {
             conditionIcon: mapOwmIconToEmoji(item.weather[0].icon),
             description: item.weather[0].description.charAt(0).toUpperCase() + item.weather[0].description.slice(1),
             pop: item.pop,
+            // Extended fields
+            feels_like: item.feels_like,
+            humidity: item.humidity,
+            wind_speed: item.wind_speed * 3.6,
+            uvi: item.uvi,
+            pressure: item.pressure,
+            clouds: item.clouds
         }));
 
     const dailyForecast = onecallApiData.daily.slice(0, 7).map((item: any) => ({
         dt: item.dt,
         temperature: item.temp.max,
+        temperature_min: item.temp.min,
         conditionIcon: mapOwmIconToEmoji(item.weather[0].icon),
         description: item.weather[0].description.charAt(0).toUpperCase() + item.weather[0].description.slice(1),
         pop: item.pop,
+        // Extended Fields
+        humidity: item.humidity,
+        wind_speed: item.wind_speed * 3.6,
+        uvi: item.uvi,
+        clouds: item.clouds,
+        pressure: item.pressure,
+        sunrise: item.sunrise,
+        sunset: item.sunset,
     }));
 
     const airQualityData = airPollutionApiData && airPollutionApiData.list?.[0]
@@ -327,6 +355,12 @@ const fetchWithFreeTier = async (lat: string, lon: string) => {
         conditionIcon: mapOwmIconToEmoji(item.weather[0].icon),
         description: item.weather[0].description.charAt(0).toUpperCase() + item.weather[0].description.slice(1),
         pop: item.pop,
+        // Extended fields (Available in 5day/3hr forecast)
+        feels_like: item.main.feels_like,
+        humidity: item.main.humidity,
+        wind_speed: item.wind.speed * 3.6,
+        pressure: item.main.pressure,
+        clouds: item.clouds.all
     }));
     
     // Process "Daily"
@@ -349,33 +383,54 @@ const fetchWithFreeTier = async (lat: string, lon: string) => {
                 dailyMap.set(date, {
                     dt: item.dt, 
                     temps: [],
+                    minTemps: [],
                     icons: [],
                     pops: [],
-                    descriptions: [] // Collect descriptions
+                    descriptions: [],
+                    humidities: [],
+                    winds: [],
+                    cloudiness: [],
+                    pressures: []
                 });
             }
             
             const dayData = dailyMap.get(date);
             dayData.temps.push(item.main.temp);
+            dayData.minTemps.push(item.main.temp_min);
             dayData.icons.push(item.weather[0].icon);
             dayData.pops.push(item.pop);
             dayData.descriptions.push(item.weather[0].description);
+            dayData.humidities.push(item.main.humidity);
+            dayData.winds.push(item.wind.speed);
+            dayData.cloudiness.push(item.clouds.all);
+            dayData.pressures.push(item.main.pressure);
         }
     });
 
     const dailyForecast = Array.from(dailyMap.values()).slice(0, 5).map((day: any) => {
         const maxTemp = Math.max(...day.temps);
+        const minTemp = Math.min(...day.minTemps);
         const midIndex = Math.floor(day.icons.length / 2);
         const icon = day.icons[midIndex];
         const desc = day.descriptions[midIndex]; // Use mid-day description
         const maxPop = Math.max(...day.pops);
+        
+        // Averages for complex view
+        const avgHumidity = day.humidities.reduce((a:number, b:number) => a + b, 0) / day.humidities.length;
+        const maxWind = Math.max(...day.winds);
 
         return {
             dt: day.dt,
             temperature: maxTemp,
+            temperature_min: minTemp,
             conditionIcon: mapOwmIconToEmoji(icon),
             description: desc.charAt(0).toUpperCase() + desc.slice(1),
-            pop: maxPop
+            pop: maxPop,
+            // Extended
+            humidity: Math.round(avgHumidity),
+            wind_speed: maxWind * 3.6,
+            clouds: Math.round(day.cloudiness.reduce((a:number,b:number)=>a+b,0)/day.cloudiness.length),
+            pressure: Math.round(day.pressures.reduce((a:number,b:number)=>a+b,0)/day.pressures.length)
         };
     });
 
@@ -412,6 +467,54 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
     
     try {
         switch (endpoint) {
+            case 'extras': {
+                // NEW: Independent endpoint for extra insights (Marine, Pollen)
+                const lat = params.lat;
+                const lon = params.lon;
+                if (!lat || !lon) return { statusCode: 400, body: JSON.stringify({ message: "Lat/Lon obrigatórios." }) };
+
+                // Open-Meteo Pollen (Air Quality API)
+                const pollenUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,olive_pollen,ragweed_pollen`;
+                
+                // Open-Meteo Marine
+                const marineUrl = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&current=wave_height,sea_water_temperature`;
+
+                const [pollenRes, marineRes] = await Promise.all([fetch(pollenUrl), fetch(marineUrl)]);
+                
+                let pollenData = null;
+                if (pollenRes.ok) {
+                    const data = await pollenRes.json();
+                    if (data.current) {
+                        pollenData = {
+                            alder: data.current.alder_pollen,
+                            birch: data.current.birch_pollen,
+                            grass: data.current.grass_pollen,
+                            mugwort: data.current.mugwort_pollen,
+                            olive: data.current.olive_pollen,
+                            ragweed: data.current.ragweed_pollen,
+                        };
+                    }
+                }
+
+                let marineData = null;
+                if (marineRes.ok) {
+                    const data = await marineRes.json();
+                    // Marine API sometimes returns empty or null if inland. Check values.
+                    if (data.current && data.current.wave_height !== null) {
+                        marineData = {
+                            wave_height: data.current.wave_height,
+                            sea_temperature: data.current.sea_water_temperature
+                        };
+                    }
+                }
+
+                return {
+                    statusCode: 200,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pollen: pollenData, marine: marineData })
+                };
+            }
+
             case 'all': {
                 const lat = params.lat;
                 const lon = params.lon;

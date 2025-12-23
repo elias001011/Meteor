@@ -1,7 +1,4 @@
 
-
-
-
 import React from 'react';
 import type { WeatherData, HourlyForecast, DailyForecast, AirQualityData, CitySearchResult, WeatherAlert, DataSource, ClockDisplayMode } from '../../types';
 import SearchBar from './SearchBar';
@@ -15,6 +12,7 @@ import ErrorDisplay from '../common/ErrorDisplay';
 import Alerts from './Alerts';
 import DataSourceInfo from './DataSourceInfo';
 import WeatherInsights from './WeatherInsights';
+import WeatherExtras from './WeatherExtras';
 import { SparklesIcon } from '../icons';
 import { useTheme } from '../context/ThemeContext';
 
@@ -109,6 +107,10 @@ const DesktopWeather: React.FC<DesktopWeatherProps> = ({
                 {airQualityData && <AirQuality data={airQualityData} />}
                 <HourlyForecastComponent data={hourlyForecast} timezoneOffset={weatherData.timezoneOffset} />
                 <DailyForecastComponent data={dailyForecast} timezoneOffset={weatherData.timezoneOffset} />
+                
+                {/* 6. V4.0 Extras Container (Optional) */}
+                <WeatherExtras data={weatherData} />
+
                 <DataSourceInfo source={dataSource} lastUpdated={lastUpdated} onClick={onDataSourceInfoClick} />
             </div>
         );
