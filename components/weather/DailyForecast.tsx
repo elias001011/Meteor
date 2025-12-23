@@ -1,6 +1,7 @@
 
+
 import React, { useState } from 'react';
-import type { DailyForecast } from '../../types';
+import type { DailyForecast, UnitSystem } from '../../types';
 import { UmbrellaIcon } from '../icons';
 import { useTheme } from '../context/ThemeContext';
 import ForecastDetailModal from './ForecastDetailModal';
@@ -9,9 +10,11 @@ import { getSettings } from '../../services/settingsService';
 interface DailyForecastProps {
   data: DailyForecast[];
   timezoneOffset?: number;
+  unitSystem?: UnitSystem;
+  showDetailLabel?: boolean;
 }
 
-const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data, timezoneOffset = 0 }) => {
+const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data, timezoneOffset = 0, unitSystem = 'metric', showDetailLabel = true }) => {
   const { classes, cardClass, density } = useTheme();
   const settings = getSettings();
   
@@ -34,6 +37,7 @@ const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data, timezoneOf
         pressure?: number;
         sunrise?: number;
         sunset?: number;
+        rain?: number;
     } | null>(null);
   
   const getDayLabel = (dt: number) => {
@@ -52,7 +56,7 @@ const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data, timezoneOf
   };
 
   const formatTemp = (t: number) => {
-      if (settings.unitSystem === 'imperial') {
+      if (unitSystem === 'imperial') {
           return Math.round((t * 9/5) + 32);
       }
       return Math.round(t);
@@ -72,7 +76,8 @@ const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data, timezoneOf
           clouds: item.clouds,
           pressure: item.pressure,
           sunrise: item.sunrise,
-          sunset: item.sunset
+          sunset: item.sunset,
+          rain: item.rain
       });
   };
 
@@ -81,7 +86,7 @@ const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data, timezoneOf
         <div className={`relative rounded-3xl ${density.padding} ${cardClass} animate-enter transition-all duration-300`}>
         <div className="flex items-center justify-between mb-3 px-2">
             <h3 className={`${density.sectionTitle} font-medium text-gray-300 uppercase tracking-wide m-0`}>Próximos Dias</h3>
-             {showComplexHere && (
+             {showComplexHere && showDetailLabel && (
                 <span className="text-[10px] text-cyan-400 bg-cyan-400/10 px-2 py-0.5 rounded border border-cyan-400/20">Detalhes</span>
             )}
         </div>
@@ -92,7 +97,7 @@ const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data, timezoneOf
                 key={index}
                 onClick={() => handleItemClick(item)}
                 className={`w-full grid grid-cols-4 items-center p-3 rounded-xl hover:bg-white/5 transition-colors group active:scale-[0.98]`}
-                style={{ gridTemplateColumns: 'minmax(60px, 1fr) auto auto minmax(50px, auto)' }}
+                style={{ gridTemplateColumns: 'minmax(60px, 1fr) auto auto minmax(80px, auto)' }}
             >
                 <span className={`font-medium text-gray-200 group-hover:text-white ${density.text} text-left truncate pr-2`}>{getDayLabel(item.dt)}</span>
                 <div className={`flex justify-center items-center gap-1 ${density.subtext} ${classes.text} font-medium`}>
@@ -104,7 +109,12 @@ const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data, timezoneOf
                     )}
                 </div>
                 <span className="text-xl text-center transform group-hover:scale-110 transition-transform">{item.conditionIcon}</span>
-                <span className={`font-bold text-right ${density.text}`}>{formatTemp(item.temperature)}°</span>
+                <div className="flex justify-end gap-3">
+                    <span className={`font-bold text-right ${density.text}`}>{formatTemp(item.temperature)}°</span>
+                    {item.temperature_min !== undefined && (
+                        <span className={`font-medium text-right text-gray-500 ${density.text}`}>{formatTemp(item.temperature_min)}°</span>
+                    )}
+                </div>
             </button>
             ))}
         </div>

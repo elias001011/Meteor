@@ -1,13 +1,17 @@
 
+
 import React from 'react';
 import type { WeatherAlert } from '../../types';
 import { AlertTriangleIcon } from '../icons';
+import { useTheme } from '../context/ThemeContext';
 
 interface AlertsProps {
     alerts: WeatherAlert[];
 }
 
 const Alerts: React.FC<AlertsProps> = ({ alerts }) => {
+    const { cardClass } = useTheme();
+
     if (!alerts || alerts.length === 0) {
         return null;
     }
@@ -24,8 +28,8 @@ const Alerts: React.FC<AlertsProps> = ({ alerts }) => {
     return (
         <div className="space-y-3 animate-enter">
             {alerts.map((alert, index) => (
-                <div key={index} className="bg-red-900/20 border border-red-500/30 backdrop-blur-md rounded-2xl p-4 text-red-100 relative overflow-hidden">
-                    <div className="absolute inset-0 bg-red-500/5 z-0"></div>
+                <div key={index} className={`${cardClass} border-l-4 border-l-red-500 rounded-2xl p-4 text-red-100 relative overflow-hidden`}>
+                    <div className="absolute inset-0 bg-red-500/10 z-0"></div>
                     <div className="relative z-10 flex items-start gap-3">
                         <div className="bg-red-500/20 p-2 rounded-full">
                             <AlertTriangleIcon className="w-6 h-6 flex-shrink-0 text-red-400" />

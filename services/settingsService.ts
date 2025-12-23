@@ -1,5 +1,4 @@
 
-
 import type { AppSettings, ExportData } from '../types';
 
 const SETTINGS_KEY = 'meteor_settings';
@@ -70,18 +69,7 @@ const DEFAULT_SETTINGS: AppSettings = {
     unitSystem: 'metric',
     forecastComplexity: 'advanced', // Default to Advanced/Complex modal
     forecastDetailView: 'both',
-    extrasConfig: {
-        enabled: true,
-        showRunning: true,
-        showDriving: true,
-        showGoldenHour: true,
-        showBlueHour: true,
-        showMosquito: true,
-        showUV: true,
-        showPollen: true,
-        showFlu: true,
-        showBeach: true
-    },
+    showDetailLabel: true,
     ...getPlatformDefaults() as any // Merge platform specific defaults
 };
 
@@ -173,10 +161,6 @@ export const getSettings = (): AppSettings => {
             weatherInsights: {
                 ...DEFAULT_SETTINGS.weatherInsights,
                 ...(migratedSettings.weatherInsights || {})
-            },
-            extrasConfig: {
-                ...DEFAULT_SETTINGS.extrasConfig,
-                ...(migratedSettings.extrasConfig || {})
             }
         };
     } catch (e) {
@@ -265,10 +249,6 @@ export const importAppData = (
                 weatherInsights: {
                     ...DEFAULT_SETTINGS.weatherInsights,
                     ...(data.settings.weatherInsights || {})
-                },
-                extrasConfig: {
-                    ...DEFAULT_SETTINGS.extrasConfig,
-                    ...(data.settings.extrasConfig || {})
                 }
             };
             saveSettings(mergedSettings);

@@ -1,14 +1,15 @@
 
 import React, { useState, useEffect } from 'react';
-import type { WeatherData, ClockDisplayMode } from '../../types';
+import type { WeatherData, ClockDisplayMode, UnitSystem } from '../../types';
 import { useTheme } from '../context/ThemeContext';
 
 interface CurrentWeatherProps {
   data: WeatherData;
   clockDisplayMode: ClockDisplayMode;
+  unitSystem: UnitSystem;
 }
 
-const CurrentWeather: React.FC<CurrentWeatherProps> = ({ data, clockDisplayMode }) => {
+const CurrentWeather: React.FC<CurrentWeatherProps> = ({ data, clockDisplayMode, unitSystem }) => {
   const [formattedLocalTime, setFormattedLocalTime] = useState('');
   const { cardClass, miniClass, density } = useTheme();
 
@@ -46,6 +47,13 @@ const CurrentWeather: React.FC<CurrentWeatherProps> = ({ data, clockDisplayMode 
     return true;
   };
 
+  const formatTemp = (t: number) => {
+      if (unitSystem === 'imperial') {
+          return Math.round((t * 9/5) + 32);
+      }
+      return Math.round(t);
+  };
+
   return (
     <div className={`relative rounded-3xl ${density.padding} text-white overflow-hidden ${cardClass} animate-enter`}>
         <div className="absolute inset-0 z-0">
@@ -75,9 +83,9 @@ const CurrentWeather: React.FC<CurrentWeatherProps> = ({ data, clockDisplayMode 
                 )}
             </div>
             <div className="text-right mt-4">
-                <p className={`${density.tempText} font-bold tracking-tighter drop-shadow-xl leading-none`}>{Math.round(data.temperature)}°</p>
+                <p className={`${density.tempText} font-bold tracking-tighter drop-shadow-xl leading-none`}>{formatTemp(data.temperature)}°</p>
                 {typeof data.feels_like === 'number' && (
-                    <p className={`text-gray-200 font-medium drop-shadow-md ${density.text} mt-1`}>Sensação {Math.round(data.feels_like)}°C</p>
+                    <p className={`text-gray-200 font-medium drop-shadow-md ${density.text} mt-1`}>Sensação {formatTemp(data.feels_like)}°</p>
                 )}
                 <p className={`${density.text} capitalize font-semibold text-white drop-shadow-md`}>{data.condition}</p>
             </div>

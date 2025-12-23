@@ -1,6 +1,6 @@
 
 import React from 'react';
-import type { WeatherData, HourlyForecast, DailyForecast, AirQualityData, CitySearchResult, WeatherAlert, DataSource, ClockDisplayMode } from '../../types';
+import type { WeatherData, HourlyForecast, DailyForecast, AirQualityData, CitySearchResult, WeatherAlert, DataSource, ClockDisplayMode, UnitSystem } from '../../types';
 import SearchBar from './SearchBar';
 import CurrentWeather from './CurrentWeather';
 import AdditionalInfo from './AdditionalInfo';
@@ -26,6 +26,8 @@ interface DesktopWeatherProps {
     status: 'idle' | 'loading' | 'success' | 'error';
     error: string | null;
     clockDisplayMode: ClockDisplayMode;
+    unitSystem: UnitSystem;
+    showDetailLabel: boolean;
     onCitySelect: (city: CitySearchResult) => void;
     onGeolocate: () => void;
     onRetry: () => void;
@@ -43,6 +45,8 @@ const DesktopWeather: React.FC<DesktopWeatherProps> = ({
     status,
     error,
     clockDisplayMode,
+    unitSystem,
+    showDetailLabel,
     onCitySelect,
     onGeolocate,
     onRetry,
@@ -93,7 +97,7 @@ const DesktopWeather: React.FC<DesktopWeatherProps> = ({
                 <SearchBar onCitySelect={onCitySelect} onGeolocate={onGeolocate} />
                 
                 {/* 2. Container Principal (Imagem + Info Básica) */}
-                <CurrentWeather data={weatherData} clockDisplayMode={clockDisplayMode} />
+                <CurrentWeather data={weatherData} clockDisplayMode={clockDisplayMode} unitSystem={unitSystem} />
                 
                 {/* 3. Weather Insights (Resumo) */}
                 <WeatherInsights current={weatherData} hourly={hourlyForecast} daily={dailyForecast} />
@@ -101,11 +105,15 @@ const DesktopWeather: React.FC<DesktopWeatherProps> = ({
                 {/* 4. Alertas (Se houver) */}
                 {dataSource !== 'open-meteo' && <Alerts alerts={alerts} />}
                 
-                {/* 5. Restante das informações */}
-                <AdditionalInfo data={weatherData} />
+                {/* 5. Informações Principais */}
+                <AdditionalInfo data={weatherData} unitSystem={unitSystem} />
+                
+                {/* 6. Previsões */}
+                <HourlyForecastComponent data={hourlyForecast} timezoneOffset={weatherData.timezoneOffset} unitSystem={unitSystem} showDetailLabel={showDetailLabel} />
+                <DailyForecastComponent data={dailyForecast} timezoneOffset={weatherData.timezoneOffset} unitSystem={unitSystem} showDetailLabel={showDetailLabel} />
+                
+                {/* 7. Qualidade do Ar */}
                 {airQualityData && <AirQuality data={airQualityData} />}
-                <HourlyForecastComponent data={hourlyForecast} timezoneOffset={weatherData.timezoneOffset} />
-                <DailyForecastComponent data={dailyForecast} timezoneOffset={weatherData.timezoneOffset} />
                 
                 <DataSourceInfo source={dataSource} lastUpdated={lastUpdated} onClick={onDataSourceInfoClick} />
             </div>

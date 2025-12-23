@@ -1,4 +1,5 @@
 
+
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { XIcon, WindIcon, DropletsIcon, GaugeIcon, SunIcon, ThermometerIcon, EyeIcon } from '../icons';
@@ -21,6 +22,7 @@ interface ExtendedData {
     clouds?: number;
     sunrise?: number;
     sunset?: number;
+    rain?: number;
 }
 
 interface ForecastDetailModalProps {
@@ -69,7 +71,7 @@ const ForecastDetailModal: React.FC<ForecastDetailModalProps> = ({ isOpen, onClo
     const formatTime = (ts?: number) => {
         if (!ts) return '--:--';
         // Note: This displays in local browser time as we don't have timezone offset passed here easily. 
-        // For V4.0 perfection we might want to pass offset, but keeping it simple for now.
+        // For V4.1 perfection we might want to pass offset, but keeping it simple for now.
         return new Date(ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
 
@@ -115,7 +117,12 @@ const ForecastDetailModal: React.FC<ForecastDetailModalProps> = ({ isOpen, onClo
                             <DropletsIcon className={`w-5 h-5 text-blue-400`} />
                             <div>
                                 <p className="text-[10px] text-gray-500 uppercase font-bold">Chuva</p>
-                                <p className="text-sm font-bold text-white">{data.pop ? Math.round(data.pop * 100) : 0}%</p>
+                                <div className="flex flex-col">
+                                    <span className="text-sm font-bold text-white">{data.pop ? Math.round(data.pop * 100) : 0}%</span>
+                                    {data.rain !== undefined && (
+                                        <span className="text-[10px] text-gray-400">{data.rain}mm</span>
+                                    )}
+                                </div>
                             </div>
                         </div>
 

@@ -1,4 +1,5 @@
 
+
 import React, { useEffect } from 'react';
 import { XIcon, SparklesIcon, AlertTriangleIcon } from '../icons';
 import { useTheme } from '../context/ThemeContext';
@@ -27,6 +28,18 @@ const ChangelogModal: React.FC<any> = ({ isOpen, onClose }) => {
 
     const versions = [
         {
+            version: "4.1.0",
+            title: "Correções e Refinamentos",
+            changes: [
+                "Transparência 2.0: Agora você pode ativar/desativar o efeito de vidro/transparência individualmente para cabeçalho, cartões e menus em TODOS os modos (Sutil, Equilibrado, Vidro).",
+                "Chuva Ajustada: Reduzimos a opacidade e quantidade de gotas no modo leve para não atrapalhar a leitura.",
+                "Alertas Corrigidos: O container de alertas agora respeita o tema e transparência selecionados.",
+                "Unidades: Correção na exibição de F°/MPH em algumas partes da interface.",
+                "UI Limpa: Opção para esconder o rótulo 'Detalhes' nos cards de previsão.",
+                "Layout: Ajustes de espaçamento e correção do grid 25/75 no desktop."
+            ]
+        },
+        {
             version: "4.0.0",
             title: "Simplicidade e Detalhes",
             changes: [
@@ -43,14 +56,6 @@ const ChangelogModal: React.FC<any> = ({ isOpen, onClose }) => {
                 "Modo Desempenho Remodelado: Otimização agressiva que desliga transparências e animações para máxima fluidez em dispositivos antigos.",
                 "Adaptação Inteligente: O Meteor agora detecta se você está no celular ou PC e ajusta as configurações iniciais automaticamente (Qualidade vs Performance).",
                 "UI Refinada: Correção de menus cortados, anéis de foco e melhor posicionamento de notificações (toasts)."
-            ]
-        },
-        {
-            version: "3.5.0",
-            title: "Finalização Visual & Organização",
-            changes: [
-                "4 Níveis de Transparência: Sólido, Sutil (96%), Equilibrado (85%) e Vidro (60%).",
-                "Insights Control: Nova opção para ativar/desativar a animação de pulso."
             ]
         }
     ];
