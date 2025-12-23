@@ -1,6 +1,7 @@
 
+
 import React, { useEffect, useRef, useState } from 'react';
-import type { HourlyForecast } from '../../types';
+import type { HourlyForecast, UnitSystem } from '../../types';
 import { UmbrellaIcon } from '../icons';
 import { useTheme } from '../context/ThemeContext';
 import ForecastDetailModal from './ForecastDetailModal';
@@ -9,9 +10,11 @@ import { getSettings } from '../../services/settingsService';
 interface HourlyForecastProps {
   data: HourlyForecast[];
   timezoneOffset?: number;
+  unitSystem?: UnitSystem;
+  showDetailLabel?: boolean;
 }
 
-const HourlyForecastComponent: React.FC<HourlyForecastProps> = ({ data, timezoneOffset = 0 }) => {
+const HourlyForecastComponent: React.FC<HourlyForecastProps> = ({ data, timezoneOffset = 0, unitSystem = 'metric', showDetailLabel = true }) => {
   const { classes, cardClass, density } = useTheme();
   const scrollRef = useRef<HTMLDivElement>(null);
   const settings = getSettings();
@@ -48,7 +51,7 @@ const HourlyForecastComponent: React.FC<HourlyForecastProps> = ({ data, timezone
   };
 
   const formatTemp = (t: number) => {
-      if (settings.unitSystem === 'imperial') {
+      if (unitSystem === 'imperial') {
           return Math.round((t * 9/5) + 32);
       }
       return Math.round(t);
@@ -74,7 +77,7 @@ const HourlyForecastComponent: React.FC<HourlyForecastProps> = ({ data, timezone
         <div className={`relative rounded-3xl ${density.padding} ${cardClass} animate-enter overflow-hidden transition-all duration-300`}>
         <div className="flex items-center justify-between mb-3 px-2">
             <h3 className={`${density.sectionTitle} font-medium text-gray-300 uppercase tracking-wide m-0`}>Previsão por hora</h3>
-            {showComplexHere && (
+            {showComplexHere && showDetailLabel && (
                 <span className="text-[10px] text-cyan-400 bg-cyan-400/10 px-2 py-0.5 rounded border border-cyan-400/20">Detalhes</span>
             )}
         </div>
@@ -84,7 +87,7 @@ const HourlyForecastComponent: React.FC<HourlyForecastProps> = ({ data, timezone
                 <button 
                     key={index}
                     onClick={() => handleItemClick(item)}
-                    className={`flex flex-col items-center justify-between space-y-1 flex-shrink-0 w-16 py-3 text-center bg-white/5 border border-white/5 rounded-2xl hover:bg-white/10 transition-all active:scale-95 group min-w-[4rem]`}
+                    className={`flex flex-col items-center justify-between space-y-2 flex-shrink-0 w-16 py-3 text-center bg-white/5 border border-white/5 rounded-2xl hover:bg-white/10 transition-all active:scale-95 group min-w-[4.5rem]`}
                 >
                     <span className={`${density.subtext} text-gray-400 font-medium group-hover:text-white`}>{formatHour(item.dt)}</span>
                     <span className="text-2xl my-1 transform group-hover:scale-110 transition-transform">{item.conditionIcon}</span>

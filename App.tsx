@@ -26,16 +26,22 @@ import { ThemeProvider, useTheme } from './components/context/ThemeContext';
 
 // Rain animation component defined locally
 const RainAnimation: React.FC<{ intensity: 'low' | 'high' }> = ({ intensity }) => {
-    // RECALIBRATED LOGIC v3.6: Balanced approach.
-    // Low: 50 drops (Subtle)
-    // High: 150 drops (Visible but not overwhelming)
-    const numberOfDrops = intensity === 'high' ? 150 : 50;
+    // RECALIBRATED LOGIC v4.1: Refined for subtle/balanced look
+    // Low: 50 drops (Subtle, transparent)
+    // High: 100 drops (Visible but not overwhelming)
+    const numberOfDrops = intensity === 'high' ? 100 : 50;
     
     return (
         <div className="fixed inset-0 w-full h-full z-0 pointer-events-none overflow-hidden">
             {Array.from({ length: numberOfDrops }).map((_, i) => {
                 const delay = Math.random() * -5;
                 const duration = (0.4 + Math.random() * 0.4);
+                
+                // Reduced opacity range for better transparency handling
+                // Low: 0.05 - 0.2
+                // High: 0.1 - 0.3
+                const baseOpacity = intensity === 'high' ? 0.1 : 0.05;
+                const randomOpacity = Math.random() * (intensity === 'high' ? 0.2 : 0.15);
                 
                 return (
                     <div
@@ -45,7 +51,7 @@ const RainAnimation: React.FC<{ intensity: 'low' | 'high' }> = ({ intensity }) =
                             left: `${Math.random() * 100}%`,
                             animationDuration: `${duration}s`,
                             animationDelay: `${delay}s`,
-                            opacity: Math.random() * 0.3 + 0.1, 
+                            opacity: baseOpacity + randomOpacity, 
                             background: 'linear-gradient(to bottom, rgba(56, 189, 248, 0) 0%, rgba(186, 230, 253, 0.6) 100%)',
                             width: '1px', 
                             height: `${Math.random() * 100 + 100}px`
@@ -116,6 +122,8 @@ const AppContent: React.FC<{
         dataSource: weatherInfo.dataSource,
         lastUpdated: weatherInfo.lastUpdated,
         clockDisplayMode: settings.clockDisplayMode,
+        unitSystem: settings.unitSystem, // Pass unit system down for reactivity
+        showDetailLabel: settings.showDetailLabel, // Pass detail label toggle
         onCitySelect: props.handleCitySelect,
         onGeolocate: props.fetchUserLocationWeather,
         onRetry: () => {

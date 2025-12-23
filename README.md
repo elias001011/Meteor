@@ -1,7 +1,7 @@
 
 # Meteor  ☄️
 
-![Version](https://img.shields.io/badge/version-4.0.0-purple.svg)
+![Version](https://img.shields.io/badge/version-4.1.0-purple.svg)
 ![React](https://img.shields.io/badge/React-19-61dafb.svg)
 ![Vite](https://img.shields.io/badge/Vite-7-646cff.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6.svg)
@@ -13,7 +13,7 @@ O projeto utiliza uma arquitetura **BFF (Backend-for-Frontend)** via Netlify Fun
 
 ---
 
-## ✨ Funcionalidades Principais (v4.0.0)
+## ✨ Funcionalidades Principais (v4.1.0)
 
 *   **🔍 Previsão Avançada:**
     *   Modo de visualização "Complexo" para detalhamento técnico (Pressão, Ponto de Orvalho, Rajadas).
@@ -34,7 +34,7 @@ O projeto utiliza uma arquitetura **BFF (Backend-for-Frontend)** via Netlify Fun
 
 *   **🎨 Experiência Visual Imersiva:**
     *   **Motor de Temas Dinâmico:** A cor do app muda conforme o clima (Sol, Chuva, Nublado, Noite).
-    *   **Sistema de Transparência 2.0:** Modos Sólido, Sutil, Equilibrado e Vidro padronizados.
+    *   **Sistema de Transparência 2.0:** Modos Sólido, Sutil, Equilibrado e Vidro padronizados com controle granular de escopo.
     *   **Otimização Inteligente:** Configurações padrão ajustadas automaticamente para Mobile (Desempenho) ou Desktop (Qualidade).
 
 ---

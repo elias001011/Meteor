@@ -1,5 +1,4 @@
 
-
 export type View = 'weather' | 'ai' | 'map' | 'news' | 'settings' | 'tips' | 'info';
 
 export interface WeatherData {
@@ -69,6 +68,7 @@ export interface DailyForecast {
   pressure?: number;
   sunrise?: number;
   sunset?: number;
+  rain?: number;
 }
 
 export interface GroundingSource {
@@ -122,21 +122,6 @@ export interface SearchResultItem {
     snippet: string;
 }
 
-export interface ExtrasData {
-    pollen?: {
-        alder: number;
-        birch: number;
-        grass: number;
-        mugwort: number;
-        olive: number;
-        ragweed: number;
-    } | null;
-    marine?: {
-        wave_height: number | null;
-        sea_temperature: number;
-    } | null;
-}
-
 // --- SETTINGS TYPES ---
 
 export type StartupBehavior = 'last_location' | 'idle' | 'specific_location' | 'custom_section';
@@ -164,19 +149,6 @@ export interface WeatherInsightsConfig {
     style: 'container' | 'clean';
     content: 'highlight' | 'recommendation' | 'both';
     showPulse: boolean;
-}
-
-export interface ExtrasConfig {
-    enabled: boolean;
-    showRunning: boolean;
-    showDriving: boolean;
-    showGoldenHour: boolean;
-    showBlueHour: boolean;
-    showMosquito: boolean;
-    showUV: boolean;
-    showPollen: boolean;
-    showFlu: boolean;
-    showBeach: boolean;
 }
 
 export interface AppSettings {
@@ -210,7 +182,7 @@ export interface AppSettings {
     unitSystem: UnitSystem;
     forecastComplexity: ForecastComplexity;
     forecastDetailView: ForecastDetailView;
-    extrasConfig: ExtrasConfig;
+    showDetailLabel: boolean;
 }
 
 export interface ExportData {

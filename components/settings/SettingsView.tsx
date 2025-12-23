@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import type { AppSettings, View, DataSource, AppTheme, TransparencyMode, ClockDisplayMode, BackgroundMode, MapTheme, BorderEffectMode, LayoutDensity, DesktopLayout, UnitSystem, ForecastComplexity, ForecastDetailView } from '../../types';
 import { getSettings, resetSettings, resetCache, resetAllData, exportAppData } from '../../services/settingsService';
@@ -339,13 +340,19 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                         <ToggleSwitch checked={settings.forecastComplexity === 'advanced'} onChange={() => handleSave({ forecastComplexity: settings.forecastComplexity === 'advanced' ? 'basic' : 'advanced' })} activeColorClass={classes.bg} />
                     </div>
                      {settings.forecastComplexity === 'advanced' && (
-                        <div className="pl-4 border-l-2 border-gray-700 animate-enter mt-2">
-                             <label className="text-xs text-gray-400 block mb-2">Onde exibir detalhes?</label>
-                             <select value={settings.forecastDetailView} onChange={(e) => handleSave({ forecastDetailView: e.target.value as ForecastDetailView })} className={selectStyle}>
-                                <option value="both" className={optionClass}>Ambos (Horária + Diária)</option>
-                                <option value="forecast_only" className={optionClass}>Apenas Horária</option>
-                                <option value="daily_only" className={optionClass}>Apenas Diária</option>
-                            </select>
+                        <div className="pl-4 border-l-2 border-gray-700 animate-enter mt-2 space-y-4">
+                             <div>
+                                <label className="text-xs text-gray-400 block mb-2">Onde exibir detalhes?</label>
+                                <select value={settings.forecastDetailView} onChange={(e) => handleSave({ forecastDetailView: e.target.value as ForecastDetailView })} className={selectStyle}>
+                                    <option value="both" className={optionClass}>Ambos (Horária + Diária)</option>
+                                    <option value="forecast_only" className={optionClass}>Apenas Horária</option>
+                                    <option value="daily_only" className={optionClass}>Apenas Diária</option>
+                                </select>
+                             </div>
+                             <div className="flex items-center justify-between">
+                                <span className={`${density.text} text-gray-300 font-medium text-sm`}>Exibir rótulo "Detalhes"</span>
+                                <ToggleSwitch checked={settings.showDetailLabel} onChange={() => handleSave({ showDetailLabel: !settings.showDetailLabel })} activeColorClass={classes.bg} />
+                            </div>
                         </div>
                     )}
                 </div>
@@ -405,7 +412,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
 
                                 {/* 2. Sub-options for Transparent Mode */}
                                 {activeTransparencyTab === 'transparent' && (
-                                    <div className="pl-4 border-l-2 border-gray-700 animate-enter">
+                                    <div className="pl-4 border-l-2 border-gray-700 animate-enter mb-3">
                                         <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Intensidade</h4>
                                         <div className="flex bg-black/20 rounded-xl p-1 border border-white/5 w-fit">
                                             <button onClick={() => handleSave({ transparencyMode: 'subtle' })} className={`px-4 py-2 rounded-lg text-xs font-medium ${settings.transparencyMode === 'subtle' ? 'bg-white/10 text-white' : 'text-gray-400'}`}>Sutil (96%)</button>
@@ -414,8 +421,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                     </div>
                                 )}
 
-                                {/* 3. Scope Toggles for Glass Mode */}
-                                {activeTransparencyTab === 'glass' && !settings.performanceMode && (
+                                {/* 3. Scope Toggles for Transparent AND Glass Modes */}
+                                {(activeTransparencyTab === 'glass' || activeTransparencyTab === 'transparent') && !settings.performanceMode && (
                                     <div className="pl-4 border-l-2 border-gray-700 space-y-2 animate-enter">
                                         <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Aplicar Efeito em:</h4>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -583,7 +590,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                 <button onClick={onOpenChangelog} className={`w-full group relative overflow-hidden rounded-2xl border border-white/10 bg-gray-900/60 hover:bg-gray-900/80 transition-all p-4 text-left flex items-center justify-between`}>
                     <div className="flex items-center gap-4 relative z-10">
                         <div className={`p-3 rounded-full bg-gradient-to-br ${classes.gradient} shadow-lg`}><SparklesIcon className="w-5 h-5 text-white" /></div>
-                        <div><p className="text-xs text-gray-400 font-medium uppercase tracking-wider mb-0.5">Meteor App</p><p className="text-white font-bold">Versão 4.0.0</p><p className="text-xs text-gray-500 mt-0.5">Desenvolvido por @elias_jrnunes</p></div>
+                        <div><p className="text-xs text-gray-400 font-medium uppercase tracking-wider mb-0.5">Meteor App</p><p className="text-white font-bold">Versão 4.1.0</p><p className="text-xs text-gray-500 mt-0.5">Desenvolvido por @elias_jrnunes</p></div>
                     </div>
                     <ChevronLeftIcon className="w-5 h-5 rotate-180 text-gray-500" />
                 </button>

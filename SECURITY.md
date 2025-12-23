@@ -3,13 +3,13 @@
 
 ## Versões Suportadas
 
-Atualmente o projeto se encontra na versão **3.6.0**. Todas as novas atualizações substituem as versões anteriores.
+Atualmente o projeto se encontra na versão **4.1.0**. Todas as novas atualizações substituem as versões anteriores.
 
 | Versão | Suportada | Notas |
 | ------- | --------- | ----- |
-| 3.6.0   | ✅        | Versão estável com Modo Desempenho 2.0 e correções de UI. |
-| 3.5.x   | ❌        | Obsoleto. |
-| 3.4.x   | ❌        | Obsoleto. |
+| 4.1.0   | ✅        | Versão atual com correções de UI e ajustes de sistema. |
+| 4.0.0   | ❌        | Obsoleto. |
+| 3.6.0   | ❌        | Obsoleto. |
 
 
 ## Reportando uma Vulnerabilidade

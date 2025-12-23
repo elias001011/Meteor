@@ -1,4 +1,5 @@
 
+
 import React, { createContext, useContext, useEffect, useMemo } from 'react';
 import type { AppTheme, TransparencyMode, BackgroundMode, LayoutDensity, GlassScope } from '../../types';
 
@@ -89,8 +90,6 @@ export const ThemeProvider: React.FC<{
     const currentDensity = DENSITY_DEFINITIONS[layoutDensity] || DENSITY_DEFINITIONS.comfortable;
     
     // Base Color Strategy: Always use Gray 900 (#111827) or Slate 900 (#0f172a) as the base.
-    // We avoid switching between 'slate-950' and 'slate-900' to prevent color jumps.
-    // The visual difference comes purely from opacity (alpha channel) and blur.
     
     const getFinalStyle = useMemo(() => (scopeType: keyof GlassScope) => {
         // Base structure: Background + Border + Shadow

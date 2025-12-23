@@ -1,12 +1,13 @@
 
 import React, { useState } from 'react';
-import type { WeatherData } from '../../types';
+import type { WeatherData, UnitSystem } from '../../types';
 import { WindIcon, DropletsIcon, GaugeIcon, SunIcon, EyeIcon, CloudIcon, ThermometerIcon, CloudRainIcon, CloudSnowIcon, SunriseIcon, SunsetIcon } from '../icons';
 import { useTheme } from '../context/ThemeContext';
 import ForecastDetailModal from './ForecastDetailModal';
 
 interface AdditionalInfoProps {
   data: WeatherData;
+  unitSystem: UnitSystem;
 }
 
 const InfoItem: React.FC<{ icon: React.ReactNode; label: string; value: string | number; iconSize: string; textSize: string; subtextSize: string; onClick: (val: string) => void }> = ({ icon, label, value, iconSize, textSize, subtextSize, onClick }) => (
@@ -26,7 +27,7 @@ const degreesToCardinal = (deg: number): string => {
     return directions[Math.round(deg / 45) % 8];
 };
 
-const AdditionalInfo: React.FC<AdditionalInfoProps> = ({ data }) => {
+const AdditionalInfo: React.FC<AdditionalInfoProps> = ({ data, unitSystem }) => {
   const { classes, cardClass, density } = useTheme();
   const [selectedInfo, setSelectedInfo] = useState<string | null>(null);
 
@@ -52,16 +53,42 @@ const AdditionalInfo: React.FC<AdditionalInfoProps> = ({ data }) => {
 
   const itemProps = { iconSize: density.iconSize, textSize: density.text, subtextSize: 'text-[10px]', onClick: handleItemClick };
 
+  // Conversions
   const formatVisibility = (m: number) => {
+      if (unitSystem === 'imperial') {
+          // Meters to Miles
+          const miles = m * 0.000621371;
+          return `${miles.toFixed(1)} mi`;
+      }
       if (m >= 1000) return `${(m / 1000).toFixed(0)} km`;
       return `${m} m`;
   };
 
+  const formatWind = (kph: number) => {
+      if (unitSystem === 'imperial') {
+          // km/h to mph
+          return Math.round(kph * 0.621371);
+      }
+      return kph;
+  };
+
+  const formatTemp = (c: number) => {
+      if (unitSystem === 'imperial') {
+          return Math.round((c * 9/5) + 32);
+      }
+      return Math.round(c);
+  };
+
+  const windSpeedDisplay = formatWind(data.windSpeed);
+  const windGustDisplay = typeof data.wind_gust === 'number' ? formatWind(data.wind_gust) : null;
+  const unitSpeed = unitSystem === 'imperial' ? 'mph' : 'km/h';
+  const unitTemp = unitSystem === 'imperial' ? '°F' : '°C';
+
   return (
     <>
         <div className={`rounded-3xl ${density.padding} ${cardClass} animate-enter`}>
-            {/* Grid Layout: 2 Cols (Mobile) -> 3 Cols (Tablet/Md Desktop) -> 4 Cols (Large Desktop) */}
-            <div className={`grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 ${density.gap} gap-y-2`}>
+            {/* Grid Layout Adjusted: 2 Cols (Mobile/Tablet Small), 3 Cols (Tablet/Desktop Small), 4 Cols (Large Desktop) */}
+            <div className={`grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 ${density.gap} gap-y-4`}>
                 {/* Sunrise / Sunset */}
                 <InfoItem icon={<SunriseIcon className={iconClass} />} label="Nascer" value={formatTime(data.sunrise)} {...itemProps} />
                 <InfoItem icon={<SunsetIcon className={iconClass} />} label="Pôr" value={formatTime(data.sunset)} {...itemProps} />
@@ -70,7 +97,7 @@ const AdditionalInfo: React.FC<AdditionalInfoProps> = ({ data }) => {
                 <InfoItem 
                     icon={<WindIcon className={iconClass} />} 
                     label={typeof data.wind_gust === 'number' ? "Vento / Rajada" : "Vento"} 
-                    value={`${data.windSpeed} km/h ${degreesToCardinal(data.wind_deg || 0)}${typeof data.wind_gust === 'number' ? ` / ${Math.round(data.wind_gust)}` : ''}`} 
+                    value={`${windSpeedDisplay} ${unitSpeed} ${degreesToCardinal(data.wind_deg || 0)}${windGustDisplay ? ` / ${windGustDisplay}` : ''}`} 
                     {...itemProps} 
                 />
 
@@ -97,7 +124,7 @@ const AdditionalInfo: React.FC<AdditionalInfoProps> = ({ data }) => {
                 
                 {/* Dew Point (If available) */}
                 {typeof data.dew_point === 'number' && (
-                    <InfoItem icon={<ThermometerIcon className={iconClass} />} label="Orvalho" value={`${Math.round(data.dew_point)}°C`} {...itemProps} />
+                    <InfoItem icon={<ThermometerIcon className={iconClass} />} label="Orvalho" value={`${formatTemp(data.dew_point)}${unitTemp}`} {...itemProps} />
                 )}
 
                 {/* Rain Volume (If available) */}
