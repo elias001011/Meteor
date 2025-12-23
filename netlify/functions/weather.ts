@@ -53,7 +53,7 @@ const fetchWithOpenMeteo = async (lat: string, lon: string) => {
     const forecastParams = new URLSearchParams({
         latitude: lat,
         longitude: lon,
-        current: 'temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,cloud_cover,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m',
+        current: 'temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,cloud_cover,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,visibility,dew_point_2m',
         hourly: 'temperature_2m,weather_code,precipitation_probability,is_day',
         daily: 'weather_code,temperature_2m_max,sunrise,sunset,precipitation_probability_max',
         timezone: 'auto', // Requests correct timezone calculation from Open-Meteo
@@ -111,6 +111,8 @@ const fetchWithOpenMeteo = async (lat: string, lon: string) => {
         pressure: current.surface_pressure,
         clouds: current.cloud_cover,
         rain_1h: current.precipitation,
+        visibility: current.visibility, // meters
+        dew_point: current.dew_point_2m,
         sunrise: new Date(daily.sunrise[0]).getTime() / 1000,
         sunset: new Date(daily.sunset[0]).getTime() / 1000,
     };
@@ -305,6 +307,7 @@ const fetchWithFreeTier = async (lat: string, lon: string) => {
         wind_gust: weatherApiData.wind?.gust ? (weatherApiData.wind.gust * 3.6) : undefined,
         rain_1h: weatherApiData.rain?.['1h'],
         snow_1h: weatherApiData.snow?.['1h'],
+        dew_point: undefined, // Not available in free current weather
         condition: weatherApiData.weather[0].description.charAt(0).toUpperCase() + weatherApiData.weather[0].description.slice(1),
         conditionIcon: mapOwmIconToEmoji(weatherApiData.weather[0].icon),
         windSpeed: Math.round(weatherApiData.wind.speed * 3.6),

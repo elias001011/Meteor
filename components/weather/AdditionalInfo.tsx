@@ -45,15 +45,61 @@ const AdditionalInfo: React.FC<AdditionalInfoProps> = ({ data }) => {
   const iconClass = `${density.iconSize} ${classes.text}`;
   const itemProps = { iconSize: density.iconSize, textSize: density.text, subtextSize: 'text-[10px]' };
 
+  const formatVisibility = (m: number) => {
+      if (m >= 1000) return `${(m / 1000).toFixed(0)} km`;
+      return `${m} m`;
+  };
+
   return (
     <div className={`rounded-3xl ${density.padding} ${cardClass} animate-enter`}>
-        <div className={`grid grid-cols-2 ${density.gap} gap-y-2`}>
+        <div className={`grid grid-cols-2 lg:grid-cols-4 ${density.gap} gap-y-2`}>
+            {/* Sunrise / Sunset */}
             <InfoItem icon={<SunriseIcon className={iconClass} />} label="Nascer" value={formatTime(data.sunrise)} {...itemProps} />
             <InfoItem icon={<SunsetIcon className={iconClass} />} label="Pôr" value={formatTime(data.sunset)} {...itemProps} />
-            <InfoItem icon={<WindIcon className={iconClass} />} label="Vento" value={`${data.windSpeed} km/h ${degreesToCardinal(data.wind_deg || 0)}`} {...itemProps} />
+            
+            {/* Wind & Gusts */}
+            <InfoItem 
+                icon={<WindIcon className={iconClass} />} 
+                label={typeof data.wind_gust === 'number' ? "Vento / Rajada" : "Vento"} 
+                value={`${data.windSpeed} km/h ${degreesToCardinal(data.wind_deg || 0)}${typeof data.wind_gust === 'number' ? ` / ${Math.round(data.wind_gust)}` : ''}`} 
+                {...itemProps} 
+            />
+
+            {/* Humidity */}
             <InfoItem icon={<DropletsIcon className={iconClass} />} label="Umidade" value={`${data.humidity}%`} {...itemProps} />
+            
+            {/* Pressure */}
             <InfoItem icon={<GaugeIcon className={iconClass} />} label="Pressão" value={`${data.pressure} hPa`} {...itemProps} />
-            <InfoItem icon={<SunIcon className={iconClass} />} label="Índice UV" value={uviInfo ? `${uviInfo.val} (${uviInfo.level})` : '-'} {...itemProps} />
+            
+            {/* UV Index (If available) */}
+            {uviInfo && (
+                <InfoItem icon={<SunIcon className={iconClass} />} label="Índice UV" value={`${uviInfo.val} (${uviInfo.level})`} {...itemProps} />
+            )}
+
+            {/* Visibility (If available) */}
+            {typeof data.visibility === 'number' && (
+                <InfoItem icon={<EyeIcon className={iconClass} />} label="Visibilidade" value={formatVisibility(data.visibility)} {...itemProps} />
+            )}
+
+            {/* Clouds (If available) */}
+            {typeof data.clouds === 'number' && (
+                <InfoItem icon={<CloudIcon className={iconClass} />} label="Nuvens" value={`${data.clouds}%`} {...itemProps} />
+            )}
+            
+            {/* Dew Point (If available) */}
+            {typeof data.dew_point === 'number' && (
+                <InfoItem icon={<ThermometerIcon className={iconClass} />} label="Orvalho" value={`${Math.round(data.dew_point)}°C`} {...itemProps} />
+            )}
+
+            {/* Rain Volume (If available) */}
+            {typeof data.rain_1h === 'number' && (
+                <InfoItem icon={<CloudRainIcon className={iconClass} />} label="Chuva (1h)" value={`${data.rain_1h} mm`} {...itemProps} />
+            )}
+            
+            {/* Snow Volume (If available) */}
+            {typeof data.snow_1h === 'number' && (
+                <InfoItem icon={<CloudSnowIcon className={iconClass} />} label="Neve (1h)" value={`${data.snow_1h} mm`} {...itemProps} />
+            )}
         </div>
     </div>
   );
