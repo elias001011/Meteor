@@ -22,6 +22,7 @@ import ChangelogModal from './components/settings/ChangelogModal';
 import CitySelectionModal from './components/common/CitySelectionModal';
 import OnboardingModal from './components/common/OnboardingModal';
 import { ThemeProvider, useTheme } from './components/context/ThemeContext';
+import ZenMode from './components/weather/ZenMode';
 
 // Rain animation component defined locally
 const RainAnimation: React.FC<{ intensity: 'low' | 'high' }> = ({ intensity }) => {
@@ -93,6 +94,8 @@ const AppContent: React.FC<{
     onOpenImport: () => void;
     onOpenChangelog: () => void;
     onOpenSettingsCity: () => void;
+    toggleZenMode: () => void;
+    isZenMode: boolean;
 }> = (props) => {
     const { appBackgroundClass, isPerformanceMode } = useTheme();
     const { settings, view, weatherInfo, weatherStatus, appError } = props;
@@ -163,7 +166,13 @@ const AppContent: React.FC<{
 
     return (
         <div className={`relative text-white min-h-screen font-sans flex flex-col h-screen overflow-hidden transition-colors duration-500 ${appBackgroundClass}`}>
-            {view === 'weather' && showRain && (
+            
+            {/* Zen Mode Overlay */}
+            {props.isZenMode && weatherInfo.weatherData && (
+                <ZenMode data={weatherInfo.weatherData} onExit={props.toggleZenMode} />
+            )}
+            
+            {view === 'weather' && showRain && !props.isZenMode && (
                 <RainAnimation intensity={rainIntensity} />
             )}
 
@@ -172,6 +181,7 @@ const AppContent: React.FC<{
                 setView={props.setView} 
                 showClock={settings.showClock} 
                 borderEffect={settings.borderEffect}
+                onToggleZenMode={props.toggleZenMode}
             />
             
             {appError && <ErrorPopup message={appError} onClose={() => props.setAppError(null)} />}
@@ -246,7 +256,11 @@ const AppContent: React.FC<{
             </main>
 
             <div className="lg:hidden">
-                <BottomNav activeView={view} setView={props.setView} />
+                <BottomNav 
+                    activeView={view} 
+                    setView={props.setView} 
+                    onToggleZenMode={props.toggleZenMode}
+                />
                 <MobileAiControls
                     isVisible={view === 'ai'}
                     onSendMessage={(text) => props.handleSendMessage(text, false)}
@@ -263,6 +277,7 @@ const App: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [isSearchEnabled, setIsSearchEnabled] = useState(false);
+  const [isZenMode, setIsZenMode] = useState(false);
   
   const [isListening, setIsListening] = useState(false);
   const [chatInputText, setChatInputText] = useState('');
@@ -642,6 +657,14 @@ const App: React.FC = () => {
   const handleToggleSearch = () => {
     setIsSearchEnabled(prev => !prev);
   };
+  
+  const toggleZenMode = () => {
+      if (!weatherInfo.weatherData && !isZenMode) {
+          setAppError("Aguarde os dados do clima carregarem para entrar no modo Zen.");
+          return;
+      }
+      setIsZenMode(prev => !prev);
+  }
 
   return (
     <ThemeProvider 
@@ -687,6 +710,8 @@ const App: React.FC = () => {
         onOpenImport={() => setShowImportModal(true)}
         onOpenChangelog={() => setShowChangelogModal(true)}
         onOpenSettingsCity={() => setShowSettingsCityModal(true)}
+        toggleZenMode={toggleZenMode}
+        isZenMode={isZenMode}
       />
       
       {showOnboardingModal && <OnboardingModal onClose={handleOnboardingClose} />}

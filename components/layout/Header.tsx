@@ -1,8 +1,7 @@
 
-
 import React from 'react';
 import type { View, BorderEffectMode } from '../../types';
-import { SparklesIcon } from '../icons';
+import { SparklesIcon, MaximizeIcon } from '../icons';
 import DesktopNav from './DesktopNav';
 import Clock from '../common/Clock';
 import { useTheme } from '../context/ThemeContext';
@@ -12,9 +11,10 @@ interface HeaderProps {
     setView: (view: View) => void;
     showClock: boolean;
     borderEffect: BorderEffectMode;
+    onToggleZenMode: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ activeView, setView, showClock, borderEffect }) => {
+const Header: React.FC<HeaderProps> = ({ activeView, setView, showClock, borderEffect, onToggleZenMode }) => {
   const { classes, headerClass } = useTheme();
 
   return (
@@ -34,6 +34,16 @@ const Header: React.FC<HeaderProps> = ({ activeView, setView, showClock, borderE
 
         {/* Desktop Nav */}
         <DesktopNav activeView={activeView} setView={setView} showClock={showClock} />
+        
+        {/* Zen Mode Trigger (Desktop only here, Mobile via BottomNav) */}
+        <button 
+            onClick={onToggleZenMode}
+            className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 transition-colors text-sm text-gray-300 hover:text-white group"
+            title="Modo Zen (Imersivo)"
+        >
+            <MaximizeIcon className="w-4 h-4 group-hover:scale-110 transition-transform" />
+            <span className="font-medium">Zen</span>
+        </button>
         
         {/* --- LED BORDER EFFECT --- */}
         {borderEffect === 'bottom' && (
