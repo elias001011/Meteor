@@ -36,6 +36,7 @@ O projeto utiliza uma arquitetura **BFF (Backend-for-Frontend)** via Netlify Fun
     *   **Motor de Temas Dinâmico:** A cor do app muda conforme o clima (Sol, Chuva, Nublado, Noite).
     *   **Animação de Chuva 2.0:** Calibrada para realismo e performance (ajustes de opacidade e quantidade de partículas).
     *   **Sistema de Transparência:** Modos Sólido, Sutil, Equilibrado e Vidro padronizados.
+    *   **Zen Mode**: Experimente deixar o Meteor como seu protetor de tela com o novo Zen Mode, visualize e sinta a experiência na sua tela.
 
 ---
 
