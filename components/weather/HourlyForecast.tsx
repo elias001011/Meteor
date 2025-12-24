@@ -1,5 +1,4 @@
 
-
 import React, { useEffect, useRef, useState } from 'react';
 import type { HourlyForecast, UnitSystem } from '../../types';
 import { UmbrellaIcon } from '../icons';
@@ -33,8 +32,12 @@ const HourlyForecastComponent: React.FC<HourlyForecastProps> = ({ data, timezone
       feels_like?: number;
       humidity?: number;
       wind_speed?: number;
+      wind_gust?: number;
+      wind_deg?: number;
       pressure?: number;
       clouds?: number;
+      uvi?: number;
+      dew_point?: number;
   } | null>(null);
 
   useEffect(() => {
@@ -67,8 +70,12 @@ const HourlyForecastComponent: React.FC<HourlyForecastProps> = ({ data, timezone
           feels_like: item.feels_like,
           humidity: item.humidity,
           wind_speed: item.wind_speed,
+          wind_gust: item.wind_gust,
+          wind_deg: item.wind_deg,
           pressure: item.pressure,
-          clouds: item.clouds
+          clouds: item.clouds,
+          uvi: item.uvi,
+          dew_point: item.dew_point
       });
   };
 

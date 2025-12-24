@@ -4,6 +4,7 @@ import type { WeatherData, UnitSystem } from '../../types';
 import { WindIcon, DropletsIcon, GaugeIcon, SunIcon, EyeIcon, CloudIcon, ThermometerIcon, CloudRainIcon, CloudSnowIcon, SunriseIcon, SunsetIcon } from '../icons';
 import { useTheme } from '../context/ThemeContext';
 import ForecastDetailModal from './ForecastDetailModal';
+import { getSettings } from '../../services/settingsService';
 
 interface AdditionalInfoProps {
   data: WeatherData;
@@ -30,6 +31,16 @@ const degreesToCardinal = (deg: number): string => {
 const AdditionalInfo: React.FC<AdditionalInfoProps> = ({ data, unitSystem }) => {
   const { classes, cardClass, density } = useTheme();
   const [selectedInfo, setSelectedInfo] = useState<string | null>(null);
+  const settings = getSettings();
+  const desktopLayout = settings.desktopLayout || '40-60';
+
+  // Determine grid based on layout. 
+  // '25-75' makes the left panel very narrow, so max 2 columns.
+  // Others have more room, allowing 3 columns on large screens, 4 on XL.
+  const isNarrowLayout = desktopLayout === '25-75';
+  const gridClasses = isNarrowLayout 
+    ? "grid-cols-2 lg:grid-cols-2" 
+    : "grid-cols-2 lg:grid-cols-3 xl:grid-cols-4";
 
   const formatTime = (timestamp: number) => {
       const offset = data.timezoneOffset || 0;
@@ -87,8 +98,7 @@ const AdditionalInfo: React.FC<AdditionalInfoProps> = ({ data, unitSystem }) => 
   return (
     <>
         <div className={`rounded-3xl ${density.padding} ${cardClass} animate-enter`}>
-            {/* Grid Layout Adjusted: 2 Cols (Mobile/Tablet Small), 3 Cols (Tablet/Desktop Small), 4 Cols (Large Desktop) */}
-            <div className={`grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 ${density.gap} gap-y-4`}>
+            <div className={`grid ${gridClasses} ${density.gap} gap-y-4`}>
                 {/* Sunrise / Sunset */}
                 <InfoItem icon={<SunriseIcon className={iconClass} />} label="Nascer" value={formatTime(data.sunrise)} {...itemProps} />
                 <InfoItem icon={<SunsetIcon className={iconClass} />} label="Pôr" value={formatTime(data.sunset)} {...itemProps} />
@@ -143,7 +153,7 @@ const AdditionalInfo: React.FC<AdditionalInfoProps> = ({ data, unitSystem }) => 
             isOpen={!!selectedInfo} 
             onClose={() => setSelectedInfo(null)} 
             data={{ description: selectedInfo || '' }}
-            isComplex={false} // Use simple toast mode
+            isComplex={false} // Use simple toast mode for grid items as they display most data already
         />
     </>
   );

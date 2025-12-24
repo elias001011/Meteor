@@ -1,5 +1,4 @@
 
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import WeatherView from './components/weather/WeatherView';
 import AiView from './components/ai/AiView';
@@ -26,9 +25,7 @@ import { ThemeProvider, useTheme } from './components/context/ThemeContext';
 
 // Rain animation component defined locally
 const RainAnimation: React.FC<{ intensity: 'low' | 'high' }> = ({ intensity }) => {
-    // RECALIBRATED LOGIC v4.1: Refined for subtle/balanced look
-    // Low: 50 drops (Subtle, transparent)
-    // High: 100 drops (Visible but not overwhelming)
+    // RECALIBRATED LOGIC v4.2: High = 100 drops, Low = 50.
     const numberOfDrops = intensity === 'high' ? 100 : 50;
     
     return (
@@ -37,9 +34,7 @@ const RainAnimation: React.FC<{ intensity: 'low' | 'high' }> = ({ intensity }) =
                 const delay = Math.random() * -5;
                 const duration = (0.4 + Math.random() * 0.4);
                 
-                // Reduced opacity range for better transparency handling
-                // Low: 0.05 - 0.2
-                // High: 0.1 - 0.3
+                // Reduced opacity: Low starts at 0.05. High starts at 0.1
                 const baseOpacity = intensity === 'high' ? 0.1 : 0.05;
                 const randomOpacity = Math.random() * (intensity === 'high' ? 0.2 : 0.15);
                 

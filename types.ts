@@ -49,9 +49,12 @@ export interface HourlyForecast {
   feels_like?: number;
   humidity?: number;
   wind_speed?: number;
+  wind_gust?: number;
+  wind_deg?: number;
   uvi?: number;
   pressure?: number;
   clouds?: number;
+  dew_point?: number;
 }
 
 export interface DailyForecast {
@@ -63,12 +66,17 @@ export interface DailyForecast {
   description?: string; 
   humidity?: number;
   wind_speed?: number;
+  wind_gust?: number;
+  wind_deg?: number;
   uvi?: number;
   clouds?: number;
   pressure?: number;
   sunrise?: number;
   sunset?: number;
   rain?: number;
+  dew_point?: number;
+  moon_phase?: number;
+  summary?: string;
 }
 
 export interface GroundingSource {
