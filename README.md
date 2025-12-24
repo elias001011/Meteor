@@ -1,7 +1,7 @@
 
 # Meteor  ☄️
 
-![Version](https://img.shields.io/badge/version-4.1.0-purple.svg)
+![Version](https://img.shields.io/badge/version-4.2.0-purple.svg)
 ![React](https://img.shields.io/badge/React-19-61dafb.svg)
 ![Vite](https://img.shields.io/badge/Vite-7-646cff.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6.svg)
@@ -13,17 +13,17 @@ O projeto utiliza uma arquitetura **BFF (Backend-for-Frontend)** via Netlify Fun
 
 ---
 
-## ✨ Funcionalidades Principais (v4.1.0)
+## ✨ Funcionalidades Principais (v4.2.0)
 
-*   **🔍 Previsão Avançada:**
-    *   Modo de visualização "Complexo" para detalhamento técnico (Pressão, Ponto de Orvalho, Rajadas).
-    *   Interação granular com cartões horários e diários.
-    *   **UI Inteligente:** O painel de informações se reorganiza automaticamente (2, 3 ou 4 colunas) dependendo do tamanho da tela.
+*   **🔍 Previsão Avançada & Detalhada:**
+    *   **Novo Pop-up Completo:** Visualize rajadas de vento, ponto de orvalho, pressão e fases da lua tanto na previsão horária quanto diária.
+    *   **Min/Max Diária:** Visualização clara das temperaturas mínima e máxima no detalhe do dia.
+    *   **Layout Responsivo Aprimorado:** Grades de informação ajustáveis automaticamente para layouts Desktop (25/75, 50/50) e Mobile.
 
 *   **🌦️ Clima em Tempo Real:**
     *   Suporte a múltiplas fontes de dados: **OpenWeather (OneCall 3.0 & Free)** e **Open-Meteo**.
     *   Fallback automático inteligente em caso de falha de API ou limites excedidos.
-    *   Previsão horária e diária (7 dias).
+    *   Alertas meteorológicos com design "Red Alert" de alta visibilidade.
     *   Qualidade do Ar (AQI) e componentes poluentes.
 
 *   **🤖 Meteor AI (Assistente Inteligente):**
@@ -34,8 +34,8 @@ O projeto utiliza uma arquitetura **BFF (Backend-for-Frontend)** via Netlify Fun
 
 *   **🎨 Experiência Visual Imersiva:**
     *   **Motor de Temas Dinâmico:** A cor do app muda conforme o clima (Sol, Chuva, Nublado, Noite).
-    *   **Sistema de Transparência 2.0:** Modos Sólido, Sutil, Equilibrado e Vidro padronizados com controle granular de escopo.
-    *   **Otimização Inteligente:** Configurações padrão ajustadas automaticamente para Mobile (Desempenho) ou Desktop (Qualidade).
+    *   **Animação de Chuva 2.0:** Calibrada para realismo e performance (ajustes de opacidade e quantidade de partículas).
+    *   **Sistema de Transparência:** Modos Sólido, Sutil, Equilibrado e Vidro padronizados.
 
 ---
 

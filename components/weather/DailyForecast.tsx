@@ -1,5 +1,4 @@
 
-
 import React, { useState } from 'react';
 import type { DailyForecast, UnitSystem } from '../../types';
 import { UmbrellaIcon } from '../icons';
@@ -32,12 +31,16 @@ const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data, timezoneOf
         // Extended
         humidity?: number;
         wind_speed?: number;
+        wind_gust?: number;
         uvi?: number;
         clouds?: number;
         pressure?: number;
         sunrise?: number;
         sunset?: number;
         rain?: number;
+        dew_point?: number;
+        moon_phase?: number;
+        summary?: string;
     } | null>(null);
   
   const getDayLabel = (dt: number) => {
@@ -65,19 +68,23 @@ const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data, timezoneOf
   const handleItemClick = (item: DailyForecast) => {
       setSelectedItem({
           title: getDayLabel(item.dt) + (getDayLabel(item.dt) === 'Hoje' ? '' : ` (${new Date((item.dt + timezoneOffset) * 1000).toLocaleDateString('pt-BR', {day: 'numeric', month: 'numeric', timeZone: 'UTC'})})`),
-          temp: item.temperature,
-          temp_min: item.temperature_min,
+          temp: item.temperature, // Max
+          temp_min: item.temperature_min, // Min
           icon: item.conditionIcon,
           description: item.description || '',
           pop: item.pop,
           humidity: item.humidity,
           wind_speed: item.wind_speed,
+          wind_gust: item.wind_gust,
           uvi: item.uvi,
           clouds: item.clouds,
           pressure: item.pressure,
           sunrise: item.sunrise,
           sunset: item.sunset,
-          rain: item.rain
+          rain: item.rain,
+          dew_point: item.dew_point,
+          moon_phase: item.moon_phase,
+          summary: item.summary
       });
   };
 
@@ -96,19 +103,30 @@ const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data, timezoneOf
             <button 
                 key={index}
                 onClick={() => handleItemClick(item)}
-                className={`w-full grid grid-cols-4 items-center p-3 rounded-xl hover:bg-white/5 transition-colors group active:scale-[0.98]`}
-                style={{ gridTemplateColumns: 'minmax(60px, 1fr) auto auto minmax(80px, auto)' }}
+                className={`w-full grid items-center p-3 rounded-xl hover:bg-white/5 transition-colors group active:scale-[0.98] gap-2`}
+                style={{ gridTemplateColumns: 'minmax(60px, 1fr) 50px 50px minmax(80px, auto)' }}
             >
-                <span className={`font-medium text-gray-200 group-hover:text-white ${density.text} text-left truncate pr-2`}>{getDayLabel(item.dt)}</span>
+                {/* Day */}
+                <span className={`font-medium text-gray-200 group-hover:text-white ${density.text} text-left truncate`}>{getDayLabel(item.dt)}</span>
+                
+                {/* Precip */}
                 <div className={`flex justify-center items-center gap-1 ${density.subtext} ${classes.text} font-medium`}>
-                    {typeof item.pop === 'number' && item.pop > 0.05 && (
+                    {typeof item.pop === 'number' && item.pop > 0.05 ? (
                         <>
                             <UmbrellaIcon className="w-3 h-3" />
                             <span>{Math.round(item.pop * 100)}%</span>
                         </>
+                    ) : (
+                        <span className="w-3 h-3"></span> // Spacer to keep alignment
                     )}
                 </div>
-                <span className="text-xl text-center transform group-hover:scale-110 transition-transform">{item.conditionIcon}</span>
+
+                {/* Icon */}
+                <div className="flex justify-center">
+                     <span className="text-xl transform group-hover:scale-110 transition-transform">{item.conditionIcon}</span>
+                </div>
+                
+                {/* Temp */}
                 <div className="flex justify-end gap-3">
                     <span className={`font-bold text-right ${density.text}`}>{formatTemp(item.temperature)}°</span>
                     {item.temperature_min !== undefined && (
@@ -125,6 +143,7 @@ const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data, timezoneOf
             onClose={() => setSelectedItem(null)} 
             data={selectedItem} 
             isComplex={showComplexHere}
+            isDaily={true} // Helper to show Min/Max
         />
     </>
   );

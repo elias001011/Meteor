@@ -54,8 +54,8 @@ const fetchWithOpenMeteo = async (lat: string, lon: string) => {
         latitude: lat,
         longitude: lon,
         current: 'temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,cloud_cover,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,visibility,dew_point_2m',
-        hourly: 'temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,precipitation_probability,is_day,wind_speed_10m,surface_pressure,cloud_cover',
-        daily: 'weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max,uv_index_max,wind_speed_10m_max',
+        hourly: 'temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,precipitation_probability,is_day,wind_speed_10m,wind_direction_10m,wind_gusts_10m,surface_pressure,cloud_cover,dew_point_2m',
+        daily: 'weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max,uv_index_max,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant',
         timezone: 'auto', // Requests correct timezone calculation from Open-Meteo
         forecast_days: '7',
     });
@@ -144,8 +144,11 @@ const fetchWithOpenMeteo = async (lat: string, lon: string) => {
             feels_like: hourly.apparent_temperature[i],
             humidity: hourly.relative_humidity_2m[i],
             wind_speed: hourly.wind_speed_10m[i],
+            wind_gust: hourly.wind_gusts_10m[i],
+            wind_deg: hourly.wind_direction_10m[i],
             pressure: hourly.surface_pressure[i],
-            clouds: hourly.cloud_cover[i]
+            clouds: hourly.cloud_cover[i],
+            dew_point: hourly.dew_point_2m[i]
         });
     }
     
@@ -171,6 +174,8 @@ const fetchWithOpenMeteo = async (lat: string, lon: string) => {
                 // Extended Fields
                 uvi: daily.uv_index_max[i],
                 wind_speed: daily.wind_speed_10m_max[i],
+                wind_gust: daily.wind_gusts_10m_max[i],
+                wind_deg: daily.wind_direction_10m_dominant[i],
                 sunrise: new Date(daily.sunrise[i]).getTime() / 1000,
                 sunset: new Date(daily.sunset[i]).getTime() / 1000,
             });
@@ -259,9 +264,12 @@ const fetchWithOneCall = async (lat: string, lon: string) => {
             feels_like: item.feels_like,
             humidity: item.humidity,
             wind_speed: item.wind_speed * 3.6,
+            wind_gust: item.wind_gust ? item.wind_gust * 3.6 : undefined,
+            wind_deg: item.wind_deg,
             uvi: item.uvi,
             pressure: item.pressure,
-            clouds: item.clouds
+            clouds: item.clouds,
+            dew_point: item.dew_point
         }));
 
     const dailyForecast = onecallApiData.daily.slice(0, 7).map((item: any) => ({
@@ -274,11 +282,17 @@ const fetchWithOneCall = async (lat: string, lon: string) => {
         // Extended Fields
         humidity: item.humidity,
         wind_speed: item.wind_speed * 3.6,
+        wind_gust: item.wind_gust ? item.wind_gust * 3.6 : undefined,
+        wind_deg: item.wind_deg,
         uvi: item.uvi,
         clouds: item.clouds,
         pressure: item.pressure,
         sunrise: item.sunrise,
         sunset: item.sunset,
+        rain: item.rain,
+        dew_point: item.dew_point,
+        moon_phase: item.moon_phase,
+        summary: item.summary
     }));
 
     const airQualityData = airPollutionApiData && airPollutionApiData.list?.[0]
@@ -359,6 +373,8 @@ const fetchWithFreeTier = async (lat: string, lon: string) => {
         feels_like: item.main.feels_like,
         humidity: item.main.humidity,
         wind_speed: item.wind.speed * 3.6,
+        wind_gust: item.wind.gust ? item.wind.gust * 3.6 : undefined,
+        wind_deg: item.wind.deg,
         pressure: item.main.pressure,
         clouds: item.clouds.all
     }));
