@@ -1,13 +1,13 @@
 
-
 import React, { useState, useEffect, useRef } from 'react';
 import type { View } from '../../types';
-import { HomeIcon, MapIcon, NewspaperIcon, SettingsIcon, SparklesIcon, LightbulbIcon, InfoIcon, MoreHorizontalIcon } from '../icons';
+import { HomeIcon, MapIcon, NewspaperIcon, SettingsIcon, SparklesIcon, LightbulbIcon, InfoIcon, MoreHorizontalIcon, MaximizeIcon } from '../icons';
 import { useTheme } from '../context/ThemeContext';
 
 interface BottomNavProps {
   activeView: View;
   setView: (view: View) => void;
+  onToggleZenMode: () => void;
 }
 
 interface NavItemProps {
@@ -26,7 +26,7 @@ const NavItem: React.FC<NavItemProps> = ({ icon, label, isActive, onClick, class
   </button>
 );
 
-const BottomNav: React.FC<BottomNavProps> = ({ activeView, setView }) => {
+const BottomNav: React.FC<BottomNavProps> = ({ activeView, setView, onToggleZenMode }) => {
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const { classes, headerClass, glassClass } = useTheme();
   const menuRef = useRef<HTMLDivElement>(null);
@@ -34,6 +34,11 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeView, setView }) => {
   const handleMoreClick = (view: View) => {
     setView(view);
     setIsMoreMenuOpen(false);
+  }
+  
+  const handleZenClick = () => {
+      onToggleZenMode();
+      setIsMoreMenuOpen(false);
   }
 
   useEffect(() => {
@@ -69,6 +74,13 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeView, setView }) => {
                     <NavItem activeColorClass={classes.text} icon={<NewspaperIcon className="w-5 h-5" />} label="Notícias" isActive={activeView === 'news'} onClick={() => handleMoreClick('news')} className="w-full !flex-row !justify-start gap-4 !h-11 px-3 hover:bg-white/5 rounded-xl" />
                     <NavItem activeColorClass={classes.text} icon={<InfoIcon className="w-5 h-5" />} label="Informações" isActive={activeView === 'info'} onClick={() => handleMoreClick('info')} className="w-full !flex-row !justify-start gap-4 !h-11 px-3 hover:bg-white/5 rounded-xl" />
                     <NavItem activeColorClass={classes.text} icon={<SettingsIcon className="w-5 h-5" />} label="Ajustes" isActive={activeView === 'settings'} onClick={() => handleMoreClick('settings')} className="w-full !flex-row !justify-start gap-4 !h-11 px-3 hover:bg-white/5 rounded-xl" />
+                    
+                    {/* Zen Mode Button - Added Separator before it */}
+                    <div className="w-full border-t border-white/5 my-1"></div>
+                    <button onClick={handleZenClick} className="w-full flex items-center gap-4 px-3 h-11 hover:bg-white/5 rounded-xl text-gray-400 hover:text-white transition-colors group">
+                        <MaximizeIcon className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                        <span className="text-[10px] font-medium">Zen Mode</span>
+                    </button>
                 </div>
             )}
             {/* Toggle Button: Rotates when open */}

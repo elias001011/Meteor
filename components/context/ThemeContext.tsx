@@ -89,11 +89,10 @@ export const ThemeProvider: React.FC<{
     const currentClasses = THEME_DEFINITIONS[theme] || THEME_DEFINITIONS.purple;
     const currentDensity = DENSITY_DEFINITIONS[layoutDensity] || DENSITY_DEFINITIONS.comfortable;
     
-    // Base Color Strategy: Always use Gray 900 (#111827) or Slate 900 (#0f172a) as the base.
+    // Base Color Strategy: Always use Gray 900 (#111827) as the base.
     
     const getFinalStyle = useMemo(() => (scopeType: keyof GlassScope) => {
         // Base structure: Background + Border + Shadow
-        // Using `bg-gray-900` (Tailwind default palette for dark mode consistency)
         const baseBorder = 'border border-white/10';
         const shadow = 'shadow-lg';
 
@@ -107,27 +106,29 @@ export const ThemeProvider: React.FC<{
             return `bg-gray-900 ${baseBorder} ${shadow}`;
         }
 
-        // 3. TRANSPARENCY MODES
+        // 3. TRANSPARENCY MODES - RECALIBRATED FOR REAL VISIBILITY
         switch (transparencyMode) {
             case 'off': 
                 // Solid: 100% Opacity
                 return `bg-gray-900 ${baseBorder} ${shadow}`;
             
             case 'subtle': 
-                // Subtle: High Opacity (95%), No Blur (Clean look)
-                return `bg-gray-900/95 ${baseBorder} ${shadow}`;
+                // Subtle: 85% Opacity (Enough to see contrast, but very dark)
+                return `bg-gray-900/85 ${baseBorder} ${shadow}`;
             
             case 'balanced': 
-                // Balanced: Medium Opacity (80%), No Blur (Clean look)
-                return `bg-gray-900/80 ${baseBorder} ${shadow}`;
+                // Balanced: 60% Opacity (Distinctly transparent, no blur)
+                return `bg-gray-900/60 ${baseBorder} ${shadow}`;
             
             case 'transparent': 
-                // Transparent (Legacy/Raw): Lower Opacity (70%), No Blur
-                return `bg-gray-900/70 ${baseBorder} ${shadow}`;
+                // Legacy Transparent: 40% Opacity (Very transparent, no blur)
+                return `bg-gray-900/40 ${baseBorder} ${shadow}`;
 
             case 'glass': 
-                // Glass: Low Opacity (60%) + Heavy Blur
-                return `bg-gray-900/60 backdrop-blur-xl ${baseBorder} shadow-2xl`;
+                // Glass: Low Opacity (30%) + Heavy Blur. 
+                // This allows the rain to be seen "through" the card, blurred.
+                // Added backdrop-saturate to pop colors behind the glass.
+                return `bg-gray-900/30 backdrop-blur-md backdrop-saturate-150 ${baseBorder} shadow-2xl`;
             
             default:
                 return `bg-gray-900 ${baseBorder} ${shadow}`;
@@ -143,7 +144,7 @@ export const ThemeProvider: React.FC<{
     const miniClass = `bg-white/10 border border-white/10 backdrop-blur-md`; 
 
     const appBackgroundClass = backgroundMode === 'solid' 
-        ? 'bg-gray-950' // Slightly darker than cards to create depth
+        ? 'bg-gray-950' 
         : 'bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-800 via-gray-900 to-black bg-fixed';
 
     useEffect(() => {
