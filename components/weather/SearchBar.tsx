@@ -23,7 +23,12 @@ const SearchBar: React.FC<SearchBarProps> = ({ onCitySelect, onGeolocate }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
-  const { classes, glassClass } = useTheme();
+  const { classes, glassClass, transparencyMode } = useTheme();
+
+  // Logic to keep dropdown solid unless in Glass mode
+  const dropdownBgClass = transparencyMode === 'glass' 
+    ? glassClass 
+    : "bg-[#0f172a] border border-white/10 shadow-2xl";
 
   const handleSelectCity = (city: CitySearchResult) => {
     setQuery('');
@@ -86,14 +91,14 @@ const SearchBar: React.FC<SearchBarProps> = ({ onCitySelect, onGeolocate }) => {
         </form>
 
         {isDropdownOpen && (
-          <div className={`absolute top-full mt-2 w-full ${glassClass} rounded-2xl shadow-2xl z-50 max-h-60 overflow-y-auto animate-enter-pop`}>
+          <div className={`absolute top-full mt-2 w-full ${dropdownBgClass} rounded-2xl z-50 max-h-60 overflow-y-auto animate-enter-pop`}>
             {isLoading ? (
               <p className="p-4 text-center text-gray-400">Buscando...</p>
             ) : results.length > 0 ? (
               <ul>
                 {results.map((city, index) => (
                   <li key={`${city.lat}-${city.lon}-${index}`}>
-                    <button onClick={() => handleSelectCity(city)} className="w-full text-left p-3 hover:bg-white/5 transition-colors border-b border-white/5 last:border-none">
+                    <button onClick={() => handleSelectCity(city)} className="w-full text-left p-4 hover:bg-white/5 transition-colors border-b border-white/5 last:border-none">
                       <p className="font-semibold text-white">{city.name}</p>
                       <p className="text-sm text-gray-400">{[city.state, city.country].filter(Boolean).join(', ')}</p>
                     </button>
