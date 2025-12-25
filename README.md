@@ -126,3 +126,5 @@ O app estará disponível em `http://localhost:8888`.
 ## 📄 Licença
 
 Distribuído sob a licença MIT.
+Desenvolvido por @elias_jrnunes
+**ATENÇÃO:** As notas de versão desse software são apenas para referência, o software mais recente sempre estará disponível para acesso em "meteor-ai.netlify.app". Recomenda-se sempre ter a versão mais recente rodando localmente.
