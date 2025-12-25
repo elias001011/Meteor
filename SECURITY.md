@@ -3,14 +3,14 @@
 
 ## Versões Suportadas
 
-Atualmente o projeto se encontra na versão **4.2.0**. Todas as novas atualizações substituem as versões anteriores.
+Atualmente o projeto se encontra na versão **4.3.0**. Todas as novas atualizações substituem as versões anteriores.
 
 | Versão | Suportada | Notas |
 | ------- | --------- | ----- |
-| 4.2.0   | ✅        | Versão atual (Correções de UI, Alertas, Layout Desktop/Mobile). |
+| 4.3.0   | ✅        | Versão atual (Modo Zen 2.0, Sons Ambientes, Novos Estilos). |
+| 4.2.0   | ❌        | Obsoleto. |
 | 4.1.0   | ❌        | Obsoleto. |
 | 4.0.0   | ❌        | Obsoleto. |
-| 3.6.0   | ❌        | Obsoleto. |
 
 
 ## Reportando uma Vulnerabilidade

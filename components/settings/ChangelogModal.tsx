@@ -1,4 +1,5 @@
 
+
 import React, { useEffect } from 'react';
 import { XIcon, SparklesIcon, AlertTriangleIcon } from '../icons';
 import { useTheme } from '../context/ThemeContext';
@@ -27,32 +28,31 @@ const ChangelogModal: React.FC<any> = ({ isOpen, onClose }) => {
 
     const versions = [
         {
+            version: "4.3.0",
+            title: "Modo Zen 2.0 & Imersão",
+            changes: [
+                "Modo Zen 2.0: Reformulação completa da experiência imersiva.",
+                "Estilos Zen: Novo estilo 'Minimalista' moderno e centralizado, além do 'Cinemático' clássico refinado.",
+                "Sons Ambientes: Gerador de som nativo (Chuva, Ruído Branco) para foco ou relaxamento.",
+                "Configurações Zen: Opções para ocultar o clima, trocar o fundo (Imagem da cidade ou App) e ajustar o volume.",
+                "Design: Tipografia refinada no relógio e maior opacidade para conforto visual."
+            ]
+        },
+        {
             version: "4.2.0",
             title: "Interface, Alertas & Detalhes",
             changes: [
                 "Visual de Alertas Restauração: O estilo clássico 'Red Card' (RS Alerta) voltou, agora totalmente compatível com os temas de transparência.",
-                "Efeito de Chuva Calibrado: Ajuste fino na intensidade (100 gotas no modo forte) e redução da opacidade no modo leve para não poluir a visão.",
-                "Layout Mobile: Correção no espaçamento da previsão diária (precipitação e ícones agora centralizados e separados).",
-                "Layout Desktop: Correção crítica no modo 'Lateral 25/75', ajustando a grade de informações para 2 colunas para evitar quebras.",
-                "Pop-up Detalhado 2.0: Agora exibe rajadas de vento, ponto de orvalho, pressão e fase da lua. No diário, exibe corretamente a temperatura Mínima/Máxima."
+                "Efeito de Chuva Calibrado: Ajuste fino na intensidade e opacidade.",
+                "Pop-up Detalhado 2.0: Agora exibe rajadas de vento, ponto de orvalho, pressão e fase da lua."
             ]
         },
         {
             version: "4.1.0",
             title: "Correções e Refinamentos",
             changes: [
-                "Transparência 2.0: Controle granular de efeito vidro para cabeçalho e cartões.",
-                "Unidades: Correção na exibição de F°/MPH em algumas partes da interface.",
-                "UI Limpa: Opção para esconder o rótulo 'Detalhes' nos cards de previsão.",
-            ]
-        },
-        {
-            version: "4.0.0",
-            title: "Simplicidade e Detalhes",
-            changes: [
-                "Previsão Detalhada: Pressão, orvalho e nuvens diretamente nos cards.",
-                "Interface Inteligente: Adaptação automática para Mobile, Tablet e Desktop.",
-                "Limpeza Visual: Foco total nos dados precisos."
+                "Transparência 2.0: Controle granular de efeito vidro.",
+                "Unidades: Correção na exibição de F°/MPH.",
             ]
         }
     ];

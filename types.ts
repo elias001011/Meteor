@@ -1,4 +1,5 @@
 
+
 export type View = 'weather' | 'ai' | 'map' | 'news' | 'settings' | 'tips' | 'info';
 
 export interface WeatherData {
@@ -146,6 +147,19 @@ export type UnitSystem = 'metric' | 'imperial';
 export type ForecastComplexity = 'basic' | 'advanced';
 export type ForecastDetailView = 'both' | 'forecast_only' | 'daily_only';
 
+// V4.3 Zen Mode Types
+export type ZenModeStyle = 'cinematic' | 'minimal' | 'focus';
+export type ZenModeBackground = 'image' | 'app';
+export type ZenModeSound = 'off' | 'rain';
+
+export interface ZenModeConfig {
+    style: ZenModeStyle;
+    background: ZenModeBackground;
+    showWeatherInfo: boolean;
+    ambientSound: ZenModeSound;
+    volume: number; // 0 to 100
+}
+
 export interface GlassScope {
     header: boolean;
     cards: boolean;
@@ -191,6 +205,7 @@ export interface AppSettings {
     forecastComplexity: ForecastComplexity;
     forecastDetailView: ForecastDetailView;
     showDetailLabel: boolean;
+    zenMode: ZenModeConfig; // New v4.3 Config
 }
 
 export interface ExportData {

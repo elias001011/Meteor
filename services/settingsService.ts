@@ -1,4 +1,5 @@
 
+
 import type { AppSettings, ExportData } from '../types';
 
 const SETTINGS_KEY = 'meteor_settings';
@@ -70,6 +71,14 @@ const DEFAULT_SETTINGS: AppSettings = {
     forecastComplexity: 'advanced', // Default to Advanced/Complex modal
     forecastDetailView: 'both',
     showDetailLabel: true,
+    // V4.3 Zen Mode Defaults
+    zenMode: {
+        style: 'cinematic',
+        background: 'image',
+        showWeatherInfo: true,
+        ambientSound: 'off',
+        volume: 50
+    },
     ...getPlatformDefaults() as any // Merge platform specific defaults
 };
 
@@ -161,6 +170,10 @@ export const getSettings = (): AppSettings => {
             weatherInsights: {
                 ...DEFAULT_SETTINGS.weatherInsights,
                 ...(migratedSettings.weatherInsights || {})
+            },
+            zenMode: {
+                ...DEFAULT_SETTINGS.zenMode,
+                ...(migratedSettings.zenMode || {})
             }
         };
     } catch (e) {
@@ -249,6 +262,10 @@ export const importAppData = (
                 weatherInsights: {
                     ...DEFAULT_SETTINGS.weatherInsights,
                     ...(data.settings.weatherInsights || {})
+                },
+                zenMode: {
+                    ...DEFAULT_SETTINGS.zenMode,
+                    ...(data.settings.zenMode || {})
                 }
             };
             saveSettings(mergedSettings);

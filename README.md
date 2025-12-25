@@ -1,7 +1,7 @@
 
 # Meteor  ☄️
 
-![Version](https://img.shields.io/badge/version-4.2.0-purple.svg)
+![Version](https://img.shields.io/badge/version-4.3.0-purple.svg)
 ![React](https://img.shields.io/badge/React-19-61dafb.svg)
 ![Vite](https://img.shields.io/badge/Vite-7-646cff.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6.svg)
@@ -11,9 +11,18 @@
 
 O projeto utiliza uma arquitetura **BFF (Backend-for-Frontend)** via Netlify Functions para garantir segurança das chaves de API e performance.
 
+**Desenvolvido por @elias_jrnunes**
+
+> ⚠️ **Atenção:** As notas de versão desse software (changelog) são apenas para referência histórica. O software mais recente e atualizado sempre estará disponível para acesso em **[meteor-ai.netlify.app](https://meteor-ai.netlify.app)**. Recomenda-se sempre ter a versão mais recente rodando localmente ou acessar a versão oficial online.
+
 ---
 
-## ✨ Funcionalidades Principais (v4.2.0)
+## ✨ Funcionalidades Principais (v4.3.0)
+
+*   **🧘 Modo Zen 2.0 (Novo):**
+    *   **Estilos Visual:** Escolha entre o estilo "Cinemático" clássico ou o novo estilo "Minimalista" centralizado.
+    *   **Ambient Sound:** Gerador de ruído branco/chuva nativo (Web Audio API) para foco e relaxamento.
+    *   **Customização:** Opções para ocultar temperatura, trocar o fundo (Imagem vs App) e ajustar o visual.
 
 *   **🔍 Previsão Avançada & Detalhada:**
     *   **Novo Pop-up Completo:** Visualize rajadas de vento, ponto de orvalho, pressão e fases da lua tanto na previsão horária quanto diária.
@@ -36,7 +45,6 @@ O projeto utiliza uma arquitetura **BFF (Backend-for-Frontend)** via Netlify Fun
     *   **Motor de Temas Dinâmico:** A cor do app muda conforme o clima (Sol, Chuva, Nublado, Noite).
     *   **Animação de Chuva 2.0:** Calibrada para realismo e performance (ajustes de opacidade e quantidade de partículas).
     *   **Sistema de Transparência:** Modos Sólido, Sutil, Equilibrado e Vidro padronizados.
-    *   **Zen Mode**: Experimente deixar o Meteor como seu protetor de tela com o novo Zen Mode, visualize e sinta a experiência na sua tela.
 
 ---
 
@@ -125,6 +133,4 @@ O app estará disponível em `http://localhost:8888`.
 
 ## 📄 Licença
 
-* Distribuído sob a licença MIT.
-* Desenvolvido por @elias_jrnunes
-* **ATENÇÃO:** As notas de versão desse software são apenas para referência, o software mais recente sempre estará disponível para acesso em "meteor-ai.netlify.app". Recomenda-se sempre ter a versão mais recente rodando localmente.
+Distribuído sob a licença MIT.
