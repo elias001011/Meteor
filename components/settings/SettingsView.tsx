@@ -1,12 +1,13 @@
 
+
 import React, { useState, useEffect } from 'react';
-import type { AppSettings, View, DataSource, AppTheme, TransparencyMode, ClockDisplayMode, BackgroundMode, MapTheme, BorderEffectMode, LayoutDensity, DesktopLayout, UnitSystem, ForecastComplexity, ForecastDetailView } from '../../types';
+import type { AppSettings, View, DataSource, AppTheme, TransparencyMode, ClockDisplayMode, BackgroundMode, MapTheme, BorderEffectMode, LayoutDensity, DesktopLayout, UnitSystem, ForecastComplexity, ForecastDetailView, ZenModeStyle, ZenModeBackground, ZenModeSound } from '../../types';
 import { getSettings, resetSettings, resetCache, resetAllData, exportAppData } from '../../services/settingsService';
 import { useTheme } from '../context/ThemeContext';
 import { 
     XIcon, LightbulbIcon, SparklesIcon, ChevronLeftIcon, GaugeIcon, 
     HeartIcon, GithubIcon, FileTextIcon, GlobeIcon, SettingsIcon, 
-    DatabaseIcon, AlertTriangleIcon, MapIcon, HomeIcon, EyeIcon 
+    DatabaseIcon, AlertTriangleIcon, MapIcon, HomeIcon, EyeIcon, MaximizeIcon 
 } from '../icons';
 
 interface SettingsViewProps {
@@ -114,6 +115,17 @@ const SettingsView: React.FC<SettingsViewProps> = ({
         { id: '50-50', label: 'Dividido (50/50)' }
     ];
     
+    // Zen Mode Options
+    const zenStyles: { id: ZenModeStyle, label: string }[] = [
+        { id: 'cinematic', label: 'Cinemático' },
+        { id: 'minimal', label: 'Minimalista' }
+    ];
+    
+    const zenBackgrounds: { id: ZenModeBackground, label: string }[] = [
+        { id: 'image', label: 'Imagem (Cidade)' },
+        { id: 'app', label: 'Fundo do App' }
+    ];
+
     const selectStyle = `w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-gray-200 focus:ring-2 outline-none ${classes.ring} appearance-none cursor-pointer hover:bg-white/5 transition-colors ${density.text}`;
     const inputStyle = `w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-gray-200 focus:ring-2 outline-none ${classes.ring} placeholder-gray-500 transition-colors ${density.text}`;
     const optionClass = "bg-slate-900 text-white py-2";
@@ -323,6 +335,64 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                             </div>
                         </div>
                     )}
+                </div>
+            </section>
+            
+            {/* 2.5 Modo Zen (Novo v4.3) */}
+            <section className={`${cardClass} rounded-3xl ${density.padding}`}>
+                <h3 className={`text-lg font-bold ${classes.text} mb-4 flex items-center gap-2`}><MaximizeIcon className="w-5 h-5" /> Modo Zen</h3>
+                <div className={density.settingsGap}>
+                     <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="text-xs text-gray-400 block mb-2">Estilo Visual</label>
+                            <div className="flex bg-black/20 rounded-xl p-1 border border-white/5">
+                                {zenStyles.map((style) => (
+                                    <button 
+                                        key={style.id} 
+                                        onClick={() => handleSave({ zenMode: { ...settings.zenMode, style: style.id } })} 
+                                        className={`flex-1 py-2.5 rounded-lg text-xs font-medium ${settings.zenMode.style === style.id ? 'bg-white/10 text-white' : 'text-gray-400'}`}
+                                    >
+                                        {style.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div>
+                            <label className="text-xs text-gray-400 block mb-2">Fundo</label>
+                            <div className="flex bg-black/20 rounded-xl p-1 border border-white/5">
+                                {zenBackgrounds.map((bg) => (
+                                    <button 
+                                        key={bg.id} 
+                                        onClick={() => handleSave({ zenMode: { ...settings.zenMode, background: bg.id } })} 
+                                        className={`flex-1 py-2.5 rounded-lg text-xs font-medium ${settings.zenMode.background === bg.id ? 'bg-white/10 text-white' : 'text-gray-400'}`}
+                                    >
+                                        {bg.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between pt-2">
+                        <div>
+                            <span className={`${density.text} text-white font-medium block`}>Exibir Detalhes do Clima</span>
+                            <span className="text-[10px] text-gray-500">Mostra temperatura e condições no rodapé.</span>
+                        </div>
+                        <ToggleSwitch checked={settings.zenMode.showWeatherInfo} onChange={() => handleSave({ zenMode: { ...settings.zenMode, showWeatherInfo: !settings.zenMode.showWeatherInfo } })} activeColorClass={classes.bg} />
+                    </div>
+                    
+                    <div className="pt-2 border-t border-white/5">
+                        <label className={`${density.text} text-sm font-medium text-gray-300 mb-2 block`}>Som Ambiente</label>
+                        <select 
+                            value={settings.zenMode.ambientSound} 
+                            onChange={(e) => handleSave({ zenMode: { ...settings.zenMode, ambientSound: e.target.value as ZenModeSound } })} 
+                            className={selectStyle}
+                        >
+                            <option value="off" className={optionClass}>Desligado</option>
+                            <option value="rain" className={optionClass}>Chuva Suave (Gerado)</option>
+                        </select>
+                        <p className="text-[10px] text-gray-500 mt-1">Sons gerados em tempo real (sem download).</p>
+                    </div>
                 </div>
             </section>
 
@@ -589,7 +659,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                 <button onClick={onOpenChangelog} className={`w-full group relative overflow-hidden rounded-2xl border border-white/10 bg-gray-900/60 hover:bg-gray-900/80 transition-all p-4 text-left flex items-center justify-between`}>
                     <div className="flex items-center gap-4 relative z-10">
                         <div className={`p-3 rounded-full bg-gradient-to-br ${classes.gradient} shadow-lg`}><SparklesIcon className="w-5 h-5 text-white" /></div>
-                        <div><p className="text-xs text-gray-400 font-medium uppercase tracking-wider mb-0.5">Meteor App</p><p className="text-white font-bold">Versão 4.2.0</p><p className="text-xs text-gray-500 mt-0.5">Desenvolvido por @elias_jrnunes</p></div>
+                        <div><p className="text-xs text-gray-400 font-medium uppercase tracking-wider mb-0.5">Meteor App</p><p className="text-white font-bold">Versão 4.3.0</p><p className="text-xs text-gray-500 mt-0.5">Desenvolvido por @elias_jrnunes</p></div>
                     </div>
                     <ChevronLeftIcon className="w-5 h-5 rotate-180 text-gray-500" />
                 </button>
