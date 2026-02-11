@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import type { WeatherData, WeatherAlert } from '../../types';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import { AlertTriangleIcon, BellIcon, InfoIcon, MailIcon, UserIcon, RefreshCwIcon, SmartphoneIcon, SunIcon } from '../icons';
+import { AlertTriangleIcon, BellIcon, InfoIcon, SmartphoneIcon, SunIcon } from '../icons';
 import { 
     isPushSupported, 
     subscribeToPush, 
@@ -204,9 +204,6 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
     const { cardClass, classes, density } = useTheme();
     const { user, isLoggedIn, userData, updateUserData, login, identityError } = useAuth();
     const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-    const [emailInput, setEmailInput] = useState('');
-    const [isSendingEmail, setIsSendingEmail] = useState(false);
-    const [emailStatus, setEmailStatus] = useState<{type: 'success' | 'error', message: string} | null>(null);
     const [lastLocation, setLastLocation] = useState<string | null>(null);
     
     // Estados para notificações push
@@ -216,23 +213,6 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
     const [pushError, setPushError] = useState<string | null>(null);
     const [isIOS, setIsIOS] = useState(false);
     const [isInstalled, setIsInstalled] = useState(false);
-    const [emailServiceConfigured, setEmailServiceConfigured] = useState<boolean | null>(null);
-
-    // Verifica se o serviço de email está configurado
-    useEffect(() => {
-        const checkEmailService = async () => {
-            try {
-                const response = await fetch('/.netlify/functions/sendAlertEmails', {
-                    method: 'OPTIONS'
-                });
-                // Se responder 200, o serviço está configurado
-                setEmailServiceConfigured(true);
-            } catch (error) {
-                setEmailServiceConfigured(false);
-            }
-        };
-        checkEmailService();
-    }, []);
 
     // Gerar alertas locais
     const localAlerts = useMemo(() => {
@@ -322,84 +302,6 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
             });
         });
     }
-
-    // Sincronizar email com userData
-    useEffect(() => {
-        if (userData) {
-            setEmailInput(userData.emailAlertAddress || '');
-        }
-    }, [userData]);
-
-    // Toggle email alerts
-    const toggleEmailAlerts = async () => {
-        if (!isLoggedIn) {
-            login();
-            return;
-        }
-        const newValue = !(userData?.emailAlertsEnabled || false);
-        await updateUserData({ emailAlertsEnabled: newValue });
-    };
-
-    // Salvar email de alertas
-    const saveAlertEmail = async () => {
-        if (!isLoggedIn || !emailInput) return;
-        await updateUserData({ emailAlertAddress: emailInput });
-        setEmailStatus({ type: 'success', message: 'Email salvo!' });
-        setTimeout(() => setEmailStatus(null), 3000);
-    };
-
-    // Enviar alerta por email
-    const sendTestAlert = async () => {
-        if (!userData?.emailAlertAddress || !isLoggedIn) {
-            setEmailStatus({ type: 'error', message: 'Configure um email primeiro' });
-            return;
-        }
-        
-        setIsSendingEmail(true);
-        setEmailStatus(null);
-        
-        try {
-            // Pega o primeiro alerta ou usa um genérico
-            const alertToSend = allAlerts.find(a => a.level === 'critical' || a.level === 'warning') || {
-                type: 'test',
-                title: 'Teste de Alerta Meteor',
-                message: 'Este é um email de teste do sistema de alertas do Meteor. Se você recebeu, está tudo funcionando!'
-            };
-            
-            console.log('Enviando email para:', userData.emailAlertAddress);
-            
-            const response = await fetch('/.netlify/functions/sendAlertEmails', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    to: userData.emailAlertAddress,
-                    alertType: alertToSend.type,
-                    alertTitle: alertToSend.title,
-                    alertMessage: alertToSend.message,
-                    location: userData?.preferences?.alertCity || currentWeather?.city || 'Sua cidade',
-                }),
-            });
-
-            console.log('Status da resposta:', response.status);
-            const result = await response.json();
-            console.log('Resultado:', result);
-
-            if (response.ok && result.success) {
-                setEmailStatus({ type: 'success', message: '✅ Email enviado! Verifique sua caixa de entrada.' });
-            } else {
-                console.error('❌ Erro ao enviar email:', result);
-                setEmailStatus({ type: 'error', message: result.error || result.message || `Erro ${response.status}` });
-            }
-        } catch (error: any) {
-            console.error('❌ Erro de conexão:', error);
-            setEmailStatus({ type: 'error', message: `Erro: ${error.message || 'Falha na conexão'}` });
-        } finally {
-            setIsSendingEmail(false);
-            setTimeout(() => setEmailStatus(null), 8000);
-        }
-    };
 
     // Enviar notificação push para alertas críticos/importantes
     useEffect(() => {
@@ -508,147 +410,6 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                         </p>
                     </div>
                 )}
-
-                {/* Configuração de Email Alerts */}
-                <div className={`${cardClass} rounded-2xl p-5`}>
-                    <h4 className="font-semibold text-white mb-4 flex items-center gap-2">
-                        <MailIcon className="w-4 h-4 text-blue-400" />
-                        Alertas por Email
-                    </h4>
-                    
-                    {emailServiceConfigured === false && (
-                        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-4">
-                            <p className="text-yellow-200 text-sm mb-2">
-                                <strong>⚠️ Serviço de email não configurado</strong>
-                            </p>
-                            <p className="text-gray-400 text-sm">
-                                O administrador precisa configurar a variável RESEND_API no Netlify.
-                            </p>
-                        </div>
-                    )}
-                    
-                    {identityError ? (
-                        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
-                            <p className="text-yellow-200 text-sm mb-2">
-                                <strong>Serviço Temporariamente Indisponível</strong>
-                            </p>
-                            <p className="text-gray-400 text-sm">
-                                O sistema de autenticação está em manutenção.
-                                Tente novamente mais tarde.
-                            </p>
-                        </div>
-                    ) : !isLoggedIn ? (
-                        <div className="bg-white/5 rounded-xl p-4 text-center">
-                            <UserIcon className="w-8 h-8 text-gray-500 mx-auto mb-2" />
-                            <p className="text-sm text-gray-400 mb-3">
-                                Faça login para receber alertas meteorológicos por email
-                            </p>
-                            <button 
-                                onClick={login}
-                                className={`${classes.bg} hover:brightness-110 text-white px-4 py-2 rounded-xl text-sm font-medium transition-all`}
-                            >
-                                Entrar / Criar Conta
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                            {/* Toggle Email Alerts */}
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-white font-medium text-sm">Receber alertas por email</p>
-                                    <p className="text-gray-500 text-xs">Notificações sobre condições críticas</p>
-                                </div>
-                                <button
-                                    onClick={toggleEmailAlerts}
-                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                                        userData?.emailAlertsEnabled ? 'bg-blue-500' : 'bg-gray-600'
-                                    }`}
-                                >
-                                    <span
-                                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                            userData?.emailAlertsEnabled ? 'translate-x-6' : 'translate-x-1'
-                                        }`}
-                                    />
-                                </button>
-                            </div>
-                            
-                            {/* Campo de Email */}
-                            {userData?.emailAlertsEnabled && (
-                                <div className="animate-enter space-y-3">
-                                    <div>
-                                        <label className="text-sm text-gray-400 mb-2 block">Cidade para alertas</label>
-                                        <input
-                                            type="text"
-                                            value={userData?.preferences?.alertCity || currentWeather?.city || ''}
-                                            onChange={(e) => updateUserData({
-                                                preferences: { ...userData?.preferences, alertCity: e.target.value }
-                                            })}
-                                            placeholder="Digite sua cidade"
-                                            className="w-full bg-gray-900/60 border border-white/10 rounded-xl px-4 py-2 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                                        />
-                                        <p className="text-xs text-gray-500 mt-1">
-                                            Os alertas serão baseados nesta cidade
-                                        </p>
-                                    </div>
-                                    
-                                    <div>
-                                        <label className="text-sm text-gray-400 mb-2 block">Email para receber alertas</label>
-                                        <div className="flex gap-2">
-                                            <input
-                                                type="email"
-                                                value={emailInput}
-                                                onChange={(e) => setEmailInput(e.target.value)}
-                                                placeholder="seu@email.com"
-                                                className="flex-1 bg-gray-900/60 border border-white/10 rounded-xl px-4 py-2 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                                            />
-                                            <button
-                                                onClick={saveAlertEmail}
-                                                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors"
-                                            >
-                                                Salvar
-                                            </button>
-                                        </div>
-                                    </div>
-                                    
-                                    {/* Botão de teste - sempre visível */}
-                                    <button
-                                        onClick={sendTestAlert}
-                                        disabled={isSendingEmail}
-                                        className="w-full mt-2 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 py-2 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                                    >
-                                        {isSendingEmail ? (
-                                            <RefreshCwIcon className="w-4 h-4 animate-spin" />
-                                        ) : (
-                                            <MailIcon className="w-4 h-4" />
-                                        )}
-                                        {allAlerts.length > 0 ? 'Enviar alerta atual por email' : 'Enviar email de teste'}
-                                    </button>
-                                    
-                                    {emailStatus && (
-                                        <p className={`text-xs text-center ${
-                                            emailStatus.type === 'success' ? 'text-emerald-400' : 'text-red-400'
-                                        }`}>
-                                            {emailStatus.message}
-                                        </p>
-                                    )}
-                                    
-                                    <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 mt-3">
-                                        <p className="text-xs text-blue-200/80">
-                                            💡 <strong>Modo de teste:</strong> Os emails são enviados do sistema de teste do Resend. 
-                                            Verifique sua caixa de spam/lixo eletrônico.
-                                        </p>
-                                    </div>
-                                    
-                                    <p className="text-xs text-gray-500">
-                                        Logado como: <span className="text-gray-300">{user?.email}</span>
-                                    </p>
-                                </div>
-                            )}
-                            
-
-                        </div>
-                    )}
-                </div>
 
                 {/* Configuração de Notificações Push */}
                 {pushSupported && (
