@@ -632,6 +632,13 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                                         </p>
                                     )}
                                     
+                                    <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 mt-3">
+                                        <p className="text-xs text-blue-200/80">
+                                            💡 <strong>Modo de teste:</strong> Os emails são enviados do sistema de teste do Resend. 
+                                            Verifique sua caixa de spam/lixo eletrônico.
+                                        </p>
+                                    </div>
+                                    
                                     <p className="text-xs text-gray-500">
                                         Logado como: <span className="text-gray-300">{user?.email}</span>
                                     </p>

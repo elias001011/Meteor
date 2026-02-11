@@ -26,7 +26,9 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
   }
 
   const resendApiKey = process.env.RESEND_API;
-  const emailFrom = process.env.EMAIL_FROM || 'onboarding@resend.dev';
+  // Para testes no Resend, use seu email verificado
+  // Depois de verificar um domínio, pode usar qualquer email @seudominio.com
+  const emailFrom = process.env.EMAIL_FROM || 'elias.juriatti@outlook.com';
 
   console.log('RESEND_API existe:', !!resendApiKey);
   console.log('EMAIL_FROM:', emailFrom);
