@@ -72,8 +72,8 @@ const SearchBar: React.FC<SearchBarProps> = ({ onCitySelect, onGeolocate }) => {
   }, []);
 
   return (
-    <div className="flex flex-col gap-2 overflow-visible">
-      <div className="relative overflow-hidden rounded-full" ref={searchContainerRef}>
+    <div className="flex flex-col gap-2">
+      <div className="relative" ref={searchContainerRef}>
         <form onSubmit={(e) => e.preventDefault()} className="relative">
           <input
             type="text"
@@ -81,7 +81,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onCitySelect, onGeolocate }) => {
             onFocus={() => { if(results.length > 0) setIsDropdownOpen(true)}}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Pesquisar cidades..."
-            className={`w-full bg-gray-900/60 border border-white/10 rounded-full py-3 px-5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-offset-transparent ${classes.ring} transition-all`}
+            className={`w-full bg-gray-900/60 border border-white/10 rounded-full py-3 px-5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-inset ${classes.ring} transition-all`}
           />
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
               <button type="submit" className={`${classes.bg} ${classes.bgHover} rounded-full p-2 text-white shadow-lg`} aria-label="Pesquisar">
