@@ -28,6 +28,19 @@ const ChangelogModal: React.FC<any> = ({ isOpen, onClose }) => {
 
     const versions = [
         {
+            version: "5.4.0",
+            title: "Alertas Inteligentes & Resumo Matinal",
+            changes: [
+                "Sistema de alertas offline: Notificações push e email mesmo com app fechado.",
+                "Resumo matinal configurável: Usuário escolhe horário (06h às 12h).",
+                "Cidade fixa para alertas: Usuário define cidade específica.",
+                "Economia de API: Uma chamada One Call por cidade, independente de usuários.",
+                "Alertas governamentais + personalizados: UV, calor, vento, tempestade.",
+                "Botão de teste: Enviar resumo matinal de teste instantaneamente.",
+                "Integração Resend: Emails funcionando com domínio de teste."
+            ]
+        },
+        {
             version: "5.1.0",
             title: "Refinamento & Alertas",
             changes: [
