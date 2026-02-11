@@ -75,7 +75,7 @@ export async function* streamChatResponse(
                 }),
             });
 
-            if (!response.ok) throw new Error('Erro na comunicacao com a IA.');
+            if (!response.ok) throw new Error('Erro na comunicação com a IA.');
             
             const data = await response.json();
             const rawText = data.text || '';

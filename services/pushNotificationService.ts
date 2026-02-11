@@ -32,7 +32,7 @@ export const isPWAInstalled = (): boolean => {
   return window.matchMedia('(display-mode: standalone)').matches;
 };
 
-// Registra o Service Worker
+// Registra o Service Worker (ou retorna o existente)
 export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration | null> => {
   if (!('serviceWorker' in navigator)) {
     console.warn('Service Worker não suportado neste navegador');
@@ -41,21 +41,28 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
 
   // Verifica se está em contexto seguro (HTTPS ou localhost)
   if (!window.isSecureContext) {
-    console.warn('Service Worker requer HTTPS ou localhost para funcionar');
+    console.warn('Service Worker requer HTTPS ou localhost para funcionar. Protocolo atual:', window.location.protocol);
     throw new Error('Contexto não seguro: Service Worker requer HTTPS');
   }
 
   try {
-    const registration = await navigator.serviceWorker.register('/sw.js');
-    await navigator.serviceWorker.ready;
-    console.log('Service Worker registrado:', registration);
+    // Primeiro verifica se já existe um registro ativo
+    const existingRegistration = await navigator.serviceWorker.getRegistration('/sw.js');
+    if (existingRegistration) {
+      console.log('Service Worker já registrado:', existingRegistration.scope);
+      return existingRegistration;
+    }
+    
+    // Se não existe, registra novo
+    const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    console.log('Service Worker registrado:', registration.scope);
     return registration;
   } catch (error: any) {
     console.error('Erro ao registrar Service Worker:', error);
     if (error.name === 'SecurityError' || error.message?.includes('secure')) {
       throw new Error('Service Worker requer HTTPS ou localhost para funcionar');
     }
-    throw new Error('Não foi possível registrar o Service Worker');
+    throw new Error('Não foi possível registrar o Service Worker: ' + (error.message || 'Erro desconhecido'));
   }
 };
 

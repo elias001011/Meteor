@@ -300,14 +300,6 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, apiAlerts }) =>
         });
     }
 
-    // Solicitar permissão de notificação
-    const requestNotificationPermission = async () => {
-        if ('Notification' in window) {
-            const permission = await Notification.requestPermission();
-            setNotificationsEnabled(permission === 'granted');
-        }
-    };
-
     // Sincronizar email com userData
     useEffect(() => {
         if (userData) {
@@ -421,19 +413,6 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, apiAlerts }) =>
                         </div>
                     </div>
                     
-                    {/* Botão de Notificações */}
-                    {'Notification' in window && (
-                        <button
-                            onClick={requestNotificationPermission}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                                notificationsEnabled 
-                                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
-                                    : 'bg-white/5 text-gray-400 hover:bg-white/10'
-                            }`}
-                        >
-                            {notificationsEnabled ? 'Notificações Ativas' : 'Ativar Notificações'}
-                        </button>
-                    )}
                 </div>
 
                 {/* Alertas Ativos */}
