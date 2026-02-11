@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="google-site-verification" content="cU9d25IRMJEBNspnWpK9STRAuYlgt512xWcDMV5UZrI" />
+    <title>Meteor</title>
+    <meta name="description" content="O Meteor é uma plataforma avançada de clima e alertas ambientais potencializada por IA. Obtenha previsões precisas, mapas interativos e chat inteligente em tempo real." />
+    <meta name="theme-color" content="#111827" />
+    <link rel="manifest" href="/manifest.json" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+      .leaflet-popup-content-wrapper, .leaflet-popup-tip {
+        box-sizing: content-box !important;
+        background-color: rgba(17, 24, 39, 0.95) !important;
+        backdrop-filter: blur(10px);
+        color: white !important;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      html { scrollbar-width: none; -ms-overflow-style: none; }
+      html::-webkit-scrollbar { display: none; }
+      html.show-scrollbars { scrollbar-width: auto; -ms-overflow-style: auto; }
+      html.show-scrollbars ::-webkit-scrollbar { display: block; width: 6px; }
+      html.show-scrollbars ::-webkit-scrollbar-thumb { background-color: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+      
+      .raindrop {
+          position: absolute;
+          bottom: 100%;
+          width: 1px;
+          height: 60px;
+          background: linear-gradient(to top, rgba(56, 189, 248, 0) 0%, rgba(186, 230, 253, 0.4) 100%);
+          animation: fall linear infinite;
+      }
+      @keyframes fall { from { transform: translateY(0vh); } to { transform: translateY(110vh); } }
+      @keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+      @keyframes popIn { from { opacity: 0; transform: scale(0.96) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+      @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes fastPop { from { opacity: 0; transform: scale(0.9) translateY(4px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+
+      .animate-enter { animation: fadeInUp 0.5s cubic-bezier(0.2, 1, 0.3, 1) forwards; }
+      .animate-enter-pop { animation: popIn 0.25s cubic-bezier(0.2, 1, 0.3, 1) forwards; }
+      .animate-fast-pop { animation: fastPop 0.15s ease-out forwards; }
+      .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+      
+      .reduce-motion *:not(.raindrop) {
+        animation-duration: 0.001s !important;
+        transition-duration: 0.001s !important;
+      }
+      /* Safe area for iPhone home bar */
+      .pb-safe {
+          padding-bottom: env(safe-area-inset-bottom, 20px);
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.29.1",
+    "@netlify/functions": "https://aistudiocdn.com/@netlify/functions@^5.1.0",
+    "buffer": "https://aistudiocdn.com/buffer@^6.0.3",
+    "@netlify/blobs": "https://aistudiocdn.com/@netlify/blobs@^10.3.3",
+    "path": "https://aistudiocdn.com/path@^0.12.7",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
+    "vite": "https://aistudiocdn.com/vite@^7.2.2",
+    "url": "https://aistudiocdn.com/url@^0.11.4",
+    "react-dom": "https://esm.sh/react-dom@^19.2.3"
+  }
+}
+</script>
+</head>
+  <body class="h-full text-slate-100 selection:bg-cyan-500/30" style="background-color: #111827;">
+    <div id="root" class="h-full"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
