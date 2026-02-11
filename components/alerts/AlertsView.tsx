@@ -764,6 +764,29 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                                         </select>
                                     </div>
                                     
+                                    <button
+                                        onClick={async () => {
+                                            try {
+                                                const response = await fetch('/.netlify/functions/morningAlerts', {
+                                                    method: 'GET',
+                                                    headers: { 'Content-Type': 'application/json' }
+                                                });
+                                                const result = await response.json();
+                                                if (result.success) {
+                                                    alert('Resumo enviado! Verifique seu email/push.');
+                                                } else {
+                                                    alert('Erro: ' + (result.error || result.message));
+                                                }
+                                            } catch (e) {
+                                                alert('Erro ao enviar resumo');
+                                            }
+                                        }}
+                                        className="w-full bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/30 text-yellow-300 py-2 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        <SunIcon className="w-4 h-4" />
+                                        Enviar resumo de teste
+                                    </button>
+                                    
                                     <p className="text-xs text-yellow-200/60">
                                         💡 O resumo inclui: temperatura máxima/mínima, chance de chuva e alertas governamentais (se houver).
                                     </p>

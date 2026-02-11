@@ -107,7 +107,10 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
   }
 
   const resendApiKey = process.env.RESEND_API;
-  const emailFrom = process.env.EMAIL_FROM || 'alerts@meteor.app';
+  const emailFrom = process.env.EMAIL_FROM || 'onboarding@resend.dev';
+
+  console.log('RESEND_API configurada:', !!resendApiKey);
+  console.log('EMAIL_FROM:', emailFrom);
 
   if (!resendApiKey) {
     return {
@@ -115,20 +118,21 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
       headers: corsHeaders,
       body: JSON.stringify({ 
         error: 'Serviço de email não configurado',
-        message: 'A API key do Resend não está configurada'
+        message: 'A variável RESEND_API não está configurada no Netlify'
       }),
     };
   }
 
   try {
     const data: AlertEmailData = JSON.parse(event.body || '{}');
+    console.log('Dados recebidos:', { to: data.to, alertTitle: data.alertTitle, location: data.location });
 
     // Validação
     if (!data.to || !data.alertTitle || !data.alertMessage) {
       return {
         statusCode: 400,
         headers: corsHeaders,
-        body: JSON.stringify({ error: 'Dados incompletos' }),
+        body: JSON.stringify({ error: 'Dados incompletos: email, título e mensagem são obrigatórios' }),
       };
     }
 
@@ -138,12 +142,14 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
       return {
         statusCode: 400,
         headers: corsHeaders,
-        body: JSON.stringify({ error: 'Email inválido' }),
+        body: JSON.stringify({ error: 'Formato de email inválido' }),
       };
     }
 
     // Envia o email
+    console.log('Enviando email para:', data.to);
     const success = await sendEmailWithResend(resendApiKey, emailFrom, data);
+    console.log('Resultado do envio:', success);
 
     if (success) {
       return {
