@@ -1,40 +1,36 @@
-import type { Handler, HandlerEvent, HandlerContext } from '@netlify/functions';
+import type { Handler } from '@netlify/functions';
 import { getStore } from '@netlify/blobs';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Authorization, Content-Type',
-};
+export const handler: Handler = async (event) => {
+  const cors = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+  };
 
-export const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
   if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers: corsHeaders, body: '' };
+    return { statusCode: 200, headers: cors, body: '' };
   }
 
   if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, headers: corsHeaders, body: JSON.stringify({ error: 'Método não permitido' }) };
-  }
-
-  const authHeader = event.headers.authorization || event.headers.Authorization;
-  if (!authHeader) {
-    return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: 'Token ausente' }) };
+    return { statusCode: 405, headers: cors, body: JSON.stringify({ error: 'POST only' }) };
   }
 
   try {
-    const store = getStore('userData');
-    const userId = authHeader.replace('Bearer ', '').slice(0, 32);
-    const userData = JSON.parse(event.body || '{}');
+    const auth = event.headers.authorization || '';
+    const userId = auth.replace('Bearer ', '').slice(0, 32) || 'anonymous';
     
-    userData.lastUpdated = new Date().toISOString();
-    await store.setJSON(userId, userData);
+    const store = getStore('userData');
+    const data = JSON.parse(event.body || '{}');
+    data.lastUpdated = Date.now();
+    
+    await store.setJSON(userId, data);
 
     return {
       statusCode: 200,
-      headers: corsHeaders,
-      body: JSON.stringify({ success: true, message: 'Dados salvos' }),
+      headers: cors,
+      body: JSON.stringify({ success: true }),
     };
-  } catch (error) {
-    console.error('Erro:', error);
-    return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: 'Erro interno' }) };
+  } catch (err) {
+    return { statusCode: 500, headers: cors, body: JSON.stringify({ error: String(err) }) };
   }
 };
