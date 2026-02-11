@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import type { WeatherData, WeatherAlert } from '../../types';
 import { useTheme } from '../context/ThemeContext';
-import { AlertTriangleIcon, BellIcon, InfoIcon } from '../icons';
+import { useAuth } from '../context/AuthContext';
+import { AlertTriangleIcon, BellIcon, InfoIcon, MailIcon, UserIcon } from '../icons';
 
 interface AlertsViewProps {
     currentWeather?: WeatherData | null;
@@ -186,7 +187,9 @@ const getAlertStyles = (level: string) => {
 
 const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, apiAlerts }) => {
     const { cardClass, classes, density } = useTheme();
+    const { user, isLoggedIn, userData, updateUserData, login } = useAuth();
     const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+    const [emailInput, setEmailInput] = useState('');
 
     // Gerar alertas locais
     const localAlerts = useMemo(() => {
@@ -223,6 +226,29 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, apiAlerts }) =>
             const permission = await Notification.requestPermission();
             setNotificationsEnabled(permission === 'granted');
         }
+    };
+
+    // Sincronizar email com userData
+    useEffect(() => {
+        if (userData) {
+            setEmailInput(userData.emailAlertAddress || '');
+        }
+    }, [userData]);
+
+    // Toggle email alerts
+    const toggleEmailAlerts = async () => {
+        if (!isLoggedIn) {
+            login();
+            return;
+        }
+        const newValue = !(userData?.emailAlertsEnabled || false);
+        await updateUserData({ emailAlertsEnabled: newValue });
+    };
+
+    // Salvar email de alertas
+    const saveAlertEmail = async () => {
+        if (!isLoggedIn || !emailInput) return;
+        await updateUserData({ emailAlertAddress: emailInput });
     };
 
     // Enviar notificação push para alertas críticos/importantes
@@ -345,6 +371,83 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, apiAlerts }) =>
                         </p>
                     </div>
                 )}
+
+                {/* Configuração de Email Alerts */}
+                <div className={`${cardClass} rounded-2xl p-5`}>
+                    <h4 className="font-semibold text-white mb-4 flex items-center gap-2">
+                        <MailIcon className="w-4 h-4 text-blue-400" />
+                        Alertas por Email
+                    </h4>
+                    
+                    {!isLoggedIn ? (
+                        <div className="bg-white/5 rounded-xl p-4 text-center">
+                            <UserIcon className="w-8 h-8 text-gray-500 mx-auto mb-2" />
+                            <p className="text-sm text-gray-400 mb-3">
+                                Faça login para receber alertas meteorológicos por email
+                            </p>
+                            <button 
+                                onClick={login}
+                                className={`${classes.bg} hover:brightness-110 text-white px-4 py-2 rounded-xl text-sm font-medium transition-all`}
+                            >
+                                Entrar / Criar Conta
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {/* Toggle Email Alerts */}
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-white font-medium text-sm">Receber alertas por email</p>
+                                    <p className="text-gray-500 text-xs">Notificações sobre condições críticas</p>
+                                </div>
+                                <button
+                                    onClick={toggleEmailAlerts}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                        userData?.emailAlertsEnabled ? 'bg-blue-500' : 'bg-gray-600'
+                                    }`}
+                                >
+                                    <span
+                                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                            userData?.emailAlertsEnabled ? 'translate-x-6' : 'translate-x-1'
+                                        }`}
+                                    />
+                                </button>
+                            </div>
+                            
+                            {/* Campo de Email */}
+                            {userData?.emailAlertsEnabled && (
+                                <div className="animate-enter space-y-2">
+                                    <label className="text-sm text-gray-400">Email para receber alertas</label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="email"
+                                            value={emailInput}
+                                            onChange={(e) => setEmailInput(e.target.value)}
+                                            placeholder="seu@email.com"
+                                            className="flex-1 bg-gray-900/60 border border-white/10 rounded-xl px-4 py-2 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                        />
+                                        <button
+                                            onClick={saveAlertEmail}
+                                            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+                                        >
+                                            Salvar
+                                        </button>
+                                    </div>
+                                    <p className="text-xs text-gray-500">
+                                        Logado como: <span className="text-gray-300">{user?.email}</span>
+                                    </p>
+                                </div>
+                            )}
+                            
+                            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3">
+                                <p className="text-xs text-yellow-200/80">
+                                    <strong>Em desenvolvimento:</strong> O envio de emails será ativado em breve. 
+                                    Seus dados estão seguros e em conformidade com LGPD.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                </div>
 
                 {/* Informações de Monitoramento */}
                 <div className={`${cardClass} rounded-2xl p-5`}>
