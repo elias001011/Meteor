@@ -47,26 +47,65 @@ const WeatherInsights: React.FC<WeatherInsightsProps> = ({ current, hourly, dail
         const willRainSoon = next3Hours.some(h => (h.pop || 0) > 0.6);
 
         if (isStorming) {
-            events.push({ priority: 1, category: 'alert', text: getRandomPhrase(["Tempestade em andamento. Fique em local seguro.", "Raios e trovões detectados. Tire eletrônicos da tomada."], seed)});
+            events.push({ priority: 1, category: 'alert', text: getRandomPhrase([
+                "Tempestade em andamento. Fique em local seguro.", 
+                "Raios e trovões detectados. Tire eletrônicos da tomada.",
+                "Tempestade ativa! Evite áreas abertas."
+            ], seed)});
         } else if (isRainingNow) {
-            events.push({ priority: 2, category: 'rain', text: getRandomPhrase(["Dia cinza e chuvoso.", "Guarda-chuva é item obrigatório hoje.", "Pistas molhadas e escorregadias."], seed)});
+            events.push({ priority: 2, category: 'rain', text: getRandomPhrase([
+                "Dia cinza e chuvoso.", 
+                "Guarda-chuva é item obrigatório hoje.", 
+                "Pistas molhadas e escorregadias.",
+                "Chuva forte no momento. Reduza a velocidade.",
+                "Precipitação intensa. Visibilidade reduzida."
+            ], seed)});
         } else if (willRainSoon) {
-            events.push({ priority: 2, category: 'rain', text: getRandomPhrase(["O tempo vai virar nas próximas horas.", "Vem água por aí, prepare o guarda-chuva."], seed)});
+            events.push({ priority: 2, category: 'rain', text: getRandomPhrase([
+                "O tempo vai virar nas próximas horas.", 
+                "Vem água por aí, prepare o guarda-chuva.",
+                "Previsão de chuva em breve. Leve proteção."
+            ], seed)});
         }
 
         if (feelsLike >= 35) {
-            events.push({ priority: 2, category: 'temp', text: getRandomPhrase(["Calor infernal! Hidrate-se muito.", "Sensação de forno ligado."], seed)});
+            events.push({ priority: 2, category: 'temp', text: getRandomPhrase([
+                "Calor infernal! Hidrate-se muito.", 
+                "Sensação de forno ligado.",
+                `Onda de calor! ${Math.round(feelsLike)}°C de sensação. Beba água!`,
+                "Temperatura extrema. Evite exposição ao sol."
+            ], seed)});
         } else if (feelsLike <= 5) {
-            events.push({ priority: 2, category: 'temp', text: getRandomPhrase(["Frio congelante! Proteja-se.", "Hoje é dia de edredom e sopa."], seed)});
+            events.push({ priority: 2, category: 'temp', text: getRandomPhrase([
+                "Frio congelante! Proteja-se.", 
+                "Hoje é dia de edredom e sopa.",
+                "Temperatura muito baixa. Agasalhe-se bem.",
+                "Dia gelado! Use camadas de roupa."
+            ], seed)});
         }
 
         if (events.length === 0) {
             if (feelsLike >= 18 && feelsLike <= 26) {
-                events.push({ priority: 5, category: 'lifestyle', text: getRandomPhrase(["Clima absolutamente perfeito.", "O tempo está uma delícia lá fora."], seed)});
+                events.push({ priority: 5, category: 'lifestyle', text: getRandomPhrase([
+                    "Clima absolutamente perfeito.", 
+                    "O tempo está uma delícia lá fora.",
+                    "Condições ideais para aproveitar o dia!",
+                    "Nem quente nem frio, perfeito!"
+                ], seed)});
             } else if (isMorning) {
-                events.push({ priority: 5, category: 'lifestyle', text: getRandomPhrase([`Bom dia${userName}! Tempo estável.`, "Manhã calma lá fora."], seed)});
+                events.push({ priority: 5, category: 'lifestyle', text: getRandomPhrase([
+                    `Bom dia${userName}! Tempo estável.`, 
+                    "Manhã calma lá fora.",
+                    `Olá${userName}! Ótima manhã para começar.`,
+                    "Dia começando com tempo agradável."
+                ], seed)});
             } else {
-                events.push({ priority: 5, category: 'lifestyle', text: getRandomPhrase(["Tudo normal no clima.", `Dia tranquilo por aqui${userName}.`], seed)});
+                events.push({ priority: 5, category: 'lifestyle', text: getRandomPhrase([
+                    "Tudo normal no clima.", 
+                    `Dia tranquilo por aqui${userName}.`,
+                    "Condições estáveis, aproveite!",
+                    "Tempo calmo e sem surpresas."
+                ], seed)});
             }
         }
 
