@@ -543,13 +543,15 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                                                     headers: { 'Content-Type': 'application/json' }
                                                 });
                                                 const result = await response.json();
-                                                if (result.success) {
-                                                    alert('Resumo enviado! Verifique seu email/push.');
+                                                console.log('Resposta morningAlerts:', result);
+                                                if (response.ok && result.success) {
+                                                    alert('✅ Resumo enviado! Verifique suas notificações push.');
                                                 } else {
-                                                    alert('Erro: ' + (result.error || result.message));
+                                                    alert('Erro: ' + (result.error || result.message || JSON.stringify(result)));
                                                 }
-                                            } catch (e) {
-                                                alert('Erro ao enviar resumo');
+                                            } catch (e: any) {
+                                                console.error('Erro:', e);
+                                                alert('Erro ao enviar resumo: ' + e.message);
                                             }
                                         }}
                                         className="w-full bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/30 text-yellow-300 py-2 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"

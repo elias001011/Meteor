@@ -344,7 +344,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      // Deleta dados na nuvem primeiro
+      console.log('Deletando dados do usuário:', user.id);
+      
+      // Deleta dados na nuvem
       const response = await fetch('/.netlify/functions/deleteUserData', {
         method: 'POST',
         headers: {
@@ -353,19 +355,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         },
       });
 
-      if (!response.ok) {
-        console.warn('Falha ao deletar dados na nuvem, mas continuando...');
-      }
+      const result = await response.json();
+      console.log('Resultado da exclusão:', result);
 
-      // Limpa dados locais
+      // Limpa TODOS os dados locais
       localStorage.removeItem('meteor_user_data');
       localStorage.removeItem('meteor_sync_pending');
+      localStorage.removeItem('meteor_push_subscription');
+      localStorage.removeItem('meteor_settings');
+      localStorage.removeItem('chat_history');
       
-      // Faz logout
+      // Limpa dados do usuário
+      setUserData(null);
+      setLastSyncTime(null);
+      
+      // Faz logout do Netlify Identity
       netlifyIdentity.logout();
       
       return { success: true };
     } catch (error) {
+      console.error('Erro ao excluir conta:', error);
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Erro ao excluir conta' 
