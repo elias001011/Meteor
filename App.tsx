@@ -619,13 +619,13 @@ const App: React.FC = () => {
                 });
             }
             
-            // Se nao recebeu nenhum dado, mostrar erro
+            // Se não recebeu nenhum dado, mostrar erro
             if (!hasReceivedData || !fullText.trim()) {
                 setMessages(prev => {
                     const newMessages = [...prev];
                     const lastMessage = newMessages[newMessages.length - 1];
                     if (lastMessage.role === 'model') {
-                        lastMessage.text = "Desculpe, nao consegui processar sua solicitacao. Tente novamente em alguns segundos.";
+                        lastMessage.text = "Desculpe, não consegui processar sua solicitação. Tente novamente em alguns segundos.";
                         lastMessage.modelUsed = "erro";
                     }
                     return newMessages;

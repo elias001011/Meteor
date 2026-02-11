@@ -129,7 +129,7 @@ export async function* streamChatResponse(
                         };
                         console.log("Weather data retrieved:", weatherToolResult);
                     } else {
-                        weatherToolResult = { error: "Cidade nao encontrada." };
+                        weatherToolResult = { error: "Cidade não encontrada." };
                     }
                 } catch (e) {
                     console.error("Weather tool error:", e);
@@ -151,7 +151,7 @@ export async function* streamChatResponse(
             // If we used tools, make sure we have a response
             if (!rawText || rawText.trim().length === 0) {
                 yield { 
-                    text: "Desculpe, nao consegui processar sua solicitacao. Tente novamente.", 
+                    text: "Desculpe, não consegui processar sua solicitação. Tente novamente.", 
                     isFinal: true, 
                     model: data.model + (data.usedFallback ? ' (fallback)' : ''), 
                     processingTime: data.processingTime,

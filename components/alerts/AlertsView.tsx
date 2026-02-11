@@ -256,7 +256,7 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, apiAlerts }) =>
         if (notificationsEnabled && 'Notification' in window) {
             const criticalAlerts = allAlerts.filter(a => a.level === 'critical' || a.level === 'warning');
             criticalAlerts.forEach(alert => {
-                // Verificar se ja notificamos sobre este alerta
+                // Verificar se já notificamos sobre este alerta
                 const notifiedKey = `notified_${alert.id}`;
                 if (!localStorage.getItem(notifiedKey)) {
                     new Notification('Meteor - Alerta Meteorológico', {
