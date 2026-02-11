@@ -106,7 +106,7 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
     };
   }
 
-  const resendApiKey = process.env.RESEND_API_KEY || process.env.RESEND_API;
+  const resendApiKey = process.env.RESEND_API;
   const emailFrom = process.env.EMAIL_FROM || 'alerts@meteor.app';
 
   if (!resendApiKey) {
