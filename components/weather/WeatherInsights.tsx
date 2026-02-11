@@ -36,6 +36,8 @@ const WeatherInsights: React.FC<WeatherInsightsProps> = ({ current, hourly, dail
         const now = new Date();
         const hour = now.getHours();
         const isMorning = hour >= 5 && hour < 12;
+        const isAfternoon = hour >= 12 && hour < 18;
+        const isEvening = hour >= 18 && hour < 22;
         const isNight = hour >= 22 || hour < 5;
         const seed = Math.floor(current.dt);
 
@@ -58,15 +60,15 @@ const WeatherInsights: React.FC<WeatherInsightsProps> = ({ current, hourly, dail
         if (isStorming) {
             events.push({ priority: 1, category: 'alert', text: getRandomPhrase([
                 "Tempestade em andamento. Fique em local seguro.", 
-                "Raios e trovoes detectados. Tire eletronicos da tomada.",
-                "Tempestade ativa! Evite areas abertas."
+                "Raios e trovões detectados. Tire eletrônicos da tomada.",
+                "Tempestade ativa! Evite áreas abertas."
             ], seed)});
         } 
         // 2. NEVASCA
         else if (isSnowing) {
             events.push({ priority: 1, category: 'warning', text: getRandomPhrase([
                 "Nevando! Cuidado nas ruas, piso escorregadio.",
-                "Queda de neve ativa. Use calcado adequado.",
+                "Queda de neve ativa. Use calçado adequado.",
                 "Nevasca em andamento. Evite viagens."
             ], seed)});
         }
@@ -74,50 +76,50 @@ const WeatherInsights: React.FC<WeatherInsightsProps> = ({ current, hourly, dail
         else if (isRainingNow) {
             events.push({ priority: 2, category: 'rain', text: getRandomPhrase([
                 "Dia cinza e chuvoso.", 
-                "Guarda-chuva e item obrigatorio hoje.", 
+                "Guarda-chuva é item obrigatório hoje.", 
                 "Pistas molhadas e escorregadias.",
                 "Chuva forte no momento. Reduza a velocidade.",
-                "Precipitacao intensa. Visibilidade reduzida."
+                "Precipitação intensa. Visibilidade reduzida."
             ], seed)});
         } else if (willRainSoon) {
-            const timeMsg = willRainIn === 1 ? "na proxima hora" : `em ${willRainIn} horas`;
+            const timeMsg = willRainIn === 1 ? "na próxima hora" : `em ${willRainIn} horas`;
             events.push({ priority: 3, category: 'rain', text: `O tempo vai virar ${timeMsg}. Prepare o guarda-chuva.` });
         }
 
         // 4. UV ALTO
         if (uvi !== undefined && uvi >= 8 && !isNight) {
             events.push({ priority: 3, category: 'uv', text: getRandomPhrase([
-                "UV muito alto! Protecao solar essencial.",
-                "Indice UV elevado. Use oculos e chapeu.",
-                "Radiacao solar intensa. FPS 30 no minimo."
+                "Índice UV muito alto! Proteção solar essencial.",
+                "Radiação solar intensa. Use óculos e chapéu.",
+                "Sol forte! FPS 30 no mínimo, procure sombra."
             ], seed)});
         } else if (uvi !== undefined && uvi >= 6 && uvi < 8 && !isNight) {
-            events.push({ priority: 4, category: 'uv', text: "UV alto. Protetor solar recomendado." });
+            events.push({ priority: 4, category: 'uv', text: "Índice UV elevado. Protetor solar recomendado." });
         }
 
         // 5. AR RUIM
         if (aqi && aqi >= 4) {
             events.push({ priority: 3, category: 'air', text: getRandomPhrase([
-                "Qualidade do ar ruim. Evite exercicios ao ar livre.",
-                "Ar insalubre. Grupos sensiveis, fiquem em casa.",
-                "Poluicao elevada. Use mascara se precisar sair."
+                "Qualidade do ar ruim. Evite exercícios ao ar livre.",
+                "Ar insalubre. Grupos sensíveis, fiquem em casa.",
+                "Poluição elevada. Use máscara se precisar sair."
             ], seed)});
         } else if (aqi === 3) {
-            events.push({ priority: 5, category: 'air', text: "Ar moderado. Sensiveis devem ter cuidado." });
+            events.push({ priority: 5, category: 'air', text: "Ar moderado. Sensíveis devem ter cuidado." });
         }
 
         // 6. TEMPERATURA EXTREMA
         if (feelsLike >= 35) {
             events.push({ priority: 2, category: 'temp', text: getRandomPhrase([
                 "Calor infernal! Hidrate-se muito.", 
-                "Sensacao de forno ligado. Beba agua!",
-                `Onda de calor! ${Math.round(feelsLike)}°C de sensacao. Evite sol.`
+                "Sensação de forno ligado. Beba água!",
+                `Onda de calor! ${Math.round(feelsLike)}°C de sensação. Evite sol.`
             ], seed)});
         } else if (feelsLike <= 5) {
             events.push({ priority: 2, category: 'temp', text: getRandomPhrase([
                 "Frio congelante! Proteja-se bem.", 
-                "Hoje e dia de edredom e sopa quente.",
-                "Temperatura critica. Camadas de roupa essenciais."
+                "Hoje é dia de edredom e sopa quente.",
+                "Temperatura crítica. Camadas de roupa essenciais."
             ], seed)});
         }
 
@@ -125,52 +127,64 @@ const WeatherInsights: React.FC<WeatherInsightsProps> = ({ current, hourly, dail
         if (windSpeed >= 50) {
             events.push({ priority: 3, category: 'warning', text: getRandomPhrase([
                 "Ventania! Cuidado com objetos soltos.",
-                "Ventos muito fortes. Evite ficar perto de arvores.",
-                "Rajadas intensas. Nao estacione sob placas."
+                "Ventos muito fortes. Evite ficar perto de árvores.",
+                "Rajadas intensas. Não estacione sob placas."
             ], seed)});
         } else if (windSpeed >= 30) {
-            events.push({ priority: 6, category: 'wind', text: "Vento forte hoje. Protega objetos leves." });
+            events.push({ priority: 6, category: 'wind', text: "Vento forte hoje. Proteja objetos leves." });
         }
 
         // 8. UMIDADE EXTREMA
         if (humidity >= 85 && tempNow > 20) {
-            events.push({ priority: 5, category: 'comfort', text: "Ar muito umido. Pode causar desconforto termico." });
+            events.push({ priority: 5, category: 'comfort', text: "Ar muito úmido. Pode causar desconforto térmico." });
         } else if (humidity <= 25) {
-            events.push({ priority: 6, category: 'comfort', text: "Ar seco. Hidrate a pele e beba agua." });
+            events.push({ priority: 6, category: 'comfort', text: "Ar seco. Hidrate a pele e beba água." });
         }
 
         // 9. AR BOM (positivo)
         if (aqi && aqi <= 2 && events.length === 0) {
             events.push({ priority: 10, category: 'air', text: getRandomPhrase([
                 "Qualidade do ar excelente! Aproveite.",
-                "Ar puro e limpo. Otimo para atividades externas."
+                "Ar puro e limpo. Ótimo para atividades externas."
             ], seed)});
         }
 
         // 10. UV MODERADO (baixa prioridade)
         if (uvi !== undefined && uvi >= 3 && uvi < 6 && !isNight && events.length === 0) {
-            events.push({ priority: 7, category: 'uv', text: "UV moderado. Protetor util para exposicao longa." });
+            events.push({ priority: 7, category: 'uv', text: "Índice UV moderado. Protetor útil para exposição longa." });
         }
 
-        // 11. CLIMA PERFEITO ou NORMAL
+        // 11. CLIMA PERFEITO ou BOM
         if (events.length === 0) {
             if (feelsLike >= 18 && feelsLike <= 26 && humidity >= 40 && humidity <= 60) {
                 events.push({ priority: 10, category: 'lifestyle', text: getRandomPhrase([
                     "Clima absolutamente perfeito.", 
-                    "O tempo esta uma delicia la fora.",
-                    "Condicoes ideais! Aproveite o dia."
+                    "O tempo está uma delícia lá fora.",
+                    "Condições ideais! Aproveite o dia."
                 ], seed)});
             } else if (isMorning) {
                 events.push({ priority: 10, category: 'lifestyle', text: getRandomPhrase([
-                    `Bom dia${userName}! Tempo estavel.`, 
-                    "Manha calma la fora.",
-                    `Ola${userName}! Dia comecando bem.`
+                    `Bom dia${userName}! Tempo estável.`, 
+                    "Manhã calma lá fora.",
+                    `Olá${userName}! Dia começando bem.`
+                ], seed)});
+            } else if (isAfternoon) {
+                events.push({ priority: 10, category: 'lifestyle', text: getRandomPhrase([
+                    "Tarde agradável. Aproveite!",
+                    `Boa tarde${userName}! Tempo tranquilo.`,
+                    "Dia segue estável por aqui."
+                ], seed)});
+            } else if (isEvening) {
+                events.push({ priority: 10, category: 'lifestyle', text: getRandomPhrase([
+                    `Boa noite${userName}! Noite agradável.`,
+                    "Entardecer tranquilo. Bom descanso!",
+                    "Noite chegando com tempo estável."
                 ], seed)});
             } else {
                 events.push({ priority: 10, category: 'lifestyle', text: getRandomPhrase([
                     "Tudo normal no clima.", 
                     `Dia tranquilo por aqui${userName}.`,
-                    "Condicoes estaveis. Aproveite!"
+                    "Condições estáveis. Aproveite!"
                 ], seed)});
             }
         }
@@ -178,14 +192,14 @@ const WeatherInsights: React.FC<WeatherInsightsProps> = ({ current, hourly, dail
         events.sort((a, b) => (a.priority - b.priority));
         const finalHighlight = events[0].text;
 
-        // Recomendacao contextual
+        // Recomendação contextual
         let recPhrase = "";
-        if (isStorming) recPhrase = "Fique em casa ate passar.";
-        else if (isRainingNow) recPhrase = "Dirija com cautela e farois baixos.";
+        if (isStorming) recPhrase = "Fique em casa até passar.";
+        else if (isRainingNow) recPhrase = "Dirija com cautela e faróis baixos.";
         else if (willRainSoon) recPhrase = "Leve guarda-chuva se for sair.";
-        else if (feelsLike > 30) recPhrase = "Beba bastante agua.";
+        else if (feelsLike > 30) recPhrase = "Beba bastante água.";
         else if (feelsLike < 10) recPhrase = "Agasalhe-se bem.";
-        else if (uvi !== undefined && uvi >= 8) recPhrase = "Protecao solar e essencial.";
+        else if (uvi !== undefined && uvi >= 8) recPhrase = "Proteção solar é essencial.";
         else if (windSpeed >= 40) recPhrase = "Cuidado com o vento.";
         else if (isNight) recPhrase = "Bom descanso!";
         else recPhrase = "Aproveite o dia!";
