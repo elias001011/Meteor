@@ -639,9 +639,14 @@ const SettingsView: React.FC<SettingsViewProps> = ({
         if (!confirm('ATENÇÃO: Esta ação é irreversível! Todos os seus dados serão excluídos permanentemente. Deseja continuar?')) {
             return;
         }
+        
+        console.log('Iniciando exclusão de conta...');
         const result = await deleteAccount();
+        console.log('Resultado da exclusão:', result);
+        
         if (result.success) {
-            window.location.reload();
+            alert('Conta excluída com sucesso! Todos os seus dados foram removidos.');
+            window.location.href = '/';
         } else {
             alert('Erro ao excluir conta: ' + result.error);
         }
