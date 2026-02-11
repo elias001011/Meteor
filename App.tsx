@@ -12,7 +12,8 @@ import { getSearchResults } from './services/searchService';
 import { fetchAllWeatherData } from './services/weatherService';
 import { getSettings, saveSettings, importAppData } from './services/settingsService';
 import DesktopWeather from './components/weather/DesktopWeather';
-import PlaceholderView from './components/common/PlaceholderView';
+import TipsView from './components/tips/TipsView';
+import AlertsView from './components/alerts/AlertsView';
 import MobileAiControls from './components/ai/MobileAiControls';
 import SettingsView from './components/settings/SettingsView';
 import { Content } from '@google/genai';
@@ -225,8 +226,15 @@ const AppContent: React.FC<{
                             onOpenCitySelection={props.onOpenSettingsCity}
                         />
                     </div>}
-                    {view === 'tips' && <div className={animationClass}><PlaceholderView title="Dicas" /></div>}
-                    {view === 'info' && <div className={animationClass}><PlaceholderView title="Informações" /></div>}
+                    {view === 'tips' && <div className={`h-full overflow-hidden ${animationClass}`}><TipsView /></div>}
+                    {view === 'alerts' && (
+                        <div className={`h-full overflow-hidden ${animationClass}`}>
+                            <AlertsView 
+                                currentWeather={weatherInfo.weatherData} 
+                                apiAlerts={weatherInfo.alerts}
+                            />
+                        </div>
+                    )}
                 </div>
 
                 <div className="lg:hidden h-full">
@@ -252,11 +260,14 @@ const AppContent: React.FC<{
                             onOpenCitySelection={props.onOpenSettingsCity}
                         />
                     </div>
-                    <div className={`${view === 'tips' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24 pt-16 ${animationClass}`}>
-                        <PlaceholderView title="Dicas" />
+                    <div className={`${view === 'tips' ? 'block' : 'hidden'} h-full overflow-hidden pb-24 pt-16 ${animationClass}`}>
+                        <TipsView />
                     </div>
-                    <div className={`${view === 'info' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24 pt-16 ${animationClass}`}>
-                        <PlaceholderView title="Informações" />
+                    <div className={`${view === 'alerts' ? 'block' : 'hidden'} h-full overflow-hidden pb-24 pt-16 ${animationClass}`}>
+                        <AlertsView 
+                            currentWeather={weatherInfo.weatherData}
+                            apiAlerts={weatherInfo.alerts}
+                        />
                     </div>
                 </div>
             </main>
