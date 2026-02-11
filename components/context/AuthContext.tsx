@@ -130,7 +130,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Verifica mudanças locais pendentes de sincronização
   useEffect(() => {
-    if (!isLoggedIn) return;
+    if (!user) return;
     
     const checkPendingChanges = () => {
       const pending = localStorage.getItem('meteor_sync_pending');
@@ -140,7 +140,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     checkPendingChanges();
     const interval = setInterval(checkPendingChanges, 5000);
     return () => clearInterval(interval);
-  }, [isLoggedIn]);
+  }, [user]);
 
   const loadUserData = async (currentUser: User) => {
     try {
