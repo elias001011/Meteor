@@ -85,11 +85,76 @@ const buildContextualContent = (
     return content;
 };
 
-const handler: Handler = async (event: HandlerEvent) => {
-    const apiKey = process.env.GEMINI_API;
+/**
+ * Tenta gerar conteúdo usando Open Router (modelo gratuito)
+ * Fallback quando Google Gemini falha
+ */
+const tryOpenRouter = async (
+    openRouterKey: string,
+    contents: any[],
+    prompt: string
+): Promise<{ text: string; model: string } | null> => {
+    try {
+        console.log('[OpenRouter] Attempting fallback with free model...');
+        
+        const messages = contents.map((content: any) => ({
+            role: content.role === 'model' ? 'assistant' : content.role,
+            content: content.parts?.[0]?.text || ''
+        }));
+        
+        // Adicionar a mensagem do usuário atual
+        messages.push({
+            role: 'user',
+            content: prompt
+        });
 
-    if (!apiKey) {
-        return { statusCode: 500, body: JSON.stringify({ message: "Chave de API ausente." }) };
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${openRouterKey}`,
+                'HTTP-Referer': 'https://meteor-ai.netlify.app',
+                'X-Title': 'Meteor AI'
+            },
+            body: JSON.stringify({
+                model: 'openrouter/free', // Modelo gratuito
+                messages: messages,
+                temperature: 0.7,
+                max_tokens: 2048
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}));
+            console.error('[OpenRouter] Error:', error);
+            return null;
+        }
+
+        const data = await response.json();
+        const text = data.choices?.[0]?.message?.content;
+        const model = data.model || 'openrouter/free';
+
+        if (text) {
+            console.log('[OpenRouter] Successfully generated response');
+            return { text, model };
+        }
+
+        return null;
+    } catch (error) {
+        console.error('[OpenRouter] Exception:', error);
+        return null;
+    }
+};
+
+const handler: Handler = async (event: HandlerEvent) => {
+    const geminiKey = process.env.GEMINI_API;
+    const openRouterKey = process.env.OPENROUTER_API;
+
+    if (!geminiKey && !openRouterKey) {
+        return { 
+            statusCode: 500, 
+            body: JSON.stringify({ message: "Nenhuma chave de API configurada (Gemini ou OpenRouter)." }) 
+        };
     }
 
     if (event.httpMethod !== 'POST') {
@@ -106,12 +171,6 @@ const handler: Handler = async (event: HandlerEvent) => {
         }
 
         const effectiveTimeContext = timeContext || new Date().toLocaleString('pt-BR');
-        const ai = new GoogleGenAI({ apiKey });
-        
-        // Updated Models as requested
-        // Primary: gemini-2.5-flash-lite
-        // Fallback: gemini-2.0-flash-lite
-        const modelsToTry = ['gemini-2.5-flash-lite', 'gemini-2.0-flash-lite']; 
         
         const contextualContent = buildContextualContent(
             weatherContext, 
@@ -130,25 +189,44 @@ const handler: Handler = async (event: HandlerEvent) => {
         
         let text = '';
         let usedModel = '';
-        let lastError = null;
+        let usedFallback = false;
 
-        for (const model of modelsToTry) {
-            try {
-                usedModel = model;
-                const result = await ai.models.generateContent({ model, contents });
-                text = result.text;
-                if (text) break;
-            } catch (error) {
-                console.warn(`Falha no modelo ${model}.`, error);
-                lastError = error;
+        // TENTAR GOOGLE GEMINI PRIMEIRO
+        if (geminiKey) {
+            const modelsToTry = ['gemini-2.5-flash-lite', 'gemini-2.0-flash-lite']; 
+            const ai = new GoogleGenAI({ apiKey: geminiKey });
+            
+            for (const model of modelsToTry) {
+                try {
+                    usedModel = model;
+                    const result = await ai.models.generateContent({ model, contents });
+                    text = result.text;
+                    if (text) break;
+                } catch (error) {
+                    console.warn(`[Gemini] Falha no modelo ${model}.`, error);
+                }
+            }
+        }
+
+        // FALLBACK PARA OPEN ROUTER
+        if (!text && openRouterKey) {
+            console.log('[Handler] Gemini failed or unavailable, trying Open Router fallback...');
+            const openRouterResult = await tryOpenRouter(openRouterKey, contents, prompt);
+            
+            if (openRouterResult) {
+                text = openRouterResult.text;
+                usedModel = openRouterResult.model;
+                usedFallback = true;
             }
         }
 
         if (!text) {
-            throw lastError || new Error("Falha na IA.");
+            throw new Error("Todos os provedores de IA falharam. Tente novamente mais tarde.");
         }
 
         const processingTime = Date.now() - startTime;
+        
+        console.log(`[Handler] Response generated using ${usedModel}${usedFallback ? ' (fallback)' : ''} in ${processingTime}ms`);
 
         return {
             statusCode: 200,
@@ -156,15 +234,18 @@ const handler: Handler = async (event: HandlerEvent) => {
             body: JSON.stringify({ 
                 text, 
                 model: usedModel,
-                processingTime
+                processingTime,
+                usedFallback
             }),
         };
 
     } catch (error) {
-        console.error("Erro Fatal Gemini:", error);
+        console.error("[Handler] Erro Fatal:", error);
         return {
             statusCode: 500,
-            body: JSON.stringify({ message: "Erro ao processar resposta da IA." }),
+            body: JSON.stringify({ 
+                message: error instanceof Error ? error.message : "Erro ao processar resposta da IA." 
+            }),
         };
     }
 };

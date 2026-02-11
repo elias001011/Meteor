@@ -1,7 +1,7 @@
 
 # Meteor  ☄️
 
-![Version](https://img.shields.io/badge/version-4.3.0-purple.svg)
+![Version](https://img.shields.io/badge/version-5.0.0-purple.svg)
 ![React](https://img.shields.io/badge/React-19-61dafb.svg)
 ![Vite](https://img.shields.io/badge/Vite-7-646cff.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6.svg)
@@ -17,7 +17,7 @@ O projeto utiliza uma arquitetura **BFF (Backend-for-Frontend)** via Netlify Fun
 
 ---
 
-## ✨ Funcionalidades Principais (v4.3.0)
+## ✨ Funcionalidades Principais (v5.0.0)
 
 *   **🧘 Modo Zen 2.0 (Novo):**
     *   **Estilos Visual:** Escolha entre o estilo "Cinemático" clássico ou o novo estilo "Minimalista" centralizado.
@@ -88,6 +88,9 @@ Crie um arquivo `.env` na raiz do projeto com as chaves de API necessárias:
 # Google Gemini API (https://aistudio.google.com/)
 GEMINI_API="sua_chave_aqui"
 
+# Open Router API (Fallback gratuito - https://openrouter.ai/)
+OPENROUTER_API="sua_chave_aqui"
+
 # OpenWeatherMap API (https://openweathermap.org/)
 CLIMA_API="sua_chave_aqui"
 
@@ -95,8 +98,11 @@ CLIMA_API="sua_chave_aqui"
 SEARCH_API="sua_chave_google_search"
 SEARCH_ID="seu_search_engine_id"
 
+# GNews API (Para notícias - https://gnews.io/)
+GNEWS_API="sua_chave_aqui"
+
 # Unsplash API (Opcional - Para imagens de fundo das cidades)
-UNSPLASH_ACESS_KEY="sua_chave_unsplash"
+UNSPLASH_ACESS_KEY="sua_chave_aqui"
 ```
 
 ### 4. Execução
