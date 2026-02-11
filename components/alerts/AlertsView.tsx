@@ -20,7 +20,7 @@ interface LocalAlert {
     expiresAt: number;
 }
 
-// Alertas gerados baseados nas condicoes atuais
+// Alertas gerados baseados nas condições atuais
 const generateLocalAlerts = (weather: WeatherData | null | undefined): LocalAlert[] => {
     if (!weather) return [];
     
@@ -77,7 +77,7 @@ const generateLocalAlerts = (weather: WeatherData | null | undefined): LocalAler
             type: 'heat',
             level: 'warning',
             title: 'Calor Intenso',
-            message: `Sensacao de ${Math.round(feelsLike)}°C. Hidrate-se constantemente e busque ambientes refrigerados.`,
+            message: `Sensação de ${Math.round(feelsLike)}°C. Hidrate-se constantemente e busque ambientes refrigerados.`,
             timestamp: now,
             expiresAt: now + oneHour * 4
         });
@@ -396,7 +396,7 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, apiAlerts }) =>
 
                 {/* Disclaimer */}
                 <div className="text-center text-xs text-gray-500 pt-2">
-                    Alertas sao gerados automaticamente baseados nos dados meteorologicos.
+                    Alertas são gerados automaticamente baseados nos dados meteorológicos.
                     <br />
                     Sempre consulte fontes oficiais em situações de emergência.
                 </div>
