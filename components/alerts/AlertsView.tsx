@@ -282,7 +282,7 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, apiAlerts }) =>
                         </div>
                         <div>
                             <h2 className="text-2xl font-bold text-white">Alertas</h2>
-                            <p className="text-sm text-gray-400">Monitoramento meteorologico ativo</p>
+                            <p className="text-sm text-gray-400">Monitoramento meteorológico ativo</p>
                         </div>
                     </div>
                     
@@ -364,7 +364,7 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, apiAlerts }) =>
                         </div>
                         <h3 className="text-lg font-semibold text-white mb-2">Nenhum Alerta Ativo</h3>
                         <p className="text-gray-400 text-sm">
-                            Nao ha alertas meteorologicos para sua regiao no momento.
+                            Não há alertas meteorológicos para sua região no momento.
                             <br />
                             As condicoes estao estaveis.
                         </p>
