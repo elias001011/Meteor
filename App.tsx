@@ -211,7 +211,7 @@ const AppContent: React.FC<{
                     {view === 'map' && <div className={`h-full ${animationClass}`}><MapView lat={props.currentCoords?.lat} lon={props.currentCoords?.lon} theme={settings.mapTheme} /></div>}
                     {view === 'news' && (
                         <div className={`h-full overflow-hidden ${animationClass}`}>
-                            <NewsView onAskAIAboutNews={handleNewsAskAI} />
+                            <NewsView onAskAIAboutNews={props.handleNewsAskAI} />
                         </div>
                     )}
                     {view === 'settings' && <div className={animationClass}>
@@ -239,7 +239,7 @@ const AppContent: React.FC<{
                         <MapView lat={props.currentCoords?.lat} lon={props.currentCoords?.lon} theme={settings.mapTheme} />
                     </div>
                     <div className={`${view === 'news' ? 'block' : 'hidden'} h-full overflow-hidden pb-24 pt-16 ${animationClass}`}>
-                        <NewsView onAskAIAboutNews={handleNewsAskAI} />
+                        <NewsView onAskAIAboutNews={props.handleNewsAskAI} />
                     </div>
                     <div className={`${view === 'settings' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24 pt-16 ${animationClass}`}>
                         <SettingsView 
