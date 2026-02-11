@@ -187,7 +187,7 @@ const getAlertStyles = (level: string) => {
 
 const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, apiAlerts }) => {
     const { cardClass, classes, density } = useTheme();
-    const { user, isLoggedIn, userData, updateUserData, login, isBranchDeploy } = useAuth();
+    const { user, isLoggedIn, userData, updateUserData, login, identityError } = useAuth();
     const [notificationsEnabled, setNotificationsEnabled] = useState(false);
     const [emailInput, setEmailInput] = useState('');
 
@@ -379,14 +379,14 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, apiAlerts }) =>
                         Alertas por Email
                     </h4>
                     
-                    {isBranchDeploy ? (
+                    {identityError ? (
                         <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
                             <p className="text-yellow-200 text-sm mb-2">
-                                <strong>Ambiente de Desenvolvimento</strong>
+                                <strong>Serviço Temporariamente Indisponível</strong>
                             </p>
                             <p className="text-gray-400 text-sm">
-                                Os alertas por email só estão disponíveis na versão de produção.
-                                Acesse <strong>meteor-ai.netlify.app</strong> para usar esta funcionalidade.
+                                O sistema de autenticação está em manutenção.
+                                Tente novamente mais tarde.
                             </p>
                         </div>
                     ) : !isLoggedIn ? (
