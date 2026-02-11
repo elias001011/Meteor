@@ -236,7 +236,7 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, apiAlerts }) =>
         });
     }
 
-    // Solicitar permissao de notificacao
+    // Solicitar permissão de notificação
     const requestNotificationPermission = async () => {
         if ('Notification' in window) {
             const permission = await Notification.requestPermission();
@@ -244,7 +244,7 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, apiAlerts }) =>
         }
     };
 
-    // Enviar notificacao push para alertas criticos/importantes
+    // Enviar notificação push para alertas críticos/importantes
     useEffect(() => {
         if (notificationsEnabled && 'Notification' in window) {
             const criticalAlerts = allAlerts.filter(a => a.level === 'critical' || a.level === 'warning');
@@ -261,7 +261,7 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, apiAlerts }) =>
                     });
                     localStorage.setItem(notifiedKey, Date.now().toString());
                     
-                    // Limpar notificacao apos expirar
+                    // Limpar notificação após expirar
                     setTimeout(() => {
                         localStorage.removeItem(notifiedKey);
                     }, alert.expiresAt - Date.now());
