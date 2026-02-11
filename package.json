@@ -18,7 +18,8 @@
     "path": "^0.12.7",
     "@vitejs/plugin-react": "^5.1.1",
     "vite": "^7.2.2",
-    "netlify-identity-widget": "^1.9.2"
+    "netlify-identity-widget": "^1.9.2",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
