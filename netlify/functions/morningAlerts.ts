@@ -16,24 +16,22 @@ interface UserConfig {
   lon: number;
   
   // Preferências
-  wantsPushAlerts: boolean;      // Alertas governamentais via push
-  wantsEmailAlerts: boolean;     // Alertas governamentais via email
-  wantsMorningSummary: boolean;  // Resumo matinal
-  summaryTime: string;           // "08:00"
+  wantsPushAlerts: boolean;
+  wantsEmailAlerts: boolean;
+  wantsMorningSummary: boolean;
+  summaryTime: string; // "06:00", "08:00", etc
   
-  // Dados de contato
   pushSubscription?: any;
   emailAlertAddress?: string;
 }
 
-// Cache em memória (dura durante a execução da função)
+// Cache durante execução
 const weatherCache = new Map<string, { data: any; timestamp: number }>();
 
 async function getWeatherOneCall(lat: number, lon: number, apiKey: string) {
   const cacheKey = `${lat.toFixed(2)},${lon.toFixed(2)}`;
   const cached = weatherCache.get(cacheKey);
   
-  // Cache de 10 minutos (suficiente para uma execução)
   if (cached && Date.now() - cached.timestamp < 10 * 60 * 1000) {
     return cached.data;
   }
@@ -41,9 +39,7 @@ async function getWeatherOneCall(lat: number, lon: number, apiKey: string) {
   const url = `https://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${lon}&units=metric&lang=pt_br&exclude=minutely,hourly&appid=${apiKey}`;
   
   const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`API Error: ${response.status}`);
-  }
+  if (!response.ok) throw new Error(`API Error: ${response.status}`);
   
   const data = await response.json();
   weatherCache.set(cacheKey, { data, timestamp: Date.now() });
@@ -58,8 +54,7 @@ function hasCriticalAlerts(weather: any): boolean {
            event.includes('trovoada') || 
            event.includes('vento') || 
            event.includes('chuva forte') ||
-           event.includes('granizo') ||
-           event.includes('tornado');
+           event.includes('granizo');
   });
 }
 
@@ -75,24 +70,17 @@ function formatSummary(weather: any, city: string): string {
   const min = Math.round(today.temp.min);
   const rainProb = Math.round(today.pop * 100);
   const condition = current.weather[0]?.description || 'condição estável';
+  const uvi = today.uvi || 0;
   
   let msg = `🌤️ ${city}: ${temp}°C, ${condition}. Máx ${max}°C, mín ${min}°C.`;
   
-  if (rainProb > 40) {
-    msg += ` 🌧️ ${rainProb}% chuva.`;
-  }
+  if (rainProb > 40) msg += ` 🌧️ ${rainProb}% chuva.`;
+  if (uvi >= 8) msg += ` ☀️ UV ${uvi} (alto).`;
   
   return msg;
 }
 
 export const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
-  // Verifica horário (formato: "08:00")
-  const now = new Date();
-  const brazilHour = String(now.getUTCHours() - 3).padStart(2, '0');
-  const currentTime = `${brazilHour}:00`;
-  
-  console.log(`[${currentTime}] Iniciando verificação de alertas...`);
-
   // Configura VAPID
   const vapidKeys = {
     public: process.env.VAPID_PUBLIC_KEY,
@@ -101,31 +89,31 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
   };
   
   if (!vapidKeys.public || !vapidKeys.private) {
-    return {
-      statusCode: 503,
-      headers: corsHeaders,
-      body: JSON.stringify({ error: 'VAPID não configurado' }),
-    };
+    return { statusCode: 503, headers: corsHeaders, body: JSON.stringify({ error: 'VAPID não configurado' }) };
   }
   
   webpush.setVapidDetails(vapidKeys.subject, vapidKeys.public, vapidKeys.private);
 
   const API_KEY = process.env.CLIMA_API;
   if (!API_KEY) {
-    return {
-      statusCode: 503,
-      headers: corsHeaders,
-      body: JSON.stringify({ error: 'CLIMA_API não configurada' }),
-    };
+    return { statusCode: 503, headers: corsHeaders, body: JSON.stringify({ error: 'CLIMA_API não configurada' }) };
   }
 
+  // Pega hora atual para comparar com preferências dos usuários
+  const now = new Date();
+  const brazilHour = String(now.getUTCHours() - 3).padStart(2, '0');
+  const brazilMinute = String(now.getUTCMinutes()).padStart(2, '0');
+  const currentTime = `${brazilHour}:${brazilMinute}`;
+  
+  console.log(`[${currentTime}] Verificando usuários para envio diário...`);
+
   try {
-    // 1. Busca TODOS os usuários com configurações ativas
     const userDataStore = getStore('userData');
     const pushStore = getStore('pushSubscriptions');
     
     const users: UserConfig[] = [];
     
+    // Busca usuários ativos
     try {
       const list = await userDataStore.list();
       for (const key of list.blobs || []) {
@@ -135,13 +123,10 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
         const hasPushAlert = data.preferences?.pushAlerts === true;
         const hasEmailAlert = data.preferences?.emailAlertsEnabled === true;
         const hasMorningSummary = data.preferences?.morningSummary === true;
-        const summaryTime = data.preferences?.summaryTime || '08:00';
+        const summaryTime = data.preferences?.summaryTime || '06:00';
         
-        // Só inclui se tem ALGUMA configuração ativa E é o horário do resumo (se aplicável)
-        const isSummaryTime = summaryTime === currentTime;
-        
-        if ((hasPushAlert || hasEmailAlert) || (hasMorningSummary && isSummaryTime)) {
-          // Busca subscription de push
+        // Só inclui se tem alguma configuração ATIVA
+        if (hasPushAlert || hasEmailAlert || hasMorningSummary) {
           let pushSub = null;
           if (hasPushAlert) {
             const subData = await pushStore.get(key.key, { type: 'json' });
@@ -156,7 +141,7 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
             lon: data.preferences?.lon || -46.6,
             wantsPushAlerts: hasPushAlert && !!pushSub,
             wantsEmailAlerts: hasEmailAlert,
-            wantsMorningSummary: hasMorningSummary && isSummaryTime,
+            wantsMorningSummary: hasMorningSummary,
             summaryTime,
             pushSubscription: pushSub,
             emailAlertAddress: data.preferences?.emailAlertAddress,
@@ -171,38 +156,23 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
       return {
         statusCode: 200,
         headers: corsHeaders,
-        body: JSON.stringify({ 
-          message: 'Nenhum usuário com configurações ativas para este horário',
-          time: currentTime 
-        }),
+        body: JSON.stringify({ message: 'Nenhum usuário com configurações ativas', time: currentTime }),
       };
     }
 
-    console.log(`Encontrados ${users.length} usuários para processar`);
+    console.log(`Processando ${users.length} usuários`);
 
-    // 2. Agrupa por localização (economiza chamadas API)
+    // Agrupa por localização
     const locationGroups = new Map<string, UserConfig[]>();
     for (const user of users) {
       const key = `${user.lat.toFixed(2)},${user.lon.toFixed(2)}`;
-      if (!locationGroups.has(key)) {
-        locationGroups.set(key, []);
-      }
+      if (!locationGroups.has(key)) locationGroups.set(key, []);
       locationGroups.get(key)!.push(user);
     }
 
-    console.log(`Agrupados em ${locationGroups.size} localizações únicas`);
+    let stats = { apiCalls: 0, pushSent: 0, emailsSent: 0, alertsFound: 0 };
 
-    let stats = {
-      apiCalls: 0,
-      pushSent: 0,
-      pushFailed: 0,
-      emailsSent: 0,
-      emailsFailed: 0,
-      alertsFound: 0,
-      summariesSent: 0,
-    };
-
-    // 3. Processa cada localização (UMA chamada API por local)
+    // Processa cada localização
     for (const [locationKey, locationUsers] of locationGroups) {
       try {
         const sampleUser = locationUsers[0];
@@ -214,14 +184,16 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
         
         if (hasAlerts) {
           stats.alertsFound += alerts.length;
-          console.log(`🚨 Alertas encontrados em ${sampleUser.city}:`, alerts.map((a: any) => a.event));
+          console.log(`🚨 Alertas em ${sampleUser.city}:`, alerts.map((a: any) => a.event));
         }
 
-        // 4. Processa cada usuário desta localização
+        // Processa cada usuário
         for (const user of locationUsers) {
-          // A) ENVIA ALERTAS GOVERNAMENTAIS (se houver e usuário quer)
+          const isSummaryTime = user.summaryTime === currentTime;
+          
+          // A) ALERTAS GOVERNAMENTAIS (sempre envia se houver)
           if (hasAlerts && (user.wantsPushAlerts || user.wantsEmailAlerts)) {
-            const alert = alerts[0]; // Pega o primeiro/mais crítico
+            const alert = alerts[0];
             const message = formatAlertMessage(alert);
             
             // Push
@@ -231,16 +203,14 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
                   title: `🚨 ${alert.event}`,
                   body: message,
                   icon: '/favicon.svg',
-                  badge: '/favicon.svg',
                   url: '/',
-                  tag: `alert-${alert.sender_name || 'gov'}`,
+                  tag: `alert-${Date.now()}`,
                   requireInteraction: true,
                 }));
                 stats.pushSent++;
               } catch (e: any) {
-                stats.pushFailed++;
                 if (e.statusCode === 404 || e.statusCode === 410) {
-                  await pushStore.delete(user.userId); // Remove subscription expirada
+                  await pushStore.delete(user.userId);
                 }
               }
             }
@@ -257,43 +227,37 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
                   body: JSON.stringify({
                     from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
                     to: user.emailAlertAddress,
-                    subject: `🚨 Alerta Meteorológico - ${user.city}`,
+                    subject: `🚨 Alerta - ${user.city}`,
                     html: `
-                      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #1a1a2e; color: #fff; padding: 20px; border-radius: 10px;">
+                      <div style="font-family: Arial; max-width: 600px; margin: 0 auto; background: #1a1a2e; color: #fff; padding: 20px; border-radius: 10px;">
                         <h2 style="color: #e94560;">⚠️ ${alert.event}</h2>
-                        <p style="font-size: 16px; line-height: 1.6;">${alert.description}</p>
-                        <p style="color: #888; margin-top: 20px;">Local: ${user.city}<br>Fonte: ${alert.sender_name || 'Defesa Civil'}</p>
+                        <p>${alert.description}</p>
+                        <p style="color: #888;">Local: ${user.city}</p>
                       </div>
                     `,
                   }),
                 });
                 stats.emailsSent++;
-              } catch (e) {
-                stats.emailsFailed++;
-              }
+              } catch (e) {}
             }
           }
           
-          // B) ENVIA RESUMO MATINAL (se usuário quer e é horário)
-          if (user.wantsMorningSummary) {
+          // B) RESUMO MATINAL (só no horário configurado)
+          if (user.wantsMorningSummary && isSummaryTime) {
             const summary = formatSummary(weather, user.city);
             
             // Push de resumo
             if (user.pushSubscription) {
               try {
                 await webpush.sendNotification(user.pushSubscription, JSON.stringify({
-                  title: `🌤️ Resumo do Clima - ${user.city}`,
+                  title: `🌤️ ${user.city} - Resumo do Dia`,
                   body: summary,
                   icon: '/favicon.svg',
-                  badge: '/favicon.svg',
                   url: '/',
                   tag: 'daily-summary',
                   requireInteraction: false,
                 }));
-                stats.summariesSent++;
-              } catch (e) {
-                // Silencioso - resumo é menos crítico
-              }
+              } catch (e) {}
             }
             
             // Email de resumo
@@ -308,29 +272,25 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
                   body: JSON.stringify({
                     from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
                     to: user.emailAlertAddress,
-                    subject: `🌤️ Resumo do Clima - ${user.city}`,
+                    subject: `🌤️ Resumo - ${user.city}`,
                     html: `
-                      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #1a1a2e; color: #fff; padding: 20px; border-radius: 10px;">
-                        <h2 style="color: #e94560;">☄️ Resumo do Clima</h2>
-                        <p style="font-size: 18px; margin: 20px 0;">${summary}</p>
-                        ${hasAlerts ? `<p style="color: #ff6b6b;">⚠️ Há alertas ativos para sua região. Abra o app para detalhes.</p>` : ''}
-                        <p style="color: #666; font-size: 12px; margin-top: 30px;">Resumo diário enviado às ${currentTime}.</p>
+                      <div style="font-family: Arial; max-width: 600px; margin: 0 auto; background: #1a1a2e; color: #fff; padding: 20px; border-radius: 10px;">
+                        <h2 style="color: #e94560;">☄️ Resumo do Dia</h2>
+                        <p style="font-size: 18px;">${summary}</p>
+                        ${hasAlerts ? '<p style="color: #ff6b6b;">⚠️ Há alertas ativos para sua região.</p>' : ''}
                       </div>
                     `,
                   }),
                 });
-              } catch (e) {
-                // Silencioso
-              }
+              } catch (e) {}
             }
           }
         }
         
-        // Delay entre chamadas de API para não sobrecarregar
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise(r => setTimeout(r, 500)); // Delay entre cidades
         
       } catch (error) {
-        console.error(`Erro ao processar ${locationKey}:`, error);
+        console.error(`Erro em ${locationKey}:`, error);
       }
     }
 
@@ -340,20 +300,12 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
       body: JSON.stringify({
         success: true,
         time: currentTime,
-        stats: {
-          ...stats,
-          usersProcessed: users.length,
-          locations: locationGroups.size,
-        },
+        stats: { ...stats, usersProcessed: users.length, locations: locationGroups.size },
       }),
     };
 
   } catch (error: any) {
-    console.error('Erro geral:', error);
-    return {
-      statusCode: 500,
-      headers: corsHeaders,
-      body: JSON.stringify({ error: error.message }),
-    };
+    console.error('Erro:', error);
+    return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: error.message }) };
   }
 };
