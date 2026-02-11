@@ -12,6 +12,7 @@ import { getSearchResults } from './services/searchService';
 import { fetchAllWeatherData } from './services/weatherService';
 import { getSettings, saveSettings, importAppData } from './services/settingsService';
 import DesktopWeather from './components/weather/DesktopWeather';
+import PlaceholderView from './components/common/PlaceholderView';
 import MobileAiControls from './components/ai/MobileAiControls';
 import SettingsView from './components/settings/SettingsView';
 import { Content } from '@google/genai';
