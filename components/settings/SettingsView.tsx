@@ -4,10 +4,12 @@ import React, { useState, useEffect } from 'react';
 import type { AppSettings, View, DataSource, AppTheme, TransparencyMode, ClockDisplayMode, BackgroundMode, MapTheme, BorderEffectMode, LayoutDensity, DesktopLayout, UnitSystem, ForecastComplexity, ForecastDetailView, ZenModeStyle, ZenModeBackground, ZenModeSound } from '../../types';
 import { getSettings, resetSettings, resetCache, resetAllData, exportAppData } from '../../services/settingsService';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import { 
     XIcon, LightbulbIcon, SparklesIcon, ChevronLeftIcon, GaugeIcon, 
     HeartIcon, GithubIcon, FileTextIcon, GlobeIcon, SettingsIcon, 
-    DatabaseIcon, AlertTriangleIcon, MapIcon, HomeIcon, EyeIcon, MaximizeIcon 
+    DatabaseIcon, AlertTriangleIcon, MapIcon, HomeIcon, EyeIcon, MaximizeIcon,
+    UserIcon, CloudIcon, LogOutIcon, LogInIcon
 } from '../icons';
 
 interface SettingsViewProps {
@@ -596,10 +598,80 @@ const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
     );
 
-    const renderData = () => (
+    const renderData = () => {
+        const { user, isLoggedIn, login, logout, userData } = useAuth();
+        
+        return (
         <div className={`space-y-6 animate-enter`}>
+            {/* Card de Conta e Nuvem */}
+            <section className={`${cardClass} rounded-3xl ${density.padding} border border-blue-500/20`}>
+                <h3 className={`text-lg font-bold text-blue-400 mb-4 flex items-center gap-2`}>
+                    <CloudIcon className="w-5 h-5" /> Conta e Nuvem
+                </h3>
+                
+                {!isLoggedIn ? (
+                    <div className="space-y-4">
+                        <div className="bg-white/5 rounded-xl p-4">
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center">
+                                    <UserIcon className="w-5 h-5 text-gray-400" />
+                                </div>
+                                <div>
+                                    <p className="text-white font-medium">Você não está conectado</p>
+                                    <p className="text-sm text-gray-500">Entre para sincronizar seus dados</p>
+                                </div>
+                            </div>
+                            <button 
+                                onClick={login}
+                                className={`w-full ${classes.bg} hover:brightness-110 text-white py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-all`}
+                            >
+                                <LogInIcon className="w-4 h-4" />
+                                Entrar / Criar Conta
+                            </button>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                            Com uma conta, seus dados (configurações, histórico de chat, cidades favoritas) 
+                            são sincronizados na nuvem e acessíveis de qualquer dispositivo.
+                        </p>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4">
+                            <div className="flex items-center gap-3 mb-2">
+                                <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                                    <UserIcon className="w-5 h-5 text-emerald-400" />
+                                </div>
+                                <div>
+                                    <p className="text-white font-medium">{user?.email}</p>
+                                    <p className="text-sm text-emerald-400">Conectado</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-white/5 rounded-xl p-3 text-center">
+                                <p className="text-2xl font-bold text-white">{userData?.favoriteCities?.length || 0}</p>
+                                <p className="text-xs text-gray-500">Cidades Salvas</p>
+                            </div>
+                            <div className="bg-white/5 rounded-xl p-3 text-center">
+                                <p className="text-2xl font-bold text-white">{userData?.aiChatHistory?.length || 0}</p>
+                                <p className="text-xs text-gray-500">Mensagens IA</p>
+                            </div>
+                        </div>
+                        
+                        <button 
+                            onClick={logout}
+                            className="w-full border border-red-500/30 text-red-400 hover:bg-red-500/10 py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-all"
+                        >
+                            <LogOutIcon className="w-4 h-4" />
+                            Sair da Conta
+                        </button>
+                    </div>
+                )}
+            </section>
+
              <section className={`${cardClass} rounded-3xl ${density.padding}`}>
-                <h3 className={`text-lg font-bold ${classes.text} mb-4 flex items-center gap-2`}><DatabaseIcon className="w-5 h-5" /> Gerenciamento</h3>
+                <h3 className={`text-lg font-bold ${classes.text} mb-4 flex items-center gap-2`}><DatabaseIcon className="w-5 h-5" /> Gerenciamento Local</h3>
                 <div className={density.settingsGap}>
                     <div className="flex flex-col gap-2">
                         <label className={`${density.text} text-sm font-medium text-gray-300`}>Fonte Preferida</label>
@@ -631,6 +703,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
             </section>
         </div>
     );
+    };
 
     const renderAbout = () => (
         <div className={`space-y-6 animate-enter`}>
