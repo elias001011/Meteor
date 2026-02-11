@@ -244,6 +244,32 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, apiAlerts }) =>
         }
     };
 
+    // Enviar notificacao push para alertas criticos/importantes
+    useEffect(() => {
+        if (notificationsEnabled && 'Notification' in window) {
+            const criticalAlerts = allAlerts.filter(a => a.level === 'critical' || a.level === 'warning');
+            criticalAlerts.forEach(alert => {
+                // Verificar se ja notificamos sobre este alerta
+                const notifiedKey = `notified_${alert.id}`;
+                if (!localStorage.getItem(notifiedKey)) {
+                    new Notification('Meteor - Alerta Meteorológico', {
+                        body: `${alert.title}: ${alert.message}`,
+                        icon: '/favicon.svg',
+                        badge: '/favicon.svg',
+                        tag: alert.id,
+                        requireInteraction: alert.level === 'critical'
+                    });
+                    localStorage.setItem(notifiedKey, Date.now().toString());
+                    
+                    // Limpar notificacao apos expirar
+                    setTimeout(() => {
+                        localStorage.removeItem(notifiedKey);
+                    }, alert.expiresAt - Date.now());
+                }
+            });
+        }
+    }, [allAlerts, notificationsEnabled]);
+
     return (
         <div className="h-full overflow-y-auto pb-24 pt-16 lg:pb-6">
             <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-6">
@@ -260,7 +286,7 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, apiAlerts }) =>
                         </div>
                     </div>
                     
-                    {/* Botao de Notificacoes */}
+                    {/* Botão de Notificações */}
                     {'Notification' in window && (
                         <button
                             onClick={requestNotificationPermission}
@@ -270,7 +296,7 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, apiAlerts }) =>
                                     : 'bg-white/5 text-gray-400 hover:bg-white/10'
                             }`}
                         >
-                            {notificationsEnabled ? 'Notificacoes Ativas' : 'Ativar Notificacoes'}
+                            {notificationsEnabled ? 'Notificações Ativas' : 'Ativar Notificações'}
                         </button>
                     )}
                 </div>
@@ -345,7 +371,7 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, apiAlerts }) =>
                     </div>
                 )}
 
-                {/* Informacoes de Monitoramento */}
+                {/* Informações de Monitoramento */}
                 <div className={`${cardClass} rounded-2xl p-5`}>
                     <h4 className="font-semibold text-white mb-4 flex items-center gap-2">
                         <AlertTriangleIcon className="w-4 h-4 text-yellow-400" />
@@ -372,7 +398,7 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, apiAlerts }) =>
                 <div className="text-center text-xs text-gray-500 pt-2">
                     Alertas sao gerados automaticamente baseados nos dados meteorologicos.
                     <br />
-                    Sempre consulte fontes oficiais em situacoes de emergencia.
+                    Sempre consulte fontes oficiais em situações de emergência.
                 </div>
             </div>
         </div>

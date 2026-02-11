@@ -84,7 +84,7 @@ export async function* streamChatResponse(
             if (rawText.includes('[SEARCH_REQUIRED]')) {
                 console.log("AI Requested Search via Stealth Command");
                 // Inform user that search is happening
-                yield { text: "Buscando informacoes atualizadas na web...", isFinal: false };
+                yield { text: "Buscando informações atualizadas na web...", isFinal: false };
                 
                 // Search with date for freshness (as requested in prompt)
                 const dateQuery = `${prompt} ${new Date().toLocaleDateString('pt-BR')}`;

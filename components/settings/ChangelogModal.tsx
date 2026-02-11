@@ -28,6 +28,18 @@ const ChangelogModal: React.FC<any> = ({ isOpen, onClose }) => {
 
     const versions = [
         {
+            version: "5.1.0",
+            title: "Refinamento & Alertas",
+            changes: [
+                "Nova aba Alertas: Monitoramento automático de condições meteorológicas críticas.",
+                "Notificações push: Suporte a alertas nativos do navegador (opcional).",
+                "Dicas Sustentáveis: Seção com 20 dicas ecológicas que rotacionam automaticamente.",
+                "Weather Insights simplificado: Focado em alertas básicos (tempestade, chuva, temperatura).",
+                "Correções de acentuação: Português corrigido em todas as seções.",
+                "Backup v5.0: Branch de backup criada para preservar versão anterior."
+            ]
+        },
+        {
             version: "5.0.0",
             title: "Notícias & IA Híbrida",
             changes: [

@@ -190,8 +190,8 @@ const TipsView: React.FC = () => {
                         <LightbulbIcon className={`w-6 h-6 ${classes.text}`} />
                     </div>
                     <div>
-                        <h2 className="text-2xl font-bold text-white">Dicas Sustentaveis</h2>
-                        <p className="text-sm text-gray-400">Pequenas acoes, grandes mudancas</p>
+                        <h2 className="text-2xl font-bold text-white">Dicas Sustentáveis</h2>
+                        <p className="text-sm text-gray-400">Pequenas ações, grandes mudanças</p>
                     </div>
                 </div>
 
@@ -233,7 +233,7 @@ const TipsView: React.FC = () => {
 
                 {/* Estatisticas */}
                 <div className={`${cardClass} rounded-2xl p-5`}>
-                    <h4 className="font-semibold text-white mb-4">Impacto das suas acoes</h4>
+                    <h4 className="font-semibold text-white mb-4">Impacto das suas ações</h4>
                     <div className="grid grid-cols-3 gap-4 text-center">
                         <div>
                             <div className="text-2xl font-bold text-emerald-400">20</div>
@@ -254,7 +254,7 @@ const TipsView: React.FC = () => {
                 <div className="text-center text-xs text-gray-500 pt-4">
                     As dicas sao armazenadas localmente no seu dispositivo.
                     <br />
-                    Novas dicas adicionadas em atualizacoes futuras.
+                    Novas dicas adicionadas em atualizações futuras.
                 </div>
             </div>
         </div>
