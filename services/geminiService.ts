@@ -45,7 +45,7 @@ export async function* streamChatResponse(
     // Only count user-initiated triggers (not internal tool loops)
     const isInternalRetry = initialSearchResults && initialSearchResults.length > 0;
     if (!isInternalRetry && usageData.count >= DAILY_LIMIT) {
-        yield { text: "🛑 **Limite Diário Atingido**\n\nVocê atingiu o limite de 5 requisições diárias para garantir a sustentabilidade do serviço. Volte amanhã!", isFinal: true };
+        yield { text: "**Limite Diario Atingido**\n\nVoce atingiu o limite de 5 requisicoes diarias para garantir a sustentabilidade do servico. Volte amanha!", isFinal: true };
         return;
     }
 
@@ -75,20 +75,24 @@ export async function* streamChatResponse(
                 }),
             });
 
-            if (!response.ok) throw new Error('Erro na comunicação com a IA.');
+            if (!response.ok) throw new Error('Erro na comunicacao com a IA.');
             
             const data = await response.json();
             const rawText = data.text || '';
 
             // 1. CHECK FOR [SEARCH_REQUIRED]
             if (rawText.includes('[SEARCH_REQUIRED]')) {
-                console.log("🤖 AI Requested Search via Stealth Command");
+                console.log("AI Requested Search via Stealth Command");
+                // Inform user that search is happening
+                yield { text: "Buscando informacoes atualizadas na web...", isFinal: false };
+                
                 // Search with date for freshness (as requested in prompt)
                 const dateQuery = `${prompt} ${new Date().toLocaleDateString('pt-BR')}`;
                 try {
                     currentSearchResults = await getSearchResults(dateQuery);
+                    console.log("Search completed, results:", currentSearchResults?.length || 0);
                 } catch (e) {
-                    console.error("Auto-search failed");
+                    console.error("Auto-search failed:", e);
                     currentSearchResults = []; // Continue loop so AI knows it failed via empty results
                 }
                 toolUsedLabel = "Busca Web (Auto)";
@@ -100,7 +104,10 @@ export async function* streamChatResponse(
             const weatherMatch = rawText.match(/\[WEATHER_QUERY=(.*?)\]/);
             if (weatherMatch && weatherMatch[1]) {
                 const cityQuery = weatherMatch[1];
-                console.log(`🤖 AI Requested Weather for: ${cityQuery}`);
+                console.log(`AI Requested Weather for: ${cityQuery}`);
+                
+                // Inform user
+                yield { text: `Consultando clima de ${cityQuery}...`, isFinal: false };
                 
                 try {
                     const cities = await searchCities(cityQuery);
@@ -120,10 +127,12 @@ export async function* streamChatResponse(
                                 condition: d.conditionIcon 
                             }))
                         };
+                        console.log("Weather data retrieved:", weatherToolResult);
                     } else {
-                        weatherToolResult = { error: "Cidade não encontrada." };
+                        weatherToolResult = { error: "Cidade nao encontrada." };
                     }
                 } catch (e) {
+                    console.error("Weather tool error:", e);
                     weatherToolResult = { error: "Falha ao buscar clima." };
                 }
                 
@@ -139,18 +148,36 @@ export async function* streamChatResponse(
                 localStorage.setItem(AI_USAGE_KEY, JSON.stringify(usageData));
             }
 
-            yield { 
-                text: rawText, 
-                isFinal: true, 
-                model: data.model, 
-                processingTime: data.processingTime,
-                toolUsed: toolUsedLabel 
-            };
+            // If we used tools, make sure we have a response
+            if (!rawText || rawText.trim().length === 0) {
+                yield { 
+                    text: "Desculpe, nao consegui processar sua solicitacao. Tente novamente.", 
+                    isFinal: true, 
+                    model: data.model + (data.usedFallback ? ' (fallback)' : ''), 
+                    processingTime: data.processingTime,
+                    toolUsed: toolUsedLabel 
+                };
+            } else {
+                yield { 
+                    text: rawText, 
+                    isFinal: true, 
+                    model: data.model + (data.usedFallback ? ' (fallback)' : ''), 
+                    processingTime: data.processingTime,
+                    toolUsed: toolUsedLabel 
+                };
+            }
             return;
 
         } catch (error) {
+            console.error("Error in chat stream:", error);
             yield { text: `Erro: ${error instanceof Error ? error.message : 'Desconhecido'}`, isFinal: true };
             return;
         }
     }
+    
+    // If we reach max loops without returning, inform user
+    yield { 
+        text: "Desculpe, a IA atingiu o limite de processamento. Tente simplificar sua pergunta.", 
+        isFinal: true 
+    };
 }

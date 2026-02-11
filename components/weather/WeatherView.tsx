@@ -104,7 +104,7 @@ const WeatherView: React.FC<WeatherViewProps> = ({
                 <CurrentWeather data={weatherData} clockDisplayMode={clockDisplayMode} unitSystem={unitSystem} />
                 
                 {/* 3. Weather Insights (Resumo) */}
-                <WeatherInsights current={weatherData} hourly={hourlyForecast} daily={dailyForecast} />
+                <WeatherInsights current={weatherData} hourly={hourlyForecast} daily={dailyForecast} airQuality={airQualityData} />
                 
                 {/* 4. Alertas */}
                 {dataSource !== 'open-meteo' && <Alerts alerts={alerts} />}

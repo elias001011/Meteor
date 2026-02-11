@@ -28,6 +28,19 @@ const ChangelogModal: React.FC<any> = ({ isOpen, onClose }) => {
 
     const versions = [
         {
+            version: "5.0.0",
+            title: "Notícias & IA Híbrida",
+            changes: [
+                "Nova Aba Notícias: Integração completa com GNews API para notícias em tempo real.",
+                "Categorias de Notícias: Geral, Mundo, Brasil, Negócios, Tecnologia, Ciência, Saúde, Esportes e Entretenimento.",
+                "Resumo com IA: Botão em cada notícia para analisar e discutir o conteúdo com a Meteor AI.",
+                "Fallback Open Router: Sistema de IA híbrido - se o Google falhar, usa Open Router (gratuito).",
+                "Limite Inteligente: 5 conversas diárias por usuário, independente do provedor utilizado.",
+                "Tradução de Summaries: Summaries dos cards diários agora em português BR.",
+                "Correções UI: Animação da barra de pesquisa otimizada para não cortar na interface."
+            ]
+        },
+        {
             version: "4.3.0",
             title: "Modo Zen 2.0 & Imersão",
             changes: [

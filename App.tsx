@@ -3,6 +3,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import WeatherView from './components/weather/WeatherView';
 import AiView from './components/ai/AiView';
 import MapView from './components/map/MapView';
+import NewsView from './components/news/NewsView';
 import BottomNav from './components/layout/BottomNav';
 import Header from './components/layout/Header';
 import type { ChatMessage, View, CitySearchResult, AllWeatherData, GroundingSource, SearchResultItem, DataSource, AppSettings, AppTheme } from './types';
@@ -96,6 +97,7 @@ const AppContent: React.FC<{
     onOpenSettingsCity: () => void;
     toggleZenMode: () => void;
     isZenMode: boolean;
+    handleNewsAskAI?: (newsContext: string) => void;
 }> = (props) => {
     const { appBackgroundClass, isPerformanceMode } = useTheme();
     const { settings, view, weatherInfo, weatherStatus, appError } = props;
@@ -208,7 +210,11 @@ const AppContent: React.FC<{
                     )}
                     {view === 'ai' && <div className={`h-full ${animationClass}`}><AiView {...aiViewProps} /></div>}
                     {view === 'map' && <div className={`h-full ${animationClass}`}><MapView lat={props.currentCoords?.lat} lon={props.currentCoords?.lon} theme={settings.mapTheme} /></div>}
-                    {view === 'news' && <div className={animationClass}><PlaceholderView title="Notícias" /></div>}
+                    {view === 'news' && (
+                        <div className={`h-full overflow-hidden ${animationClass}`}>
+                            <NewsView onAskAIAboutNews={props.handleNewsAskAI} />
+                        </div>
+                    )}
                     {view === 'settings' && <div className={animationClass}>
                         <SettingsView 
                             settings={settings} 
@@ -233,8 +239,8 @@ const AppContent: React.FC<{
                     <div className={`${view === 'map' ? 'block' : 'hidden'} h-full pb-24 pt-16 ${animationClass}`}>
                         <MapView lat={props.currentCoords?.lat} lon={props.currentCoords?.lon} theme={settings.mapTheme} />
                     </div>
-                    <div className={`${view === 'news' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24 pt-16 ${animationClass}`}>
-                        <PlaceholderView title="Notícias" />
+                    <div className={`${view === 'news' ? 'block' : 'hidden'} h-full overflow-hidden pb-24 pt-16 ${animationClass}`}>
+                        <NewsView onAskAIAboutNews={props.handleNewsAskAI} />
                     </div>
                     <div className={`${view === 'settings' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24 pt-16 ${animationClass}`}>
                         <SettingsView 
@@ -580,7 +586,9 @@ const App: React.FC = () => {
         }
 
         try {
+            let hasReceivedData = false;
             for await (const chunk of stream) {
+                hasReceivedData = true;
                 fullText = chunk.text;
                 
                 setMessages(prev => {
@@ -598,13 +606,27 @@ const App: React.FC = () => {
                     return newMessages;
                 });
             }
+            
+            // Se nao recebeu nenhum dado, mostrar erro
+            if (!hasReceivedData || !fullText.trim()) {
+                setMessages(prev => {
+                    const newMessages = [...prev];
+                    const lastMessage = newMessages[newMessages.length - 1];
+                    if (lastMessage.role === 'model') {
+                        lastMessage.text = "Desculpe, nao consegui processar sua solicitacao. Tente novamente em alguns segundos.";
+                        lastMessage.modelUsed = "erro";
+                    }
+                    return newMessages;
+                });
+            }
         } catch (e) {
             console.error("Error in chat stream", e);
-             setMessages(prev => {
+            setMessages(prev => {
                 const newMessages = [...prev];
                 const lastMessage = newMessages[newMessages.length - 1];
                 if (lastMessage.role === 'model') {
-                    lastMessage.text += "\n\n[Erro ao processar resposta]";
+                    lastMessage.text = "Erro ao processar resposta. Verifique sua conexao ou tente novamente. Se o problema persistir, a IA pode estar temporariamente indisponivel.";
+                    lastMessage.modelUsed = "erro";
                 }
                 return newMessages;
             });
@@ -666,6 +688,20 @@ const App: React.FC = () => {
       setIsZenMode(prev => !prev);
   }
 
+  // Handler para perguntar à IA sobre uma notícia
+  const handleNewsAskAI = useCallback((newsContext: string) => {
+      // Mudar para a aba de IA
+      setView('ai');
+      
+      // Criar a mensagem do usuário com o contexto da notícia
+      const userMessage = `Analise esta notícia para mim:\n\n${newsContext}\n\nPor favor, forneça um resumo objetivo e seus insights sobre o assunto.`;
+      
+      // Enviar a mensagem para a IA
+      setTimeout(() => {
+          handleSendMessage(userMessage, false);
+      }, 300);
+  }, [handleSendMessage]);
+
   return (
     <ThemeProvider 
       theme={activeTheme} 
@@ -712,6 +748,7 @@ const App: React.FC = () => {
         onOpenSettingsCity={() => setShowSettingsCityModal(true)}
         toggleZenMode={toggleZenMode}
         isZenMode={isZenMode}
+        handleNewsAskAI={handleNewsAskAI}
       />
       
       {showOnboardingModal && <OnboardingModal onClose={handleOnboardingClose} />}
