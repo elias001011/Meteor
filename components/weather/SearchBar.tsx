@@ -73,7 +73,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onCitySelect, onGeolocate }) => {
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="relative p-1 -m-1" ref={searchContainerRef}>
+      <div className="relative" ref={searchContainerRef}>
         <form onSubmit={(e) => e.preventDefault()} className="relative">
           <input
             type="text"
