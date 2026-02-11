@@ -22,6 +22,8 @@ interface AuthContextType {
   userData: UserData | null;
   isLoggedIn: boolean;
   isLoading: boolean;
+  identityError: string | null;
+  isBranchDeploy: boolean;
   login: () => void;
   logout: () => void;
   signup: () => void;
@@ -49,17 +51,33 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // URL do site Netlify - precisa ser configurada
 const NETLIFY_SITE_URL = import.meta.env.VITE_NETLIFY_URL || window.location.origin;
 
+// Detecta se estamos em um deploy de branch/preview do Netlify
+const isBranchDeploy = window.location.hostname.includes('--');
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [identityError, setIdentityError] = useState<string | null>(null);
 
   // Inicializa o Netlify Identity
   useEffect(() => {
-    netlifyIdentity.init({
-      APIUrl: `${NETLIFY_SITE_URL}/.netlify/identity`,
-      logo: true, // Mostra logo padrão
-    });
+    // Em deploys de branch, o Identity não está disponível
+    if (isBranchDeploy) {
+      setIdentityError('Autenticação disponível apenas na versão de produção (main)');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      netlifyIdentity.init({
+        APIUrl: `${NETLIFY_SITE_URL}/.netlify/identity`,
+        logo: true, // Mostra logo padrão
+      });
+    } catch (error) {
+      console.error('Erro ao inicializar Netlify Identity:', error);
+      setIdentityError('Serviço de autenticação temporariamente indisponível');
+    }
 
     // Carrega usuário atual se existir
     const currentUser = netlifyIdentity.currentUser();
@@ -185,15 +203,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [user]);
 
   const login = () => {
+    if (identityError || isBranchDeploy) {
+      alert('Autenticação disponível apenas na versão de produção (meteor-ai.netlify.app)');
+      return;
+    }
     netlifyIdentity.open('login');
   };
 
   const signup = () => {
+    if (identityError || isBranchDeploy) {
+      alert('Autenticação disponível apenas na versão de produção (meteor-ai.netlify.app)');
+      return;
+    }
     netlifyIdentity.open('signup');
   };
 
   const logout = () => {
-    netlifyIdentity.logout();
+    if (!isBranchDeploy) {
+      netlifyIdentity.logout();
+    }
   };
 
   return (
@@ -203,6 +231,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         userData,
         isLoggedIn: !!user,
         isLoading,
+        identityError,
+        isBranchDeploy,
         login,
         logout,
         signup,
