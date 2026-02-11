@@ -1,10 +1,19 @@
 
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import type { WeatherData, WeatherAlert } from '../../types';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import { AlertTriangleIcon, BellIcon, InfoIcon, MailIcon, UserIcon } from '../icons';
+import { AlertTriangleIcon, BellIcon, InfoIcon, MailIcon, UserIcon, RefreshCwIcon, SmartphoneIcon } from '../icons';
+import { 
+    isPushSupported, 
+    subscribeToPush, 
+    unsubscribeFromPush, 
+    getPushSubscriptionStatus,
+    sendTestNotification,
+    isIOSSafari,
+    isPWAInstalled
+} from '../../services/pushNotificationService';
 
 interface AlertsViewProps {
     currentWeather?: WeatherData | null;
@@ -101,7 +110,7 @@ const generateLocalAlerts = (weather: WeatherData | null | undefined): LocalAler
             type: 'cold',
             level: 'caution',
             title: 'Temperatura Baixa',
-            message: 'Frio significativo. Use varias camadas de roupa ao sair.',
+            message: 'Frio significativo. Use várias camadas de roupa ao sair.',
             timestamp: now,
             expiresAt: now + oneHour * 4
         });
@@ -137,7 +146,7 @@ const generateLocalAlerts = (weather: WeatherData | null | undefined): LocalAler
             type: 'wind',
             level: 'critical',
             title: 'Ventania',
-            message: `Ventos de ${Math.round(windSpeed)} km/h. Perigo de queda de arvores e estruturas. Fique em local seguro.`,
+            message: `Ventos de ${Math.round(windSpeed)} km/h. Perigo de queda de árvores e estruturas. Fique em local seguro.`,
             timestamp: now,
             expiresAt: now + oneHour * 2
         });
@@ -147,7 +156,7 @@ const generateLocalAlerts = (weather: WeatherData | null | undefined): LocalAler
             type: 'wind',
             level: 'warning',
             title: 'Vento Forte',
-            message: 'Rajadas intensas podem derrubar objetos. Evite ficar perto de placas e arvores.',
+            message: 'Rajadas intensas podem derrubar objetos. Evite ficar perto de placas e árvores.',
             timestamp: now,
             expiresAt: now + oneHour * 2
         });
@@ -190,11 +199,82 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, apiAlerts }) =>
     const { user, isLoggedIn, userData, updateUserData, login, identityError } = useAuth();
     const [notificationsEnabled, setNotificationsEnabled] = useState(false);
     const [emailInput, setEmailInput] = useState('');
+    const [isSendingEmail, setIsSendingEmail] = useState(false);
+    const [emailStatus, setEmailStatus] = useState<{type: 'success' | 'error', message: string} | null>(null);
+    const [lastLocation, setLastLocation] = useState<string | null>(null);
+    
+    // Estados para notificações push
+    const [pushSupported, setPushSupported] = useState(false);
+    const [pushSubscribed, setPushSubscribed] = useState(false);
+    const [isSubscribing, setIsSubscribing] = useState(false);
+    const [pushError, setPushError] = useState<string | null>(null);
+    const [isIOS, setIsIOS] = useState(false);
+    const [isInstalled, setIsInstalled] = useState(false);
 
     // Gerar alertas locais
     const localAlerts = useMemo(() => {
         return generateLocalAlerts(currentWeather);
     }, [currentWeather]);
+
+    // Verifica mudança de localização e recarrega alertas
+    useEffect(() => {
+        const currentLocation = currentWeather?.city;
+        if (currentLocation && currentLocation !== lastLocation) {
+            setLastLocation(currentLocation);
+            // Limpa alertas notificados quando muda a localização
+            if (currentLocation) {
+                const keys = Object.keys(localStorage).filter(k => k.startsWith('notified_'));
+                keys.forEach(k => localStorage.removeItem(k));
+            }
+        }
+    }, [currentWeather?.city, lastLocation]);
+
+    // Verifica suporte a notificações push
+    useEffect(() => {
+        setPushSupported(isPushSupported());
+        setIsIOS(isIOSSafari());
+        setIsInstalled(isPWAInstalled());
+        
+        // Verifica status da inscrição
+        const checkSubscription = async () => {
+            const { isSubscribed } = await getPushSubscriptionStatus();
+            setPushSubscribed(isSubscribed);
+        };
+        checkSubscription();
+    }, []);
+
+    // Handler para ativar/desativar push
+    const togglePushNotifications = async () => {
+        setPushError(null);
+        
+        if (pushSubscribed) {
+            // Cancela inscrição
+            setIsSubscribing(true);
+            const success = await unsubscribeFromPush();
+            setPushSubscribed(!success);
+            setIsSubscribing(false);
+        } else {
+            // Cria inscrição
+            setIsSubscribing(true);
+            try {
+                await subscribeToPush();
+                setPushSubscribed(true);
+            } catch (error: any) {
+                setPushError(error.message || 'Erro ao ativar notificações');
+            } finally {
+                setIsSubscribing(false);
+            }
+        }
+    };
+
+    // Handler para testar notificação
+    const handleTestNotification = async () => {
+        try {
+            await sendTestNotification();
+        } catch (error: any) {
+            setPushError(error.message);
+        }
+    };
 
     // Filtrar apenas alertas expirados (sem dispensar - mostrar todos)
     const activeLocalAlerts = localAlerts.filter(alert => {
@@ -249,6 +329,54 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, apiAlerts }) =>
     const saveAlertEmail = async () => {
         if (!isLoggedIn || !emailInput) return;
         await updateUserData({ emailAlertAddress: emailInput });
+        setEmailStatus({ type: 'success', message: 'Email salvo!' });
+        setTimeout(() => setEmailStatus(null), 3000);
+    };
+
+    // Enviar alerta por email
+    const sendTestAlert = async () => {
+        if (!userData?.emailAlertAddress || !isLoggedIn) return;
+        
+        setIsSendingEmail(true);
+        setEmailStatus(null);
+        
+        try {
+            // Pega o primeiro alerta crítico ou warning
+            const alertToSend = allAlerts.find(a => a.level === 'critical' || a.level === 'warning');
+            
+            if (!alertToSend) {
+                setEmailStatus({ type: 'error', message: 'Nenhum alerta ativo para enviar' });
+                setIsSendingEmail(false);
+                return;
+            }
+
+            const response = await fetch('/.netlify/functions/sendAlertEmails', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    to: userData.emailAlertAddress,
+                    alertType: alertToSend.type,
+                    alertTitle: alertToSend.title,
+                    alertMessage: alertToSend.message,
+                    location: currentWeather?.city,
+                }),
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                setEmailStatus({ type: 'success', message: 'Alerta enviado para seu email!' });
+            } else {
+                setEmailStatus({ type: 'error', message: result.error || 'Erro ao enviar email' });
+            }
+        } catch (error) {
+            setEmailStatus({ type: 'error', message: 'Erro de conexão' });
+        } finally {
+            setIsSendingEmail(false);
+            setTimeout(() => setEmailStatus(null), 5000);
+        }
     };
 
     // Enviar notificação push para alertas críticos/importantes
@@ -443,21 +571,116 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, apiAlerts }) =>
                                             Salvar
                                         </button>
                                     </div>
+                                    
+                                    {/* Botão de enviar alerta de teste */}
+                                    {allAlerts.length > 0 && (
+                                        <button
+                                            onClick={sendTestAlert}
+                                            disabled={isSendingEmail}
+                                            className="w-full mt-2 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 py-2 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                        >
+                                            {isSendingEmail ? (
+                                                <RefreshCwIcon className="w-4 h-4 animate-spin" />
+                                            ) : (
+                                                <MailIcon className="w-4 h-4" />
+                                            )}
+                                            Enviar alerta atual por email
+                                        </button>
+                                    )}
+                                    
+                                    {emailStatus && (
+                                        <p className={`text-xs text-center ${
+                                            emailStatus.type === 'success' ? 'text-emerald-400' : 'text-red-400'
+                                        }`}>
+                                            {emailStatus.message}
+                                        </p>
+                                    )}
+                                    
                                     <p className="text-xs text-gray-500">
                                         Logado como: <span className="text-gray-300">{user?.email}</span>
                                     </p>
                                 </div>
                             )}
                             
-                            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3">
-                                <p className="text-xs text-yellow-200/80">
-                                    <strong>Em desenvolvimento:</strong> O envio de emails será ativado em breve. 
-                                    Seus dados estão seguros e em conformidade com LGPD.
+                            <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3">
+                                <p className="text-xs text-blue-200/80">
+                                    <strong>Configuração necessária:</strong> Para envio de emails, o administrador precisa configurar a variável RESEND_API_KEY no Netlify.
                                 </p>
                             </div>
                         </div>
                     )}
                 </div>
+
+                {/* Configuração de Notificações Push */}
+                {pushSupported && (
+                    <div className={`${cardClass} rounded-2xl p-5`}>
+                        <h4 className="font-semibold text-white mb-4 flex items-center gap-2">
+                            <SmartphoneIcon className="w-4 h-4 text-purple-400" />
+                            Notificações Push
+                        </h4>
+                        
+                        {isIOS && !isInstalled ? (
+                            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
+                                <p className="text-yellow-200 text-sm mb-2">
+                                    <strong>Instalação necessária</strong>
+                                </p>
+                                <p className="text-gray-400 text-sm">
+                                    Para receber notificações push no iOS, adicione o Meteor à tela inicial primeiro.
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-white font-medium text-sm">Receber notificações push</p>
+                                        <p className="text-gray-500 text-xs">Funciona mesmo com o app fechado</p>
+                                    </div>
+                                    <button
+                                        onClick={togglePushNotifications}
+                                        disabled={isSubscribing}
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${
+                                            pushSubscribed ? 'bg-purple-500' : 'bg-gray-600'
+                                        }`}
+                                    >
+                                        <span
+                                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                                pushSubscribed ? 'translate-x-6' : 'translate-x-1'
+                                            }`}
+                                        />
+                                    </button>
+                                </div>
+                                
+                                {pushError && (
+                                    <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3">
+                                        <p className="text-red-300 text-xs">{pushError}</p>
+                                    </div>
+                                )}
+                                
+                                {pushSubscribed && (
+                                    <div className="animate-enter space-y-2">
+                                        <button
+                                            onClick={handleTestNotification}
+                                            className="w-full bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/30 text-purple-300 py-2 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                                        >
+                                            <BellIcon className="w-4 h-4" />
+                                            Enviar notificação de teste
+                                        </button>
+                                        
+                                        <p className="text-xs text-gray-500">
+                                            Notificações ativas. Você receberá alertas mesmo quando o app estiver fechado.
+                                        </p>
+                                    </div>
+                                )}
+                                
+                                <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-3">
+                                    <p className="text-xs text-purple-200/80">
+                                        <strong>Funciona offline:</strong> As notificações push são entregues pelo sistema operacional, mesmo quando o app não está aberto.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* Informações de Monitoramento */}
                 <div className={`${cardClass} rounded-2xl p-5`}>

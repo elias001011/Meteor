@@ -77,3 +77,108 @@ self.addEventListener('fetch', event => {
       })
   );
 });
+
+// ==========================================
+// NOTIFICAÇÕES PUSH - FUNCIONAMENTO OFFLINE
+// ==========================================
+
+// Evento push - recebe mensagem do servidor mesmo com app fechado
+self.addEventListener('push', function(event) {
+  console.log('[Service Worker] Push recebido:', event);
+
+  let data = {
+    title: 'Meteor - Alerta',
+    body: 'Você tem uma nova notificação',
+    icon: '/favicon.svg',
+    badge: '/favicon.svg',
+    url: '/',
+    actions: [
+      { action: 'open', title: 'Abrir' },
+      { action: 'dismiss', title: 'Ignorar' }
+    ]
+  };
+
+  try {
+    if (event.data) {
+      const payload = event.data.json();
+      data = { ...data, ...payload };
+    }
+  } catch (e) {
+    console.error('[Service Worker] Erro ao parsear push:', e);
+  }
+
+  const options = {
+    body: data.body,
+    icon: data.icon,
+    badge: data.badge,
+    tag: data.tag || 'default',
+    requireInteraction: data.requireInteraction || false,
+    actions: data.actions || [],
+    data: {
+      url: data.url || '/'
+    }
+  };
+
+  // ESSENCIAL: event.waitUntil mantém o Service Worker ativo
+  event.waitUntil(
+    self.registration.showNotification(data.title, options)
+      .then(() => {
+        console.log('[Service Worker] Notificação exibida com sucesso');
+      })
+      .catch(err => {
+        console.error('[Service Worker] Erro ao exibir notificação:', err);
+      })
+  );
+});
+
+// Evento de clique na notificação
+self.addEventListener('notificationclick', function(event) {
+  console.log('[Service Worker] Clique na notificação:', event);
+
+  event.notification.close();
+
+  const url = event.notification.data?.url || '/';
+
+  // Ação de abrir
+  if (event.action === 'open' || !event.action) {
+    event.waitUntil(
+      clients.matchAll({ type: 'window', includeUncontrolled: true })
+        .then(clientList => {
+          // Procura uma janela/janela já aberta
+          for (const client of clientList) {
+            if (client.url === url && 'focus' in client) {
+              return client.focus();
+            }
+          }
+          // Se não encontrar, abre nova janela
+          if (clients.openWindow) {
+            return clients.openWindow(url);
+          }
+        })
+    );
+  }
+
+  // Ação de dispensar - apenas fecha
+  if (event.action === 'dismiss') {
+    // Já foi fechado no início
+    console.log('[Service Worker] Notificação dispensada');
+  }
+});
+
+// Evento para fechar notificação
+self.addEventListener('notificationclose', function(event) {
+  console.log('[Service Worker] Notificação fechada:', event);
+});
+
+// ==========================================
+// SINCRONIZAÇÃO EM BACKGROUND
+// ==========================================
+
+self.addEventListener('sync', function(event) {
+  if (event.tag === 'sync-alerts') {
+    event.waitUntil(
+      // Aqui poderia verificar alertas pendentes
+      console.log('[Service Worker] Sincronização em background')
+    );
+  }
+});

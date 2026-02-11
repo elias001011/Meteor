@@ -45,7 +45,7 @@ export async function* streamChatResponse(
     // Only count user-initiated triggers (not internal tool loops)
     const isInternalRetry = initialSearchResults && initialSearchResults.length > 0;
     if (!isInternalRetry && usageData.count >= DAILY_LIMIT) {
-        yield { text: "**Limite Diario Atingido**\n\nVoce atingiu o limite de 5 requisicoes diarias para garantir a sustentabilidade do servico. Volte amanha!", isFinal: true };
+        yield { text: "**Limite Diário Atingido**\n\nVocê atingiu o limite de 5 requisições diárias para garantir a sustentabilidade do serviço. Volte amanhã!", isFinal: true };
         return;
     }
 
