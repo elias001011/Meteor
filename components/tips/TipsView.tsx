@@ -162,7 +162,7 @@ const TipsView: React.FC = () => {
     const getRandomTip = () => {
         let availableTips = TIPS_DATABASE.filter(tip => !history.includes(tip.id));
         
-        // Se todas as dicas ja foram vistas, reseta o historico
+        // Se todas as dicas já foram vistas, reseta o histórico
         if (availableTips.length === 0) {
             availableTips = TIPS_DATABASE;
             setHistory([]);
@@ -252,7 +252,7 @@ const TipsView: React.FC = () => {
 
                 {/* Footer Info */}
                 <div className="text-center text-xs text-gray-500 pt-4">
-                    As dicas sao armazenadas localmente no seu dispositivo.
+                    As dicas são armazenadas localmente no seu dispositivo.
                     <br />
                     Novas dicas adicionadas em atualizações futuras.
                 </div>
