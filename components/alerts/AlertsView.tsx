@@ -17,6 +17,7 @@ import {
 
 interface AlertsViewProps {
     currentWeather?: WeatherData | null;
+    dailyForecast?: any[];  // Para pegar UV máximo
     apiAlerts?: WeatherAlert[];
 }
 
@@ -31,7 +32,7 @@ interface LocalAlert {
 }
 
 // Alertas gerados baseados nas condições atuais
-const generateLocalAlerts = (weather: WeatherData | null | undefined): LocalAlert[] => {
+const generateLocalAlerts = (weather: WeatherData | null | undefined, dailyForecast?: any[]): LocalAlert[] => {
     if (!weather) return [];
     
     const alerts: LocalAlert[] = [];
@@ -42,7 +43,12 @@ const generateLocalAlerts = (weather: WeatherData | null | undefined): LocalAler
     const temp = weather.temperature;
     const feelsLike = weather.feels_like ?? temp;
     const windSpeed = weather.windSpeed;
-    const uvi = weather.uvi;
+    
+    // UV: tenta pegar do current, se não tiver, pega do daily forecast
+    let uvi = weather.uvi;
+    if ((uvi === undefined || uvi === null) && dailyForecast && dailyForecast.length > 0) {
+        uvi = dailyForecast[0].uvi;
+    }
     
     // Tempestade
     if (condition.includes('tempestade') || condition.includes('trovoada')) {
@@ -194,7 +200,7 @@ const getAlertStyles = (level: string) => {
     }
 };
 
-const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, apiAlerts }) => {
+const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, apiAlerts }) => {
     const { cardClass, classes, density } = useTheme();
     const { user, isLoggedIn, userData, updateUserData, login, identityError } = useAuth();
     const [notificationsEnabled, setNotificationsEnabled] = useState(false);
@@ -213,8 +219,8 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, apiAlerts }) =>
 
     // Gerar alertas locais
     const localAlerts = useMemo(() => {
-        return generateLocalAlerts(currentWeather);
-    }, [currentWeather]);
+        return generateLocalAlerts(currentWeather, dailyForecast);
+    }, [currentWeather, dailyForecast]);
 
     // Verifica mudança de localização e recarrega alertas
     useEffect(() => {
