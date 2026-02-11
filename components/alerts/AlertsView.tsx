@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import type { WeatherData, WeatherAlert } from '../../types';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import { AlertTriangleIcon, BellIcon, InfoIcon, MailIcon, UserIcon, RefreshCwIcon, SmartphoneIcon } from '../icons';
+import { AlertTriangleIcon, BellIcon, InfoIcon, MailIcon, UserIcon, RefreshCwIcon, SmartphoneIcon, SunIcon } from '../icons';
 import { 
     isPushSupported, 
     subscribeToPush, 
@@ -688,6 +688,72 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                                 </div>
                             </div>
                         )}
+                    </div>
+                )}
+
+                {/* Resumo Matinal */}
+                {isLoggedIn && (
+                    <div className={`${cardClass} rounded-2xl p-5`}>
+                        <h4 className="font-semibold text-white mb-4 flex items-center gap-2">
+                            <SunIcon className="w-4 h-4 text-yellow-400" />
+                            Resumo Matinal
+                        </h4>
+                        
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-white font-medium text-sm">Receber resumo diário</p>
+                                    <p className="text-gray-500 text-xs">Previsão do dia e alertas importantes</p>
+                                </div>
+                                <button
+                                    onClick={() => updateUserData({ 
+                                        preferences: { 
+                                            ...userData?.preferences,
+                                            morningSummary: !userData?.preferences?.morningSummary 
+                                        }
+                                    })}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                        userData?.preferences?.morningSummary ? 'bg-yellow-500' : 'bg-gray-600'
+                                    }`}
+                                >
+                                    <span
+                                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                            userData?.preferences?.morningSummary ? 'translate-x-6' : 'translate-x-1'
+                                        }`}
+                                    />
+                                </button>
+                            </div>
+                            
+                            {userData?.preferences?.morningSummary && (
+                                <div className="animate-enter space-y-3">
+                                    <div>
+                                        <label className="text-sm text-gray-400 mb-2 block">Horário do resumo</label>
+                                        <select
+                                            value={userData?.preferences?.summaryTime || '08:00'}
+                                            onChange={(e) => updateUserData({
+                                                preferences: {
+                                                    ...userData?.preferences,
+                                                    summaryTime: e.target.value
+                                                }
+                                            })}
+                                            className="w-full bg-gray-900/60 border border-white/10 rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/50"
+                                        >
+                                            {['06:00', '07:00', '08:00', '09:00', '10:00', '11:00', '12:00'].map(time => (
+                                                <option key={time} value={time}>{time}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    
+                                    <p className="text-xs text-yellow-200/60">
+                                        💡 O resumo inclui: temperatura máxima/mínima, chance de chuva e alertas governamentais (se houver).
+                                    </p>
+                                    
+                                    <p className="text-xs text-gray-500">
+                                        Economia de dados: Uma única verificação por dia no horário selecionado.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 )}
 
