@@ -216,6 +216,23 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
     const [pushError, setPushError] = useState<string | null>(null);
     const [isIOS, setIsIOS] = useState(false);
     const [isInstalled, setIsInstalled] = useState(false);
+    const [emailServiceConfigured, setEmailServiceConfigured] = useState<boolean | null>(null);
+
+    // Verifica se o serviço de email está configurado
+    useEffect(() => {
+        const checkEmailService = async () => {
+            try {
+                const response = await fetch('/.netlify/functions/sendAlertEmails', {
+                    method: 'OPTIONS'
+                });
+                // Se responder 200, o serviço está configurado
+                setEmailServiceConfigured(true);
+            } catch (error) {
+                setEmailServiceConfigured(false);
+            }
+        };
+        checkEmailService();
+    }, []);
 
     // Gerar alertas locais
     const localAlerts = useMemo(() => {
@@ -491,6 +508,17 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                         <MailIcon className="w-4 h-4 text-blue-400" />
                         Alertas por Email
                     </h4>
+                    
+                    {emailServiceConfigured === false && (
+                        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-4">
+                            <p className="text-yellow-200 text-sm mb-2">
+                                <strong>⚠️ Serviço de email não configurado</strong>
+                            </p>
+                            <p className="text-gray-400 text-sm">
+                                O administrador precisa configurar a variável RESEND_API no Netlify.
+                            </p>
+                        </div>
+                    )}
                     
                     {identityError ? (
                         <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
