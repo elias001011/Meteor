@@ -4,6 +4,13 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    
+    <!-- Força HTTPS - redireciona se estiver em HTTP -->
+    <script>
+      if (window.location.protocol === 'http:' && window.location.hostname !== 'localhost' && !window.location.hostname.includes('127.0.0.1')) {
+        window.location.href = window.location.href.replace('http:', 'https:');
+      }
+    </script>
     <meta name="google-site-verification" content="cU9d25IRMJEBNspnWpK9STRAuYlgt512xWcDMV5UZrI" />
     <title>Meteor</title>
     <meta name="description" content="O Meteor é uma plataforma avançada de clima e alertas ambientais potencializada por IA. Obtenha previsões precisas, mapas interativos e chat inteligente em tempo real." />

@@ -6,6 +6,13 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
+# Redirecionar HTTP para HTTPS (força SSL)
+[[redirects]]
+  from = "http://*"
+  to = "https://:splat"
+  status = 301
+  force = true
+
 # Regra Crítica para React Router (SPA)
 # Isso impede erros 404 ao recarregar páginas internas
 [[redirects]]
