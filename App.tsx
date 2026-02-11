@@ -231,7 +231,8 @@ const AppContent: React.FC<{
                     {view === 'alerts' && (
                         <div className={`h-full overflow-hidden ${animationClass}`}>
                             <AlertsView 
-                                currentWeather={weatherInfo.weatherData} 
+                                currentWeather={weatherInfo.weatherData}
+                                dailyForecast={weatherInfo.dailyForecast}
                                 apiAlerts={weatherInfo.alerts}
                             />
                         </div>
@@ -267,6 +268,7 @@ const AppContent: React.FC<{
                     <div className={`${view === 'alerts' ? 'block' : 'hidden'} h-full overflow-hidden pb-24 pt-16 ${animationClass}`}>
                         <AlertsView 
                             currentWeather={weatherInfo.weatherData}
+                            dailyForecast={weatherInfo.dailyForecast}
                             apiAlerts={weatherInfo.alerts}
                         />
                     </div>
