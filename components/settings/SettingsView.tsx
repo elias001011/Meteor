@@ -599,7 +599,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
     );
 
     const renderData = () => {
-        const { user, isLoggedIn, login, logout, userData, isBranchDeploy } = useAuth();
+        const { user, isLoggedIn, login, logout, userData, identityError } = useAuth();
         
         return (
         <div className={`space-y-6 animate-enter`}>
@@ -609,14 +609,14 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                     <CloudIcon className="w-5 h-5" /> Conta e Nuvem
                 </h3>
                 
-                {isBranchDeploy ? (
+                {identityError ? (
                     <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
                         <p className="text-yellow-200 text-sm mb-2">
-                            <strong>Ambiente de Desenvolvimento</strong>
+                            <strong>Serviço Temporariamente Indisponível</strong>
                         </p>
                         <p className="text-gray-400 text-sm">
-                            O sistema de autenticação só está disponível na versão de produção. 
-                            Acesse <strong>meteor-ai.netlify.app</strong> para usar todas as funcionalidades de conta.
+                            O sistema de autenticação está em manutenção. 
+                            Tente novamente mais tarde.
                         </p>
                     </div>
                 ) : !isLoggedIn ? (
