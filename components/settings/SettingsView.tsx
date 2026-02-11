@@ -11,6 +11,7 @@ import {
     DatabaseIcon, AlertTriangleIcon, MapIcon, HomeIcon, EyeIcon, MaximizeIcon,
     UserIcon, CloudIcon, LogOutIcon, LogInIcon
 } from '../icons';
+import LoadingSpinner from '../common/LoadingSpinner';
 
 interface SettingsViewProps {
     settings: AppSettings;
@@ -599,10 +600,86 @@ const SettingsView: React.FC<SettingsViewProps> = ({
     );
 
     const renderData = () => {
-        const { user, isLoggedIn, login, logout, userData, identityError } = useAuth();
+        const { 
+            user, 
+            isLoggedIn, 
+            login, 
+            logout, 
+            userData, 
+            identityError,
+            isSyncing,
+            lastSyncTime,
+            syncToCloud,
+            syncFromCloud,
+            updateSyncPreferences,
+            hasPendingSync,
+            deleteAccount
+        } = useAuth();
+        
+        const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+        const [syncMessage, setSyncMessage] = useState<string | null>(null);
+        
+        const handleSyncToCloud = async () => {
+            const result = await syncToCloud(true);
+            setSyncMessage(result.message);
+            setTimeout(() => setSyncMessage(null), 3000);
+        };
+        
+        const handleSyncFromCloud = async () => {
+            const result = await syncFromCloud();
+            setSyncMessage(result.message);
+            if (result.success) {
+                setTimeout(() => window.location.reload(), 1500);
+            } else {
+                setTimeout(() => setSyncMessage(null), 3000);
+            }
+        };
+        
+        const handleDeleteAccount = async () => {
+            if (!confirm('ATENÇÃO: Esta ação é irreversível! Todos os seus dados serão excluídos permanentemente. Deseja continuar?')) {
+                return;
+            }
+            const result = await deleteAccount();
+            if (result.success) {
+                window.location.reload();
+            } else {
+                alert('Erro ao excluir conta: ' + result.error);
+            }
+        };
+        
+        const formatLastSync = () => {
+            if (!lastSyncTime) return 'Nunca sincronizado';
+            const date = new Date(lastSyncTime);
+            const now = new Date();
+            const diff = now.getTime() - date.getTime();
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(diff / 3600000);
+            const days = Math.floor(diff / 86400000);
+            
+            if (minutes < 1) return 'Sincronizado agora';
+            if (minutes < 60) return `Sincronizado há ${minutes} min`;
+            if (hours < 24) return `Sincronizado há ${hours}h`;
+            return `Sincronizado há ${days} dias`;
+        };
+        
+        const toggleSyncPreference = (key: 'settings' | 'chatHistory' | 'favoriteCities' | 'weatherCache') => {
+            if (!userData) return;
+            const newPrefs = { 
+                ...userData.syncPreferences,
+                [key]: !userData.syncPreferences[key]
+            };
+            updateSyncPreferences(newPrefs);
+        };
         
         return (
         <div className={`space-y-6 animate-enter`}>
+            {/* Mensagem de sincronização */}
+            {syncMessage && (
+                <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[9999] bg-blue-600/90 backdrop-blur-md text-white px-6 py-3 rounded-full font-medium shadow-xl border border-blue-400/50 animate-enter-pop">
+                    {syncMessage}
+                </div>
+            )}
+        
             {/* Card de Conta e Nuvem */}
             <section className={`${cardClass} rounded-3xl ${density.padding} border border-blue-500/20`}>
                 <h3 className={`text-lg font-bold text-blue-400 mb-4 flex items-center gap-2`}>
@@ -646,18 +723,29 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                     </div>
                 ) : (
                     <div className="space-y-4">
+                        {/* Status da conta */}
                         <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4">
                             <div className="flex items-center gap-3 mb-2">
                                 <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
                                     <UserIcon className="w-5 h-5 text-emerald-400" />
                                 </div>
-                                <div>
-                                    <p className="text-white font-medium">{user?.email}</p>
-                                    <p className="text-sm text-emerald-400">Conectado</p>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-white font-medium truncate">{user?.email}</p>
+                                    <p className="text-sm text-emerald-400 flex items-center gap-1">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                        Conectado
+                                    </p>
                                 </div>
                             </div>
+                            <p className="text-xs text-gray-500 mt-2">
+                                {formatLastSync()}
+                                {hasPendingSync && (
+                                    <span className="text-yellow-400 ml-2">• Alterações pendentes</span>
+                                )}
+                            </p>
                         </div>
                         
+                        {/* Estatísticas */}
                         <div className="grid grid-cols-2 gap-3">
                             <div className="bg-white/5 rounded-xl p-3 text-center">
                                 <p className="text-2xl font-bold text-white">{userData?.favoriteCities?.length || 0}</p>
@@ -669,13 +757,107 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                             </div>
                         </div>
                         
-                        <button 
-                            onClick={logout}
-                            className="w-full border border-red-500/30 text-red-400 hover:bg-red-500/10 py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-all"
-                        >
-                            <LogOutIcon className="w-4 h-4" />
-                            Sair da Conta
-                        </button>
+                        {/* Botões de sincronização */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <button 
+                                onClick={handleSyncToCloud}
+                                disabled={isSyncing}
+                                className="bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-300 py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                            >
+                                {isSyncing ? (
+                                    <LoadingSpinner size="sm" />
+                                ) : (
+                                    <CloudIcon className="w-4 h-4" />
+                                )}
+                                Enviar para Nuvem
+                            </button>
+                            <button 
+                                onClick={handleSyncFromCloud}
+                                disabled={isSyncing}
+                                className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                            >
+                                {isSyncing ? (
+                                    <LoadingSpinner size="sm" />
+                                ) : (
+                                    <DatabaseIcon className="w-4 h-4" />
+                                )}
+                                Baixar da Nuvem
+                            </button>
+                        </div>
+                        
+                        {/* Controle de sincronização */}
+                        <div className="border-t border-white/10 pt-4">
+                            <h4 className="text-sm font-medium text-gray-300 mb-3">O que sincronizar:</h4>
+                            <div className="space-y-2">
+                                <label className="flex items-center justify-between cursor-pointer p-2 rounded-lg hover:bg-white/5 transition-colors">
+                                    <span className="text-sm text-gray-400">Configurações do app</span>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={userData?.syncPreferences?.settings !== false}
+                                        onChange={() => toggleSyncPreference('settings')}
+                                        className="w-4 h-4 rounded border-gray-600 text-blue-500 focus:ring-blue-500/50"
+                                    />
+                                </label>
+                                <label className="flex items-center justify-between cursor-pointer p-2 rounded-lg hover:bg-white/5 transition-colors">
+                                    <span className="text-sm text-gray-400">Histórico de chat</span>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={userData?.syncPreferences?.chatHistory !== false}
+                                        onChange={() => toggleSyncPreference('chatHistory')}
+                                        className="w-4 h-4 rounded border-gray-600 text-blue-500 focus:ring-blue-500/50"
+                                    />
+                                </label>
+                                <label className="flex items-center justify-between cursor-pointer p-2 rounded-lg hover:bg-white/5 transition-colors">
+                                    <span className="text-sm text-gray-400">Cidades favoritas</span>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={userData?.syncPreferences?.favoriteCities !== false}
+                                        onChange={() => toggleSyncPreference('favoriteCities')}
+                                        className="w-4 h-4 rounded border-gray-600 text-blue-500 focus:ring-blue-500/50"
+                                    />
+                                </label>
+                            </div>
+                        </div>
+                        
+                        {/* Botões de conta */}
+                        <div className="border-t border-white/10 pt-4 space-y-2">
+                            <button 
+                                onClick={logout}
+                                className="w-full border border-gray-600 text-gray-300 hover:bg-white/5 py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-all"
+                            >
+                                <LogOutIcon className="w-4 h-4" />
+                                Sair da Conta
+                            </button>
+                            
+                            {!showDeleteConfirm ? (
+                                <button 
+                                    onClick={() => setShowDeleteConfirm(true)}
+                                    className="w-full border border-red-500/30 text-red-400/70 hover:text-red-400 hover:bg-red-500/10 py-2 rounded-xl font-medium text-sm transition-all"
+                                >
+                                    Excluir minha conta
+                                </button>
+                            ) : (
+                                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 space-y-2 animate-enter">
+                                    <p className="text-red-300 text-xs text-center">
+                                        Tem certeza? Esta ação é irreversível!
+                                    </p>
+                                    <div className="flex gap-2">
+                                        <button 
+                                            onClick={() => setShowDeleteConfirm(false)}
+                                            className="flex-1 bg-gray-700 text-white py-2 rounded-lg text-sm"
+                                        >
+                                            Cancelar
+                                        </button>
+                                        <button 
+                                            onClick={handleDeleteAccount}
+                                            className="flex-1 bg-red-500 text-white py-2 rounded-lg text-sm font-medium"
+                                        >
+                                            Sim, excluir
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 )}
             </section>
@@ -742,7 +924,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                 <button onClick={onOpenChangelog} className={`w-full group relative overflow-hidden rounded-2xl border border-white/10 bg-gray-900/60 hover:bg-gray-900/80 transition-all p-4 text-left flex items-center justify-between`}>
                     <div className="flex items-center gap-4 relative z-10">
                         <div className={`p-3 rounded-full bg-gradient-to-br ${classes.gradient} shadow-lg`}><SparklesIcon className="w-5 h-5 text-white" /></div>
-                        <div><p className="text-xs text-gray-400 font-medium uppercase tracking-wider mb-0.5">Meteor App</p><p className="text-white font-bold">Versão 5.2.0 (Dev)</p><p className="text-xs text-gray-500 mt-0.5">Desenvolvido por @elias_jrnunes</p></div>
+                        <div><p className="text-xs text-gray-400 font-medium uppercase tracking-wider mb-0.5">Meteor App</p><p className="text-white font-bold">Versão 5.3.0</p><p className="text-xs text-gray-500 mt-0.5">Desenvolvido por @elias_jrnunes</p></div>
                     </div>
                     <ChevronLeftIcon className="w-5 h-5 rotate-180 text-gray-500" />
                 </button>

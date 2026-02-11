@@ -93,6 +93,15 @@ export interface ChatMessage {
     modelUsed?: string;
     processingTime?: number;
     toolExecuted?: string;
+    timestamp?: number;
+}
+
+export interface ChatSession {
+    id: string;
+    title: string;
+    messages: ChatMessage[];
+    createdAt: number;
+    updatedAt: number;
 }
 
 export interface CitySearchResult {

@@ -346,6 +346,39 @@ const App: React.FC = () => {
     }
   }, []);
 
+  // Event listeners para gerenciamento de histórico de chat
+  useEffect(() => {
+    const handleClearMessages = () => {
+        setMessages([]);
+        localStorage.removeItem('chat_history');
+    };
+
+    const handleLoadSession = (event: any) => {
+        const sessionMessages = event.detail?.messages || [];
+        setMessages(sessionMessages);
+        localStorage.setItem('chat_history', JSON.stringify(sessionMessages));
+    };
+
+    const handleAiResponseCleaned = (event: any) => {
+        const { messageId, newText } = event.detail || {};
+        if (messageId && newText) {
+            setMessages(prev => prev.map(m => 
+                m.id === messageId ? { ...m, text: newText } : m
+            ));
+        }
+    };
+
+    window.addEventListener('clearChatMessages', handleClearMessages);
+    window.addEventListener('loadChatSession', handleLoadSession);
+    window.addEventListener('aiResponseCleaned', handleAiResponseCleaned);
+
+    return () => {
+        window.removeEventListener('clearChatMessages', handleClearMessages);
+        window.removeEventListener('loadChatSession', handleLoadSession);
+        window.removeEventListener('aiResponseCleaned', handleAiResponseCleaned);
+    };
+  }, []);
+
   useEffect(() => {
     if (settings.saveChatHistory) {
         if (messages.length > 0) {
@@ -637,7 +670,7 @@ const App: React.FC = () => {
                 const newMessages = [...prev];
                 const lastMessage = newMessages[newMessages.length - 1];
                 if (lastMessage.role === 'model') {
-                    lastMessage.text = "Erro ao processar resposta. Verifique sua conexao ou tente novamente. Se o problema persistir, a IA pode estar temporariamente indisponivel.";
+                    lastMessage.text = "Erro ao processar resposta. Verifique sua conexão ou tente novamente. Se o problema persistir, a IA pode estar temporariamente indisponível.;
                     lastMessage.modelUsed = "erro";
                 }
                 return newMessages;
