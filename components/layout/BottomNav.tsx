@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import type { View } from '../../types';
-import { HomeIcon, MapIcon, NewspaperIcon, SettingsIcon, SparklesIcon, LightbulbIcon, InfoIcon, MoreHorizontalIcon, MaximizeIcon } from '../icons';
+import { HomeIcon, MapIcon, NewspaperIcon, SettingsIcon, SparklesIcon, LightbulbIcon, BellIcon, MoreHorizontalIcon, MaximizeIcon } from '../icons';
 import { useTheme } from '../context/ThemeContext';
 
 interface BottomNavProps {
@@ -72,7 +72,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeView, setView, onToggleZenM
                 <div className={`absolute bottom-full right-0 mb-4 ${glassClass} rounded-2xl flex flex-col items-start p-2 gap-1 animate-fast-pop min-w-[160px] z-[150] shadow-2xl`}>
                     <div className="px-3 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest border-b border-white/5 w-full mb-1">Menu</div>
                     <NavItem activeColorClass={classes.text} icon={<NewspaperIcon className="w-5 h-5" />} label="Notícias" isActive={activeView === 'news'} onClick={() => handleMoreClick('news')} className="w-full !flex-row !justify-start gap-4 !h-11 px-3 hover:bg-white/5 rounded-xl" />
-                    <NavItem activeColorClass={classes.text} icon={<InfoIcon className="w-5 h-5" />} label="Informações" isActive={activeView === 'info'} onClick={() => handleMoreClick('info')} className="w-full !flex-row !justify-start gap-4 !h-11 px-3 hover:bg-white/5 rounded-xl" />
+                    <NavItem activeColorClass={classes.text} icon={<BellIcon className="w-5 h-5" />} label="Alertas" isActive={activeView === 'alerts'} onClick={() => handleMoreClick('alerts')} className="w-full !flex-row !justify-start gap-4 !h-11 px-3 hover:bg-white/5 rounded-xl" />
                     <NavItem activeColorClass={classes.text} icon={<SettingsIcon className="w-5 h-5" />} label="Ajustes" isActive={activeView === 'settings'} onClick={() => handleMoreClick('settings')} className="w-full !flex-row !justify-start gap-4 !h-11 px-3 hover:bg-white/5 rounded-xl" />
                     
                     {/* Zen Mode Button - Added Separator before it */}

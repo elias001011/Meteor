@@ -28,7 +28,7 @@ const DesktopNav: React.FC<DesktopNavProps> = ({ activeView, setView, showClock 
             <NavItem label="IA" isActive={activeView === 'ai'} onClick={() => setView('ai')} />
             <NavItem label="Notícias" isActive={activeView === 'news'} onClick={() => setView('news')} />
             <NavItem label="Dicas" isActive={activeView === 'tips'} onClick={() => setView('tips')} />
-            <NavItem label="Informações" isActive={activeView === 'info'} onClick={() => setView('info')} />
+            <NavItem label="Alertas" isActive={activeView === 'alerts'} onClick={() => setView('alerts')} />
             <NavItem label="Ajustes" isActive={activeView === 'settings'} onClick={() => setView('settings')} />
         </nav>
     );
