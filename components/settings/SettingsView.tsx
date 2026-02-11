@@ -39,6 +39,26 @@ const SettingsView: React.FC<SettingsViewProps> = ({
     
     const { classes, density, isPerformanceMode, cardClass, glassClass } = useTheme();
     const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
+    
+    // Hooks para a aba Data
+    const { 
+        user, 
+        isLoggedIn, 
+        login, 
+        logout, 
+        userData, 
+        identityError,
+        isSyncing,
+        lastSyncTime,
+        syncToCloud,
+        syncFromCloud,
+        updateSyncPreferences,
+        hasPendingSync,
+        deleteAccount
+    } = useAuth();
+    
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
     useEffect(() => {
         const handleFsChange = () => setIsFullscreen(!!document.fullscreenElement);
@@ -598,79 +618,60 @@ const SettingsView: React.FC<SettingsViewProps> = ({
              </div>
         </div>
     );
+    
+    const handleSyncToCloud = async () => {
+        const result = await syncToCloud(true);
+        setSyncMessage(result.message);
+        setTimeout(() => setSyncMessage(null), 3000);
+    };
+    
+    const handleSyncFromCloud = async () => {
+        const result = await syncFromCloud();
+        setSyncMessage(result.message);
+        if (result.success) {
+            setTimeout(() => window.location.reload(), 1500);
+        } else {
+            setTimeout(() => setSyncMessage(null), 3000);
+        }
+    };
+    
+    const handleDeleteAccount = async () => {
+        if (!confirm('ATENÇÃO: Esta ação é irreversível! Todos os seus dados serão excluídos permanentemente. Deseja continuar?')) {
+            return;
+        }
+        const result = await deleteAccount();
+        if (result.success) {
+            window.location.reload();
+        } else {
+            alert('Erro ao excluir conta: ' + result.error);
+        }
+    };
+    
+    const formatLastSync = () => {
+        if (!lastSyncTime) return 'Nunca sincronizado';
+        const date = new Date(lastSyncTime);
+        const now = new Date();
+        const diff = now.getTime() - date.getTime();
+        const minutes = Math.floor(diff / 60000);
+        const hours = Math.floor(diff / 3600000);
+        const days = Math.floor(diff / 86400000);
+        
+        if (minutes < 1) return 'Sincronizado agora';
+        if (minutes < 60) return `Sincronizado há ${minutes} min`;
+        if (hours < 24) return `Sincronizado há ${hours}h`;
+        return `Sincronizado há ${days} dias`;
+    };
+    
+    const toggleSyncPreference = (key: 'settings' | 'chatHistory' | 'favoriteCities' | 'weatherCache') => {
+        if (!userData) return;
+        const newPrefs = { 
+            ...userData.syncPreferences,
+            [key]: !userData.syncPreferences[key]
+        };
+        updateSyncPreferences(newPrefs);
+    };
 
     const renderData = () => {
-        const { 
-            user, 
-            isLoggedIn, 
-            login, 
-            logout, 
-            userData, 
-            identityError,
-            isSyncing,
-            lastSyncTime,
-            syncToCloud,
-            syncFromCloud,
-            updateSyncPreferences,
-            hasPendingSync,
-            deleteAccount
-        } = useAuth();
-        
-        const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-        const [syncMessage, setSyncMessage] = useState<string | null>(null);
-        
-        const handleSyncToCloud = async () => {
-            const result = await syncToCloud(true);
-            setSyncMessage(result.message);
-            setTimeout(() => setSyncMessage(null), 3000);
-        };
-        
-        const handleSyncFromCloud = async () => {
-            const result = await syncFromCloud();
-            setSyncMessage(result.message);
-            if (result.success) {
-                setTimeout(() => window.location.reload(), 1500);
-            } else {
-                setTimeout(() => setSyncMessage(null), 3000);
-            }
-        };
-        
-        const handleDeleteAccount = async () => {
-            if (!confirm('ATENÇÃO: Esta ação é irreversível! Todos os seus dados serão excluídos permanentemente. Deseja continuar?')) {
-                return;
-            }
-            const result = await deleteAccount();
-            if (result.success) {
-                window.location.reload();
-            } else {
-                alert('Erro ao excluir conta: ' + result.error);
-            }
-        };
-        
-        const formatLastSync = () => {
-            if (!lastSyncTime) return 'Nunca sincronizado';
-            const date = new Date(lastSyncTime);
-            const now = new Date();
-            const diff = now.getTime() - date.getTime();
-            const minutes = Math.floor(diff / 60000);
-            const hours = Math.floor(diff / 3600000);
-            const days = Math.floor(diff / 86400000);
-            
-            if (minutes < 1) return 'Sincronizado agora';
-            if (minutes < 60) return `Sincronizado há ${minutes} min`;
-            if (hours < 24) return `Sincronizado há ${hours}h`;
-            return `Sincronizado há ${days} dias`;
-        };
-        
-        const toggleSyncPreference = (key: 'settings' | 'chatHistory' | 'favoriteCities' | 'weatherCache') => {
-            if (!userData) return;
-            const newPrefs = { 
-                ...userData.syncPreferences,
-                [key]: !userData.syncPreferences[key]
-            };
-            updateSyncPreferences(newPrefs);
-        };
-        
         return (
         <div className={`space-y-6 animate-enter`}>
             {/* Mensagem de sincronização */}
