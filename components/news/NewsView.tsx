@@ -256,9 +256,9 @@ const NewsView: React.FC<NewsViewProps> = ({ onAskAIAboutNews }) => {
                                     <div className="flex gap-2 pt-3 border-t border-white/5">
                                         <button
                                             onClick={() => handleSummarizeWithAI(article)}
-                                            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg ${classes.bg} bg-opacity-30 hover:bg-opacity-50 ${classes.text} text-xs font-medium transition-all`}
+                                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl ${classes.bg} hover:brightness-110 text-white text-sm font-semibold shadow-lg transition-all active:scale-95`}
                                         >
-                                            <SparklesIcon className="w-3.5 h-3.5" />
+                                            <SparklesIcon className="w-4 h-4" />
                                             Resumo com IA
                                         </button>
                                         
