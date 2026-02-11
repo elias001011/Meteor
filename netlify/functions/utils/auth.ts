@@ -1,4 +1,6 @@
 
+import { Buffer } from 'buffer';
+
 // Utilitário de autenticação para Netlify Functions
 // Valida tokens JWT do Netlify Identity
 
