@@ -24,6 +24,7 @@ import ChangelogModal from './components/settings/ChangelogModal';
 import CitySelectionModal from './components/common/CitySelectionModal';
 import OnboardingModal from './components/common/OnboardingModal';
 import { ThemeProvider, useTheme } from './components/context/ThemeContext';
+import { AuthProvider } from './components/context/AuthContext';
 import ZenMode from './components/weather/ZenMode';
 
 // Rain animation component defined locally
@@ -714,6 +715,7 @@ const App: React.FC = () => {
   }, [handleSendMessage]);
 
   return (
+    <AuthProvider>
     <ThemeProvider 
       theme={activeTheme} 
       transparencyMode={settings.transparencyMode} 
@@ -777,6 +779,7 @@ const App: React.FC = () => {
           }}
       />
     </ThemeProvider>
+    </AuthProvider>
   );
 };
 

@@ -74,7 +74,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onCitySelect, onGeolocate }) => {
   return (
     <div className="flex flex-col gap-2">
       <div className="relative" ref={searchContainerRef}>
-        <form onSubmit={(e) => e.preventDefault()} className="relative">
+        <form onSubmit={(e) => e.preventDefault()} className="relative overflow-hidden rounded-full">
           <input
             type="text"
             value={query}
