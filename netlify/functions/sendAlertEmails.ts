@@ -1,6 +1,5 @@
 
 import type { Handler, HandlerEvent, HandlerContext } from '@netlify/functions';
-import { getStore } from '@netlify/blobs';
 
 interface AlertEmailData {
   to: string;
@@ -10,106 +9,26 @@ interface AlertEmailData {
   location?: string;
 }
 
-// Função para enviar email usando Resend
-const sendEmailWithResend = async (apiKey: string, from: string, data: AlertEmailData): Promise<boolean> => {
-  try {
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        from: from,
-        to: data.to,
-        subject: `🌩️ ${data.alertTitle} - Alerta Meteorológico`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #1a1a2e; color: #fff; padding: 20px; border-radius: 10px;">
-            <div style="text-align: center; padding: 20px; border-bottom: 2px solid #e94560;">
-              <h1 style="color: #e94560; margin: 0;">☄️ Meteor</h1>
-              <p style="color: #888; margin: 10px 0 0 0;">Alerta Meteorológico</p>
-            </div>
-            
-            <div style="padding: 30px 20px;">
-              <div style="background: #e94560; color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                <h2 style="margin: 0; font-size: 18px;">⚠️ ${data.alertTitle}</h2>
-              </div>
-              
-              <p style="font-size: 16px; line-height: 1.6; color: #ddd;">
-                ${data.alertMessage}
-              </p>
-              
-              ${data.location ? `
-              <div style="background: #16213e; padding: 15px; border-radius: 8px; margin-top: 20px;">
-                <p style="margin: 0; color: #888;"><strong>Local:</strong> ${data.location}</p>
-              </div>
-              ` : ''}
-              
-              <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #333; text-align: center;">
-                <p style="color: #666; font-size: 12px; margin: 0;">
-                  Este é um alerta automático do Meteor. Para alterar suas preferências, acesse o app.
-                </p>
-              </div>
-            </div>
-          </div>
-        `,
-        text: `Meteor - Alerta Meteorológico
-
-⚠️ ${data.alertTitle}
-
-${data.alertMessage}
-
-${data.location ? `Local: ${data.location}` : ''}
-
----
-Este é um alerta automático do Meteor.`,
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      console.error('Erro ao enviar email:', error);
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.error('Erro ao enviar email:', error);
-    return false;
-  }
-};
-
 // Handler principal
 export const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
-  // Configurações CORS
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
   };
 
-  // Responde a preflight requests
   if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers: corsHeaders,
-      body: '',
-    };
+    return { statusCode: 200, headers: corsHeaders, body: '' };
   }
 
-  // Apenas aceita POST
   if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      headers: corsHeaders,
-      body: JSON.stringify({ error: 'Método não permitido' }),
-    };
+    return { statusCode: 405, headers: corsHeaders, body: JSON.stringify({ error: 'Método não permitido' }) };
   }
 
   const resendApiKey = process.env.RESEND_API;
   const emailFrom = process.env.EMAIL_FROM || 'onboarding@resend.dev';
 
-  console.log('RESEND_API configurada:', !!resendApiKey);
+  console.log('RESEND_API existe:', !!resendApiKey);
   console.log('EMAIL_FROM:', emailFrom);
 
   if (!resendApiKey) {
@@ -125,9 +44,8 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
 
   try {
     const data: AlertEmailData = JSON.parse(event.body || '{}');
-    console.log('Dados recebidos:', { to: data.to, alertTitle: data.alertTitle, location: data.location });
+    console.log('Dados recebidos:', { to: data.to, title: data.alertTitle });
 
-    // Validação
     if (!data.to || !data.alertTitle || !data.alertMessage) {
       return {
         statusCode: 400,
@@ -136,7 +54,6 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
       };
     }
 
-    // Valida email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(data.to)) {
       return {
@@ -146,36 +63,67 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
       };
     }
 
-    // Envia o email
-    console.log('Enviando email para:', data.to);
-    const success = await sendEmailWithResend(resendApiKey, emailFrom, data);
-    console.log('Resultado do envio:', success);
+    // Envia o email direto
+    console.log('Enviando email via Resend...');
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${resendApiKey}`,
+      },
+      body: JSON.stringify({
+        from: emailFrom,
+        to: data.to,
+        subject: `🌩️ ${data.alertTitle} - Alerta Meteorológico`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #1a1a2e; color: #fff; padding: 20px; border-radius: 10px;">
+            <h1 style="color: #e94560;">☄️ Meteor</h1>
+            <h2>⚠️ ${data.alertTitle}</h2>
+            <p>${data.alertMessage}</p>
+            ${data.location ? `<p><strong>Local:</strong> ${data.location}</p>` : ''}
+          </div>
+        `,
+        text: `Meteor - ${data.alertTitle}\n\n${data.alertMessage}`,
+      }),
+    });
 
-    if (success) {
-      return {
-        statusCode: 200,
-        headers: corsHeaders,
-        body: JSON.stringify({ 
-          success: true, 
-          message: 'Alerta enviado com sucesso'
-        }),
-      };
-    } else {
+    console.log('Status da resposta Resend:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Erro da API Resend:', errorText);
       return {
         statusCode: 500,
         headers: corsHeaders,
-        body: JSON.stringify({ error: 'Falha ao enviar email' }),
+        body: JSON.stringify({ 
+          error: 'Falha ao enviar email',
+          details: errorText,
+          status: response.status
+        }),
       };
     }
 
-  } catch (error) {
+    const result = await response.json();
+    console.log('Email enviado com sucesso:', result);
+
+    return {
+      statusCode: 200,
+      headers: corsHeaders,
+      body: JSON.stringify({ 
+        success: true, 
+        message: 'Alerta enviado com sucesso',
+        id: result.id
+      }),
+    };
+
+  } catch (error: any) {
     console.error('Erro no handler:', error);
     return {
       statusCode: 500,
       headers: corsHeaders,
       body: JSON.stringify({ 
         error: 'Erro interno do servidor',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: error.message
       }),
     };
   }
