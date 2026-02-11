@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import type { WeatherData, WeatherAlert } from '../../types';
 import { useTheme } from '../context/ThemeContext';
-import { AlertTriangleIcon, BellIcon, XIcon, InfoIcon } from '../icons';
+import { AlertTriangleIcon, BellIcon, InfoIcon } from '../icons';
 
 interface AlertsViewProps {
     currentWeather?: WeatherData | null;
@@ -41,7 +41,7 @@ const generateLocalAlerts = (weather: WeatherData | null | undefined): LocalAler
             type: 'storm',
             level: 'critical',
             title: 'Tempestade em Andamento',
-            message: 'Raios e trovoes detectados na sua regiao. Fique em local fechado e evite areas abertas.',
+            message: 'Raios e trovões detectados na sua região. Fique em local fechado e evite áreas abertas.',
             timestamp: now,
             expiresAt: now + oneHour
         });
@@ -54,7 +54,7 @@ const generateLocalAlerts = (weather: WeatherData | null | undefined): LocalAler
             type: 'rain',
             level: 'warning',
             title: 'Chuva Intensa',
-            message: 'Precipitacao intensa pode causar alagamentos. Evite sair e nao estacione em areas baixas.',
+            message: 'Precipitação intensa pode causar alagamentos. Evite sair e não estacione em áreas baixas.',
             timestamp: now,
             expiresAt: now + oneHour
         });
@@ -67,7 +67,7 @@ const generateLocalAlerts = (weather: WeatherData | null | undefined): LocalAler
             type: 'heat',
             level: 'critical',
             title: 'Onda de Calor',
-            message: `Sensacao termica de ${Math.round(feelsLike)}°C. Risco de insolacao. Evite sol das 10h as 16h, beba muita agua.`,
+            message: `Sensação térmica de ${Math.round(feelsLike)}°C. Risco de insolação. Evite sol das 10h às 16h, beba muita água.`,
             timestamp: now,
             expiresAt: now + oneHour * 6
         });
@@ -90,7 +90,7 @@ const generateLocalAlerts = (weather: WeatherData | null | undefined): LocalAler
             type: 'cold',
             level: 'critical',
             title: 'Frio Intenso',
-            message: `Sensacao de ${Math.round(feelsLike)}°C. Risco de hipotermia. Agasalhe-se bem e evite exposicao prolongada.`,
+            message: `Sensação de ${Math.round(feelsLike)}°C. Risco de hipotermia. Agasalhe-se bem e evite exposição prolongada.`,
             timestamp: now,
             expiresAt: now + oneHour * 6
         });
@@ -112,8 +112,8 @@ const generateLocalAlerts = (weather: WeatherData | null | undefined): LocalAler
             id: 'uv-extreme',
             type: 'uv',
             level: 'critical',
-            title: 'Indice UV Extremo',
-            message: 'Nivel maximo de radiacao UV. Evite exposicao ao sol. Protecao FPS 50+ obrigatoria se precisar sair.',
+            title: 'Índice UV Extremo',
+            message: 'Nível máximo de radiação UV. Evite exposição ao sol. Proteção FPS 50+ obrigatória se precisar sair.',
             timestamp: now,
             expiresAt: now + oneHour * 4
         });
@@ -122,8 +122,8 @@ const generateLocalAlerts = (weather: WeatherData | null | undefined): LocalAler
             id: 'uv-high',
             type: 'uv',
             level: 'warning',
-            title: 'Indice UV Muito Alto',
-            message: 'Protecao solar essencial. Limite a exposicao entre 10h e 16h.',
+            title: 'Índice UV Muito Alto',
+            message: 'Proteção solar essencial. Limite a exposição entre 10h e 16h.',
             timestamp: now,
             expiresAt: now + oneHour * 4
         });
@@ -186,34 +186,15 @@ const getAlertStyles = (level: string) => {
 
 const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, apiAlerts }) => {
     const { cardClass, classes, density } = useTheme();
-    const [dismissedAlerts, setDismissedAlerts] = useState<string[]>([]);
     const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-
-    // Carregar alertas dispensados do localStorage
-    useEffect(() => {
-        const saved = localStorage.getItem('meteor_dismissed_alerts');
-        if (saved) {
-            try {
-                setDismissedAlerts(JSON.parse(saved));
-            } catch (e) {}
-        }
-    }, []);
-
-    // Salvar alertas dispensados
-    const dismissAlert = (alertId: string) => {
-        const updated = [...dismissedAlerts, alertId];
-        setDismissedAlerts(updated);
-        localStorage.setItem('meteor_dismissed_alerts', JSON.stringify(updated));
-    };
 
     // Gerar alertas locais
     const localAlerts = useMemo(() => {
         return generateLocalAlerts(currentWeather);
     }, [currentWeather]);
 
-    // Filtrar alertas dispensados e expirados
+    // Filtrar apenas alertas expirados (sem dispensar - mostrar todos)
     const activeLocalAlerts = localAlerts.filter(alert => {
-        if (dismissedAlerts.includes(alert.id)) return false;
         if (Date.now() > alert.expiresAt) return false;
         return true;
     });
@@ -332,8 +313,8 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, apiAlerts }) =>
                                                     alert.level === 'warning' ? 'bg-orange-500 text-white' :
                                                     'bg-yellow-500 text-black'
                                                 }`}>
-                                                    {alert.level === 'critical' ? 'Critico' : 
-                                                     alert.level === 'warning' ? 'Alerta' : 'Atencao'}
+                                                    {alert.level === 'critical' ? 'Crítico' : 
+                                                     alert.level === 'warning' ? 'Alerta' : 'Atenção'}
                                                 </span>
                                             </div>
                                             <p className="text-gray-200 text-sm leading-relaxed">
@@ -344,13 +325,7 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, apiAlerts }) =>
                                             </p>
                                         </div>
                                         
-                                        <button 
-                                            onClick={() => dismissAlert(alert.id)}
-                                            className="p-1.5 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0"
-                                            title="Dispensar alerta"
-                                        >
-                                            <XIcon className="w-4 h-4 text-gray-400" />
-                                        </button>
+
                                     </div>
                                 </div>
                             );
@@ -366,7 +341,7 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, apiAlerts }) =>
                         <p className="text-gray-400 text-sm">
                             Não há alertas meteorológicos para sua região no momento.
                             <br />
-                            As condicoes estao estaveis.
+                            As condições estão estáveis.
                         </p>
                     </div>
                 )}
@@ -382,7 +357,7 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, apiAlerts }) =>
                             { label: 'Tempestades', color: 'text-red-400' },
                             { label: 'Calor Extremo', color: 'text-orange-400' },
                             { label: 'Frio Intenso', color: 'text-cyan-400' },
-                            { label: 'Indice UV', color: 'text-purple-400' },
+                            { label: 'Índice UV', color: 'text-purple-400' },
                             { label: 'Ventos Fortes', color: 'text-blue-400' },
                             { label: 'Chuvas Intensas', color: 'text-indigo-400' },
                         ].map((item, i) => (
