@@ -375,7 +375,7 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                     alertType: alertToSend.type,
                     alertTitle: alertToSend.title,
                     alertMessage: alertToSend.message,
-                    location: currentWeather?.city,
+                    location: userData?.preferences?.alertCity || currentWeather?.city || 'Sua cidade',
                 }),
             });
 
@@ -384,10 +384,12 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
             if (response.ok && result.success) {
                 setEmailStatus({ type: 'success', message: 'Alerta enviado para seu email!' });
             } else {
-                setEmailStatus({ type: 'error', message: result.error || 'Erro ao enviar email' });
+                console.error('Erro ao enviar email:', result);
+                setEmailStatus({ type: 'error', message: result.error || result.message || `Erro ${response.status}` });
             }
-        } catch (error) {
-            setEmailStatus({ type: 'error', message: 'Erro de conexão' });
+        } catch (error: any) {
+            console.error('Erro de conexão:', error);
+            setEmailStatus({ type: 'error', message: `Erro: ${error.message || 'Falha na conexão'}` });
         } finally {
             setIsSendingEmail(false);
             setTimeout(() => setEmailStatus(null), 5000);
@@ -567,22 +569,40 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                             
                             {/* Campo de Email */}
                             {userData?.emailAlertsEnabled && (
-                                <div className="animate-enter space-y-2">
-                                    <label className="text-sm text-gray-400">Email para receber alertas</label>
-                                    <div className="flex gap-2">
+                                <div className="animate-enter space-y-3">
+                                    <div>
+                                        <label className="text-sm text-gray-400 mb-2 block">Cidade para alertas</label>
                                         <input
-                                            type="email"
-                                            value={emailInput}
-                                            onChange={(e) => setEmailInput(e.target.value)}
-                                            placeholder="seu@email.com"
-                                            className="flex-1 bg-gray-900/60 border border-white/10 rounded-xl px-4 py-2 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                            type="text"
+                                            value={userData?.preferences?.alertCity || currentWeather?.city || ''}
+                                            onChange={(e) => updateUserData({
+                                                preferences: { ...userData?.preferences, alertCity: e.target.value }
+                                            })}
+                                            placeholder="Digite sua cidade"
+                                            className="w-full bg-gray-900/60 border border-white/10 rounded-xl px-4 py-2 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                                         />
-                                        <button
-                                            onClick={saveAlertEmail}
-                                            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors"
-                                        >
-                                            Salvar
-                                        </button>
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            Os alertas serão baseados nesta cidade
+                                        </p>
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="text-sm text-gray-400 mb-2 block">Email para receber alertas</label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="email"
+                                                value={emailInput}
+                                                onChange={(e) => setEmailInput(e.target.value)}
+                                                placeholder="seu@email.com"
+                                                className="flex-1 bg-gray-900/60 border border-white/10 rounded-xl px-4 py-2 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                            />
+                                            <button
+                                                onClick={saveAlertEmail}
+                                                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+                                            >
+                                                Salvar
+                                            </button>
+                                        </div>
                                     </div>
                                     
                                     {/* Botão de enviar alerta de teste */}
