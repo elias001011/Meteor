@@ -350,21 +350,24 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
 
     // Enviar alerta por email
     const sendTestAlert = async () => {
-        if (!userData?.emailAlertAddress || !isLoggedIn) return;
+        if (!userData?.emailAlertAddress || !isLoggedIn) {
+            setEmailStatus({ type: 'error', message: 'Configure um email primeiro' });
+            return;
+        }
         
         setIsSendingEmail(true);
         setEmailStatus(null);
         
         try {
-            // Pega o primeiro alerta crítico ou warning
-            const alertToSend = allAlerts.find(a => a.level === 'critical' || a.level === 'warning');
+            // Pega o primeiro alerta ou usa um genérico
+            const alertToSend = allAlerts.find(a => a.level === 'critical' || a.level === 'warning') || {
+                type: 'test',
+                title: 'Teste de Alerta Meteor',
+                message: 'Este é um email de teste do sistema de alertas do Meteor. Se você recebeu, está tudo funcionando!'
+            };
             
-            if (!alertToSend) {
-                setEmailStatus({ type: 'error', message: 'Nenhum alerta ativo para enviar' });
-                setIsSendingEmail(false);
-                return;
-            }
-
+            console.log('Enviando email para:', userData.emailAlertAddress);
+            
             const response = await fetch('/.netlify/functions/sendAlertEmails', {
                 method: 'POST',
                 headers: {
@@ -379,20 +382,22 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                 }),
             });
 
+            console.log('Status da resposta:', response.status);
             const result = await response.json();
+            console.log('Resultado:', result);
 
             if (response.ok && result.success) {
-                setEmailStatus({ type: 'success', message: 'Alerta enviado para seu email!' });
+                setEmailStatus({ type: 'success', message: '✅ Email enviado! Verifique sua caixa de entrada.' });
             } else {
-                console.error('Erro ao enviar email:', result);
+                console.error('❌ Erro ao enviar email:', result);
                 setEmailStatus({ type: 'error', message: result.error || result.message || `Erro ${response.status}` });
             }
         } catch (error: any) {
-            console.error('Erro de conexão:', error);
+            console.error('❌ Erro de conexão:', error);
             setEmailStatus({ type: 'error', message: `Erro: ${error.message || 'Falha na conexão'}` });
         } finally {
             setIsSendingEmail(false);
-            setTimeout(() => setEmailStatus(null), 5000);
+            setTimeout(() => setEmailStatus(null), 8000);
         }
     };
 
@@ -605,21 +610,19 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                                         </div>
                                     </div>
                                     
-                                    {/* Botão de enviar alerta de teste */}
-                                    {allAlerts.length > 0 && (
-                                        <button
-                                            onClick={sendTestAlert}
-                                            disabled={isSendingEmail}
-                                            className="w-full mt-2 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 py-2 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                                        >
-                                            {isSendingEmail ? (
-                                                <RefreshCwIcon className="w-4 h-4 animate-spin" />
-                                            ) : (
-                                                <MailIcon className="w-4 h-4" />
-                                            )}
-                                            Enviar alerta atual por email
-                                        </button>
-                                    )}
+                                    {/* Botão de teste - sempre visível */}
+                                    <button
+                                        onClick={sendTestAlert}
+                                        disabled={isSendingEmail}
+                                        className="w-full mt-2 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 py-2 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                    >
+                                        {isSendingEmail ? (
+                                            <RefreshCwIcon className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                            <MailIcon className="w-4 h-4" />
+                                        )}
+                                        {allAlerts.length > 0 ? 'Enviar alerta atual por email' : 'Enviar email de teste'}
+                                    </button>
                                     
                                     {emailStatus && (
                                         <p className={`text-xs text-center ${
