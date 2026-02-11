@@ -586,7 +586,9 @@ const App: React.FC = () => {
         }
 
         try {
+            let hasReceivedData = false;
             for await (const chunk of stream) {
+                hasReceivedData = true;
                 fullText = chunk.text;
                 
                 setMessages(prev => {
@@ -604,13 +606,27 @@ const App: React.FC = () => {
                     return newMessages;
                 });
             }
+            
+            // Se nao recebeu nenhum dado, mostrar erro
+            if (!hasReceivedData || !fullText.trim()) {
+                setMessages(prev => {
+                    const newMessages = [...prev];
+                    const lastMessage = newMessages[newMessages.length - 1];
+                    if (lastMessage.role === 'model') {
+                        lastMessage.text = "Desculpe, nao consegui processar sua solicitacao. Tente novamente em alguns segundos.";
+                        lastMessage.modelUsed = "erro";
+                    }
+                    return newMessages;
+                });
+            }
         } catch (e) {
             console.error("Error in chat stream", e);
-             setMessages(prev => {
+            setMessages(prev => {
                 const newMessages = [...prev];
                 const lastMessage = newMessages[newMessages.length - 1];
                 if (lastMessage.role === 'model') {
-                    lastMessage.text += "\n\n[Erro ao processar resposta]";
+                    lastMessage.text = "Erro ao processar resposta. Verifique sua conexao ou tente novamente. Se o problema persistir, a IA pode estar temporariamente indisponivel.";
+                    lastMessage.modelUsed = "erro";
                 }
                 return newMessages;
             });

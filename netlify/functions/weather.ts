@@ -292,7 +292,7 @@ const fetchWithOneCall = async (lat: string, lon: string) => {
         rain: item.rain,
         dew_point: item.dew_point,
         moon_phase: item.moon_phase,
-        summary: item.summary ? translateSummary(item.summary) : undefined
+        summary: item.summary
     }));
 
     const airQualityData = airPollutionApiData && airPollutionApiData.list?.[0]
@@ -462,71 +462,6 @@ const fetchWithFreeTier = async (lat: string, lon: string) => {
         alerts: [],
         dataSource: 'free' as const,
     };
-};
-
-/**
- * Tradução simples para summaries da One Call API
- * A API retorna summaries em inglês mesmo com lang=pt_br
- */
-const translateSummary = (summary: string): string => {
-    if (!summary) return '';
-    
-    const translations: Record<string, string> = {
-        // Condições gerais
-        'clear sky': 'céu limpo',
-        'clear': 'limpo',
-        'few clouds': 'poucas nuvens',
-        'scattered clouds': 'nuvens dispersas',
-        'broken clouds': 'nuvens fragmentadas',
-        'overcast clouds': 'nublado',
-        'cloudy': 'nublado',
-        
-        // Precipitação
-        'light rain': 'chuva leve',
-        'moderate rain': 'chuva moderada',
-        'heavy rain': 'chuva forte',
-        'rain': 'chuva',
-        'showers': 'pancadas de chuva',
-        'light snow': 'neve leve',
-        'snow': 'neve',
-        'heavy snow': 'neve forte',
-        'sleet': 'granizo',
-        'drizzle': 'garoa',
-        'thunderstorm': 'trovoada',
-        'storm': 'tempestade',
-        
-        // Temperatura
-        'hot': 'quente',
-        'warm': 'morno',
-        'mild': 'ameno',
-        'cool': 'fresco',
-        'cold': 'frio',
-        'freezing': 'congelante',
-        
-        // Períodos
-        'expect': 'espere por',
-        'there will be': 'haverá',
-        'with': 'com',
-        'and': 'e',
-        'throughout the day': 'durante o dia',
-        'in the morning': 'de manhã',
-        'in the afternoon': 'à tarde',
-        'in the evening': 'à noite',
-        'at night': 'de noite',
-        'all day': 'o dia todo',
-        'today': 'hoje',
-        'tomorrow': 'amanhã',
-    };
-    
-    let translated = summary.toLowerCase();
-    
-    // Substituir frases completas primeiro
-    Object.entries(translations).forEach(([en, pt]) => {
-        translated = translated.replace(new RegExp(`\\b${en}\\b`, 'gi'), pt);
-    });
-    
-    // Capitalizar primeira letra
-    return translated.charAt(0).toUpperCase() + translated.slice(1);
 };
 
 // Fallback Map Codes for Maps 1.0 (Free Tier)
