@@ -35,8 +35,14 @@ export const isPWAInstalled = (): boolean => {
 // Registra o Service Worker
 export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration | null> => {
   if (!('serviceWorker' in navigator)) {
-    console.warn('Service Worker não suportado');
+    console.warn('Service Worker não suportado neste navegador');
     return null;
+  }
+
+  // Verifica se está em contexto seguro (HTTPS ou localhost)
+  if (!window.isSecureContext) {
+    console.warn('Service Worker requer HTTPS ou localhost para funcionar');
+    throw new Error('Contexto não seguro: Service Worker requer HTTPS');
   }
 
   try {
@@ -44,9 +50,12 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
     await navigator.serviceWorker.ready;
     console.log('Service Worker registrado:', registration);
     return registration;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao registrar Service Worker:', error);
-    return null;
+    if (error.name === 'SecurityError' || error.message?.includes('secure')) {
+      throw new Error('Service Worker requer HTTPS ou localhost para funcionar');
+    }
+    throw new Error('Não foi possível registrar o Service Worker');
   }
 };
 

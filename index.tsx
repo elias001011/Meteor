@@ -7,6 +7,13 @@ import App from './App';
 // Note: In development (Vite), sw.js might not be served at root, causing a console error.
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
+    // Verifica se está em contexto seguro (HTTPS ou localhost)
+    const isSecureContext = window.isSecureContext;
+    if (!isSecureContext) {
+      console.warn('Service Worker não pode ser registrado: contexto não seguro (requer HTTPS)');
+      return;
+    }
+    
     navigator.serviceWorker.register('/sw.js')
       .then(registration => {
         console.log('Service Worker registered with scope:', registration.scope);
@@ -15,6 +22,8 @@ if ('serviceWorker' in navigator) {
         // Suppress the noisy error in console during development if sw.js isn't found or served as HTML
         if (err.message.includes('MIME type') || err.message.includes('404') || err.message.includes('Script has an unsupported MIME type')) {
              console.warn('Service Worker registration skipped (likely in development mode or sw.js missing).');
+        } else if (err.message.includes('secure origin') || err.name === 'SecurityError') {
+             console.warn('Service Worker requer HTTPS ou localhost para funcionar.');
         } else {
              console.error('Service Worker registration failed:', err);
         }

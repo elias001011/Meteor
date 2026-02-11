@@ -602,11 +602,7 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, apiAlerts }) =>
                                 </div>
                             )}
                             
-                            <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3">
-                                <p className="text-xs text-blue-200/80">
-                                    <strong>Configuração necessária:</strong> Para envio de emails, o administrador precisa configurar a variável RESEND_API_KEY no Netlify.
-                                </p>
-                            </div>
+
                         </div>
                     )}
                 </div>
