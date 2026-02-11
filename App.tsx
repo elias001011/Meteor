@@ -670,7 +670,7 @@ const App: React.FC = () => {
                 const newMessages = [...prev];
                 const lastMessage = newMessages[newMessages.length - 1];
                 if (lastMessage.role === 'model') {
-                    lastMessage.text = "Erro ao processar resposta. Verifique sua conexão ou tente novamente. Se o problema persistir, a IA pode estar temporariamente indisponível.;
+                    lastMessage.text = "Erro ao processar resposta. Verifique sua conexão ou tente novamente. Se o problema persistir, a IA pode estar temporariamente indisponível.";
                     lastMessage.modelUsed = "erro";
                 }
                 return newMessages;
