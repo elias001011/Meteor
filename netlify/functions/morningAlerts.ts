@@ -62,6 +62,98 @@ function formatAlertMessage(alert: any): string {
   return `${alert.event}: ${alert.description?.substring(0, 100) || 'Alerta meteorológico'}...`;
 }
 
+// Gera alertas personalizados baseados nos dados (igual o app faz)
+function generatePersonalizedAlerts(weather: any): Array<{title: string; message: string; level: string}> {
+  const alerts = [];
+  const current = weather.current;
+  const today = weather.daily[0];
+  
+  const temp = current.temp;
+  const feelsLike = current.feels_like || temp;
+  const windSpeed = (current.wind_speed || 0) * 3.6; // m/s para km/h
+  const uvi = today.uvi || 0;
+  const condition = (current.weather?.[0]?.description || '').toLowerCase();
+  
+  // Tempestade
+  if (condition.includes('tempestade') || condition.includes('trovoada')) {
+    alerts.push({
+      title: '⛈️ Tempestade em Andamento',
+      message: 'Raios e trovões detectados. Fique em local fechado.',
+      level: 'critical'
+    });
+  }
+  // Chuva forte
+  else if (condition.includes('chuva forte') || condition.includes('heavy rain')) {
+    alerts.push({
+      title: '🌧️ Chuva Intensa',
+      message: 'Precipitação intensa pode causar alagamentos.',
+      level: 'warning'
+    });
+  }
+  
+  // Calor extremo
+  if (feelsLike >= 38) {
+    alerts.push({
+      title: '🔥 Onda de Calor',
+      message: `Sensação térmica de ${Math.round(feelsLike)}°C. Risco de insolação.`,
+      level: 'critical'
+    });
+  } else if (feelsLike >= 35) {
+    alerts.push({
+      title: '🌡️ Calor Intenso',
+      message: `Sensação de ${Math.round(feelsLike)}°C. Hidrate-se bastante.`,
+      level: 'warning'
+    });
+  }
+  
+  // Frio extremo
+  if (feelsLike <= 3) {
+    alerts.push({
+      title: '❄️ Frio Intenso',
+      message: `Sensação de ${Math.round(feelsLike)}°C. Risco de hipotermia.`,
+      level: 'critical'
+    });
+  } else if (feelsLike <= 8) {
+    alerts.push({
+      title: '🥶 Temperatura Baixa',
+      message: 'Frio significativo. Use várias camadas.',
+      level: 'caution'
+    });
+  }
+  
+  // UV Extremo
+  if (uvi >= 11) {
+    alerts.push({
+      title: '☀️ UV Extremo',
+      message: `Índice UV ${uvi}. Evite exposição ao sol. Proteção FPS 50+ obrigatória.`,
+      level: 'critical'
+    });
+  } else if (uvi >= 8) {
+    alerts.push({
+      title: '🌞 UV Muito Alto',
+      message: `Índice UV ${uvi}. Proteção solar essencial.`,
+      level: 'warning'
+    });
+  }
+  
+  // Ventania
+  if (windSpeed >= 60) {
+    alerts.push({
+      title: '💨 Ventania',
+      message: `Ventos de ${Math.round(windSpeed)} km/h. Perigo de queda de estruturas.`,
+      level: 'critical'
+    });
+  } else if (windSpeed >= 40) {
+    alerts.push({
+      title: '🌬️ Vento Forte',
+      message: 'Rajadas intensas. Evite ficar perto de árvores.',
+      level: 'warning'
+    });
+  }
+  
+  return alerts;
+}
+
 function formatSummary(weather: any, city: string): string {
   const current = weather.current;
   const today = weather.daily[0];
@@ -191,21 +283,35 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
         for (const user of locationUsers) {
           const isSummaryTime = user.summaryTime === currentTime;
           
-          // A) ALERTAS GOVERNAMENTAIS (sempre envia se houver)
-          if (hasAlerts && (user.wantsPushAlerts || user.wantsEmailAlerts)) {
-            const alert = alerts[0];
-            const message = formatAlertMessage(alert);
+          // Gera alertas personalizados também
+          const personalizedAlerts = generatePersonalizedAlerts(weather);
+          const allAlerts = [...(hasAlerts ? alerts.map((a: any) => ({...a, isGov: true})) : []), 
+                            ...personalizedAlerts.map((a: any) => ({...a, isPersonal: true}))];
+          
+          // A) ALERTAS (governamentais + personalizados)
+          if (allAlerts.length > 0 && (user.wantsPushAlerts || user.wantsEmailAlerts)) {
+            // Pega o alerta mais crítico
+            const criticalAlert = allAlerts.find((a: any) => a.level === 'critical' || a.event?.toLowerCase().includes('tempestade')) || allAlerts[0];
+            
+            let title, message;
+            if (criticalAlert.isGov) {
+              title = `🚨 ${criticalAlert.event}`;
+              message = formatAlertMessage(criticalAlert);
+            } else {
+              title = criticalAlert.title;
+              message = criticalAlert.message;
+            }
             
             // Push
             if (user.wantsPushAlerts && user.pushSubscription) {
               try {
                 await webpush.sendNotification(user.pushSubscription, JSON.stringify({
-                  title: `🚨 ${alert.event}`,
+                  title,
                   body: message,
                   icon: '/favicon.svg',
                   url: '/',
                   tag: `alert-${Date.now()}`,
-                  requireInteraction: true,
+                  requireInteraction: criticalAlert.level === 'critical',
                 }));
                 stats.pushSent++;
               } catch (e: any) {
@@ -227,12 +333,13 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
                   body: JSON.stringify({
                     from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
                     to: user.emailAlertAddress,
-                    subject: `🚨 Alerta - ${user.city}`,
+                    subject: title.includes('🚨') ? title : `🚨 ${title} - ${user.city}`,
                     html: `
                       <div style="font-family: Arial; max-width: 600px; margin: 0 auto; background: #1a1a2e; color: #fff; padding: 20px; border-radius: 10px;">
-                        <h2 style="color: #e94560;">⚠️ ${alert.event}</h2>
-                        <p>${alert.description}</p>
+                        <h2 style="color: #e94560;">${title}</h2>
+                        <p>${message}</p>
                         <p style="color: #888;">Local: ${user.city}</p>
+                        ${personalizedAlerts.length > 0 ? `<p style="color: #aaa; font-size: 12px; margin-top: 10px;">Alertas ativos: ${personalizedAlerts.length + (hasAlerts ? alerts.length : 0)}</p>` : ''}
                       </div>
                     `,
                   }),
