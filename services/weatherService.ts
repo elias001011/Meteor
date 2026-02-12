@@ -61,7 +61,7 @@ export const fetchAllWeatherData = async (
             }
         }
     } catch (error) {
-        console.warn("Could not read from cache. Fetching new data.", error);
+        // Could not read from cache, fetching new data
     }
     
     // 2. If no cache or cache is stale, fetch from the network
@@ -103,7 +103,7 @@ export const fetchAllWeatherData = async (
         };
         localStorage.setItem(cacheKey, JSON.stringify(itemToCache));
     } catch (error) {
-        console.warn("Could not write to cache.", error);
+        // Could not write to cache
     }
 
     return finalData;

@@ -95,8 +95,6 @@ const tryOpenRouter = async (
     prompt: string
 ): Promise<{ text: string; model: string } | null> => {
     try {
-        console.log('[OpenRouter] Attempting fallback with free model...');
-        
         const messages = contents.map((content: any) => ({
             role: content.role === 'model' ? 'assistant' : content.role,
             content: content.parts?.[0]?.text || ''
@@ -125,8 +123,6 @@ const tryOpenRouter = async (
         });
 
         if (!response.ok) {
-            const error = await response.json().catch(() => ({}));
-            console.error('[OpenRouter] Error:', error);
             return null;
         }
 
@@ -135,13 +131,11 @@ const tryOpenRouter = async (
         const model = data.model || 'openrouter/free';
 
         if (text) {
-            console.log('[OpenRouter] Successfully generated response');
             return { text, model };
         }
 
         return null;
     } catch (error) {
-        console.error('[OpenRouter] Exception:', error);
         return null;
     }
 };
@@ -203,14 +197,13 @@ const handler: Handler = async (event: HandlerEvent) => {
                     text = result.text;
                     if (text) break;
                 } catch (error) {
-                    console.warn(`[Gemini] Falha no modelo ${model}.`, error);
+                    // Silently try next model
                 }
             }
         }
 
         // FALLBACK PARA OPEN ROUTER
         if (!text && openRouterKey) {
-            console.log('[Handler] Gemini failed or unavailable, trying Open Router fallback...');
             const openRouterResult = await tryOpenRouter(openRouterKey, contents, prompt);
             
             if (openRouterResult) {
@@ -225,8 +218,6 @@ const handler: Handler = async (event: HandlerEvent) => {
         }
 
         const processingTime = Date.now() - startTime;
-        
-        console.log(`[Handler] Response generated using ${usedModel}${usedFallback ? ' (fallback)' : ''} in ${processingTime}ms`);
 
         return {
             statusCode: 200,

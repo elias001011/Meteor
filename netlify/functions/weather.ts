@@ -49,7 +49,6 @@ const mapWmoCodeToDescription = (code: number): string => {
 };
 
 const fetchWithOpenMeteo = async (lat: string, lon: string) => {
-    console.log("Attempting to fetch data from Open-Meteo API");
     const forecastParams = new URLSearchParams({
         latitude: lat,
         longitude: lon,
@@ -79,15 +78,11 @@ const fetchWithOpenMeteo = async (lat: string, lon: string) => {
         throw new Error(`[${forecastRes.status}] ${errorData.reason}`);
     }
     
-    console.log("Successfully fetched forecast data from Open-Meteo");
     const forecastApiData = await forecastRes.json();
     
     let airQualityApiData = null;
     if (airQualityRes.ok) {
         airQualityApiData = await airQualityRes.json();
-        console.log("Successfully fetched air quality data from Open-Meteo");
-    } else {
-        console.warn("Could not fetch air quality data from Open-Meteo. It will be omitted.");
     }
 
     const current = forecastApiData.current;
@@ -203,7 +198,6 @@ const fetchWithOpenMeteo = async (lat: string, lon: string) => {
 
 
 const fetchWithOneCall = async (lat: string, lon: string) => {
-    console.log("Attempting to fetch data from One Call API 3.0");
     const onecallUrl = `https://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${lon}&units=metric&lang=pt_br&exclude=minutely&appid=${API_KEY}`;
     const airPollutionUrl = `https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${API_KEY}`;
 
@@ -217,14 +211,11 @@ const fetchWithOneCall = async (lat: string, lon: string) => {
         throw new Error(`[${onecallRes.status}] ${errorData.message}`);
     }
     
-    console.log("Successfully fetched data from One Call API 3.0");
     const onecallApiData = await onecallRes.json();
     
     let airPollutionApiData = null;
     if (airPollutionRes.ok) {
         airPollutionApiData = await airPollutionRes.json();
-    } else {
-        console.warn("Could not fetch air pollution data with One Call. It will be omitted.");
     }
     
     const weatherData = {
@@ -311,8 +302,6 @@ const fetchWithOneCall = async (lat: string, lon: string) => {
 
 
 const fetchWithFreeTier = async (lat: string, lon: string) => {
-    console.log("Attempting to fetch data from Free Tier APIs (Standard + Forecast 5d/3h)");
-    
     const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&lang=pt_br&appid=${API_KEY}`;
     const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&lang=pt_br&appid=${API_KEY}`;
     const airPollutionUrl = `https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${API_KEY}`;
@@ -327,15 +316,11 @@ const fetchWithFreeTier = async (lat: string, lon: string) => {
         const error = !weatherRes.ok ? await weatherRes.json() : await forecastRes.json();
         throw new Error(error.message || 'Falha ao buscar dados do nível gratuito.');
     }
-    console.log("Successfully fetched data from Free Tier APIs");
-
     const [weatherApiData, forecastApiData] = await Promise.all([ weatherRes.json(), forecastRes.json() ]);
     
     let airPollutionApiData = null;
     if (airPollutionRes.ok) {
         airPollutionApiData = await airPollutionRes.json();
-    } else {
-        console.warn("Could not fetch air pollution data. It will be omitted.");
     }
 
     const weatherData = {
@@ -499,7 +484,6 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
                     try {
                         weatherBundle = await fetchWithOneCall(lat, lon);
                     } catch (error) {
-                         console.warn(`Explicit OneCall failed: ${error.message}. Fallback to free.`);
                          fallbackStatus = 'onecall_failed';
                          weatherBundle = await fetchWithFreeTier(lat, lon);
                     }
@@ -507,7 +491,6 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
                     try {
                         weatherBundle = await fetchWithFreeTier(lat, lon);
                     } catch (error) {
-                         console.warn(`Explicit Free failed: ${error.message}. Fallback to Open-Meteo.`);
                          fallbackStatus = 'free_tier_failed';
                          weatherBundle = await fetchWithOpenMeteo(lat, lon);
                     }
@@ -522,20 +505,17 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
                         const counterKey = `onecall_requests_${today}`;
                         const currentCount = (await store.get(counterKey)) as number | null;
                         
-                        console.log(`[Rate Limit Check] Key: ${counterKey}. Current count: ${currentCount || 0}/${ONE_CALL_DAILY_LIMIT}.`);
                         if (currentCount && currentCount >= ONE_CALL_DAILY_LIMIT) {
-                            console.warn(`[Rate Limit Action] One Call API daily limit reached. Forcing fallback.`);
                             useFallbackDirectly = true;
                         }
                     } catch (blobError) {
-                        console.warn(`[Rate Limit Info] Netlify Blobs not accessible, rate limiting is disabled. Error: ${blobError.message}`);
+                        // Rate limiting disabled
                     }
 
                     if (useFallbackDirectly) {
                          try {
                             weatherBundle = await fetchWithFreeTier(lat, lon);
                         } catch (error) {
-                            console.warn(`Free tier also failed: ${error.message}. Falling back to Open-Meteo.`);
                             fallbackStatus = 'free_tier_failed';
                             weatherBundle = await fetchWithOpenMeteo(lat, lon);
                         }
@@ -548,17 +528,14 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
                                 const counterKey = `onecall_requests_${today}`;
                                 const newCount = ((await store.get(counterKey)) as number || 0) + 1;
                                 await store.set(counterKey, newCount, { ttl: 86400 });
-                                console.log(`[Rate Limit Action] Incremented count for ${counterKey}. New count: ${newCount}.`);
                             } catch (blobError) {
-                                console.warn(`[Rate Limit Info] Failed to increment rate limit counter. Error: ${blobError.message}`);
+                                // Failed to increment counter
                             }
                         } catch (error) {
-                            console.warn(`One Call API failed: ${error.message}. Falling back to free tier APIs.`);
                             fallbackStatus = 'onecall_failed';
                             try {
                                 weatherBundle = await fetchWithFreeTier(lat, lon);
                             } catch (error2) {
-                                console.warn(`Free tier APIs also failed: ${error2.message}. Falling back to Open-Meteo.`);
                                 fallbackStatus = 'free_tier_failed';
                                 weatherBundle = await fetchWithOpenMeteo(lat, lon);
                             }
@@ -595,7 +572,6 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
                     try {
                         const weatherCondition = weatherBundle.weatherData.condition || 'weather';
                         const searchQuery = `${resolvedCityName} ${weatherCondition}`;
-                        console.log(`Fetching Unsplash image for query: ${searchQuery}`);
                         const unsplashUrl = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(searchQuery)}&per_page=1&orientation=landscape`;
                         
                         const unsplashRes = await fetch(unsplashUrl, { headers: { 'Authorization': `Client-ID ${UNSPLASH_KEY}` } });
@@ -607,7 +583,7 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
                             }
                         }
                     } catch (e) {
-                        console.error('Error fetching from Unsplash:', e);
+                        // Unsplash fetch failed, using fallback image
                     }
                 }
                 
@@ -641,13 +617,9 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
                     
                     // If 401 Unauthorized (Free Key) or similar error, try fallback to Maps 1.0 (Free)
                     if (!response.ok) {
-                        console.warn(`Maps 2.0 failed (${response.status}). Trying Maps 1.0 Fallback.`);
-                        
                         const fallbackLayer = MAP_LAYER_FALLBACKS[layer];
                         if (fallbackLayer) {
                              const tileUrl1 = `https://tile.openweathermap.org/map/${fallbackLayer}/${z}/${x}/${y}.png?appid=${API_KEY}`;
-                             // CodeQL Alert Fix: Do not log the full URL containing the API KEY. Only log the layer name.
-                             console.log(`Fallback to Maps 1.0 layer: ${fallbackLayer}`); 
                              response = await fetch(tileUrl1);
                         } else {
                             // No fallback mapping available for this layer

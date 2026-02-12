@@ -201,11 +201,8 @@ export const handler: Handler = async (event) => {
         }));
         
         sent++;
-      } catch (e: any) {
-        // Log erro individual no modo teste para debug
-        if (isTest) {
-          console.error(`Erro ao processar usuário ${key.key}:`, e.message);
-        }
+      } catch (e) {
+        // Silencia erros individuais
       }
     }
     
