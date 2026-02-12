@@ -198,27 +198,8 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
         setPushSupported(isPushSupported());
         setIsIOS(isIOSSafari());
         setIsInstalled(isPWAInstalled());
-        
-        // Verifica se ainda tem permissão (pode ter sido revogada)
-        const checkPermission = async () => {
-            try {
-                const { isSubscribed } = await getPushSubscriptionStatus();
-                const savedSub = localStorage.getItem('meteor_push_subscription');
-                
-                // Só atualiza se realmente não tem mais permissão
-                if (!isSubscribed && savedSub) {
-                    setPushSubscribed(false);
-                    localStorage.removeItem('meteor_push_subscription');
-                }
-            } catch (e) {
-                // Mantém estado atual em caso de erro
-            }
-        };
-        
-        // Só verifica permissão se tinha subscription salva
-        if (localStorage.getItem('meteor_push_subscription')) {
-            checkPermission();
-        }
+        // NÃO verificamos mais no navegador - só confiamos no localStorage
+        // Isso evita o flicker do toggle ao recarregar
     }, []);
 
     const togglePushNotifications = async () => {
