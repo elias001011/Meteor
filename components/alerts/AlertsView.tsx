@@ -182,7 +182,10 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
     const { cardClass } = useTheme();
     const { user, isLoggedIn, userData, updateUserData, login } = useAuth();
     const [pushSupported, setPushSupported] = useState(false);
-    const [pushSubscribed, setPushSubscribed] = useState(false);
+    const [pushSubscribed, setPushSubscribed] = useState(() => {
+        // Inicializa com o valor do localStorage para evitar flicker
+        return !!localStorage.getItem('meteor_push_subscription');
+    });
     const [isSubscribing, setIsSubscribing] = useState(false);
     const [pushError, setPushError] = useState<string | null>(null);
     const [isIOS, setIsIOS] = useState(false);
@@ -196,29 +199,26 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
         setIsIOS(isIOSSafari());
         setIsInstalled(isPWAInstalled());
         
-        const checkSubscription = async () => {
-            // Primeiro verifica dados salvos (mais rápido)
-            const savedSub = localStorage.getItem('meteor_push_subscription');
-            if (savedSub) {
-                setPushSubscribed(true);
-            }
-            
-            // Depois verifica no navegador para confirmar
+        // Verifica se ainda tem permissão (pode ter sido revogada)
+        const checkPermission = async () => {
             try {
                 const { isSubscribed } = await getPushSubscriptionStatus();
-                // Só atualiza se for false (usuário removeu permissão)
+                const savedSub = localStorage.getItem('meteor_push_subscription');
+                
+                // Só atualiza se realmente não tem mais permissão
                 if (!isSubscribed && savedSub) {
                     setPushSubscribed(false);
                     localStorage.removeItem('meteor_push_subscription');
-                } else if (isSubscribed && !savedSub) {
-                    // Se tem no navegador mas não no localStorage, sincroniza
-                    setPushSubscribed(true);
                 }
             } catch (e) {
-                // Se falhar a verificação, mantém o estado do localStorage
+                // Mantém estado atual em caso de erro
             }
         };
-        checkSubscription();
+        
+        // Só verifica permissão se tinha subscription salva
+        if (localStorage.getItem('meteor_push_subscription')) {
+            checkPermission();
+        }
     }, []);
 
     const togglePushNotifications = async () => {
