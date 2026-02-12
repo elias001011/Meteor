@@ -28,6 +28,17 @@ const ChangelogModal: React.FC<any> = ({ isOpen, onClose }) => {
 
     const versions = [
         {
+            version: "5.6.0",
+            title: "Notificações Push Simplificadas & PWA",
+            changes: [
+                "Integração Push + Resumo Matinal: Toggle unificado para notificações.",
+                "Horário fixo às 7h: Resumo diário enviado todos os dias às 07:00.",
+                "Aviso PWA: Notificação sobre instalação para receber alertas offline.",
+                "Correção toggle auto-desligando: Estado salvo corretamente no userData.",
+                "Seleção de cidade para alertas: Configure cidade específica para notificações."
+            ]
+        },
+        {
             version: "5.5.2",
             title: "Exclusão de Dados & Resumo Matinal Universal",
             changes: [

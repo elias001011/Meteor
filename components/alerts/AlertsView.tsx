@@ -438,6 +438,15 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                                 )}
                                 
                                 {/* Resumo Matinal - Aparece quando push está ativo */}
+                                {/* Aviso PWA */}
+                                {!isInstalled && (
+                                    <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3">
+                                        <p className="text-blue-200 text-xs">
+                                            <strong>📱 Dica:</strong> Adicione o Meteor à tela inicial para receber notificações mesmo com o app fechado.
+                                        </p>
+                                    </div>
+                                )}
+                                
                                 {pushSubscribed && (
                                     <div className="animate-enter space-y-4 pt-4 border-t border-white/10">
                                         <div className="flex items-center justify-between">
@@ -495,7 +504,10 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                                                             const response = await fetch('/.netlify/functions/morningAlerts?test=true');
                                                             const result = await response.json();
                                                             if (response.ok && result.success) {
-                                                                alert('Resumo de teste enviado!');
+                                                                const details = result.sent > 0 
+                                                                    ? `${result.sent} notificação(ões) enviada(s)`
+                                                                    : 'Nenhuma notificação enviada (verifique se o toggle está ativo)';
+                                                                alert(`✅ ${details}\n\nUsuários verificados: ${result.stats?.usersChecked || 0}\nSem subscription: ${result.stats?.skippedNoSubscription || 0}`);
                                                             } else {
                                                                 alert('Erro: ' + (result.error || 'Tente novamente'));
                                                             }
