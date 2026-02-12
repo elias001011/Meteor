@@ -52,14 +52,39 @@ const AiView: React.FC<AiViewProps> = (props) => {
   // Sincroniza mensagens externas com a sessão atual
   useEffect(() => {
     if (currentSession && messages.length > 0) {
-      // Verifica se há novas mensagens para adicionar
       const currentIds = new Set(currentSession.messages.map(m => m.id));
-      const newMessages = messages.filter(m => !currentIds.has(m.id));
       
-      if (newMessages.length > 0) {
+      // NOVO: Atualiza mensagens existentes que foram modificadas (ex: IA completando resposta)
+      const updatedMessages = messages.filter(m => {
+        const existing = currentSession.messages.find(cm => cm.id === m.id);
+        return existing && existing.text !== m.text;
+      });
+      
+      // Verifica se há novas mensagens para adicionar
+      // Só adiciona mensagens do modelo se já tiverem conteúdo (não vazias)
+      const newMessages = messages.filter(m => {
+        if (currentIds.has(m.id)) return false;
+        // Mensagens do modelo (IA) só são adicionadas se tiverem texto
+        if (m.role === 'model' && !m.text) return false;
+        return true;
+      });
+      
+      if (newMessages.length > 0 || updatedMessages.length > 0) {
         let updatedSession = { ...currentSession };
         
-        newMessages.forEach((msg, index) => {
+        // Atualiza mensagens modificadas
+        if (updatedMessages.length > 0) {
+          updatedSession = {
+            ...updatedSession,
+            messages: updatedSession.messages.map(m => {
+              const updated = updatedMessages.find(um => um.id === m.id);
+              return updated ? { ...m, ...updated } : m;
+            })
+          };
+        }
+        
+        // Adiciona novas mensagens
+        newMessages.forEach((msg) => {
           const isFirstUserMessage = msg.role === 'user' && 
             updatedSession.messages.filter(m => m.role === 'user').length === 0;
           

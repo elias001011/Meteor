@@ -28,6 +28,16 @@ const ChangelogModal: React.FC<any> = ({ isOpen, onClose }) => {
 
     const versions = [
         {
+            version: "5.7.0",
+            title: "Correções de Bugs",
+            changes: [
+                "Sistema de notícias: Implementado fallback para GNews API.",
+                "Otimização: Notícias só carregam quando a aba é aberta.",
+                "Correções no histórico de chat: Melhorias na persistência de conversas.",
+                "Estabilidade geral: Correções de bugs menores."
+            ]
+        },
+        {
             version: "5.6.0",
             title: "Notificações Push Simplificadas & PWA",
             changes: [

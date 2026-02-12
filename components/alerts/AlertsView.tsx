@@ -183,8 +183,15 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
     const { user, isLoggedIn, userData, updateUserData, login } = useAuth();
     const [pushSupported, setPushSupported] = useState(false);
     const [pushSubscribed, setPushSubscribed] = useState(() => {
-        // Recupera do localStorage de forma síncrona ao montar
-        return !!localStorage.getItem('meteor_push_subscription');
+        try {
+            const raw = localStorage.getItem('meteor_push_subscription');
+            if (!raw) return false;
+            const parsed = JSON.parse(raw);
+            return !!(parsed && parsed.endpoint);
+        } catch (e) {
+            localStorage.removeItem('meteor_push_subscription');
+            return false;
+        }
     });
     const [isSubscribing, setIsSubscribing] = useState(false);
     const [pushError, setPushError] = useState<string | null>(null);
@@ -195,11 +202,13 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
     const localAlerts = useMemo(() => generateLocalAlerts(currentWeather, dailyForecast), [currentWeather, dailyForecast]);
 
     useEffect(() => {
-        setPushSupported(isPushSupported());
-        setIsIOS(isIOSSafari());
-        setIsInstalled(isPWAInstalled());
-        // NÃO verificamos mais no navegador - só confiamos no localStorage
-        // Isso evita o flicker do toggle ao recarregar
+        try {
+            setPushSupported(isPushSupported());
+            setIsIOS(isIOSSafari());
+            setIsInstalled(isPWAInstalled());
+        } catch (e) {
+            console.warn('[Alerts] Erro ao detectar suporte:', e);
+        }
     }, []);
 
     const togglePushNotifications = async () => {
@@ -214,17 +223,23 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
             
             try {
                 await unsubscribeFromPush();
-                if (isLoggedIn) {
-                    await updateUserData({
-                        preferences: {
-                            ...userData?.preferences,
-                            pushSubscription: null,
-                            morningSummary: false
+                if (isLoggedIn && userData) {
+                    setTimeout(async () => {
+                        try {
+                            await updateUserData({
+                                preferences: {
+                                    ...userData.preferences,
+                                    pushSubscription: null,
+                                    morningSummary: false
+                                }
+                            });
+                        } catch (e) {
+                            console.warn('[Alerts] Erro ao atualizar userData:', e);
                         }
-                    });
+                    }, 0);
                 }
             } catch (e) {
-                // Mesmo se falhar no navegador, mantém desligado na UI
+                console.warn('[Alerts] Erro ao desinscrever:', e);
             } finally {
                 setIsSubscribing(false);
             }
@@ -232,19 +247,32 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
             setIsSubscribing(true);
             try {
                 const subscription = await subscribeToPush();
-                setPushSubscribed(true);
-                if (subscription && isLoggedIn) {
-                    await updateUserData({
-                        preferences: {
-                            ...userData?.preferences,
-                            pushSubscription: subscription,
-                            morningSummary: true
-                        }
-                    });
+                if (subscription) {
+                    setPushSubscribed(true);
+                    setPushError(null);
+                    if (isLoggedIn && userData) {
+                        setTimeout(async () => {
+                            try {
+                                await updateUserData({
+                                    preferences: {
+                                        ...userData.preferences,
+                                        pushSubscription: subscription,
+                                        morningSummary: true
+                                    }
+                                });
+                            } catch (e) {
+                                console.warn('[Alerts] Erro ao salvar preferências:', e);
+                            }
+                        }, 0);
+                    }
+                } else {
+                    throw new Error('Não foi possível ativar as notificações');
                 }
             } catch (error: any) {
                 setPushSubscribed(false);
+                localStorage.removeItem('meteor_push_subscription');
                 setPushError(error.message || 'Erro ao ativar notificações');
+                console.error('[Alerts] Erro ao ativar push:', error);
             } finally {
                 setIsSubscribing(false);
             }
@@ -261,12 +289,16 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
 
     const handleCitySave = async () => {
         if (!selectedCity.trim()) return;
-        await updateUserData({
-            preferences: {
-                ...userData?.preferences,
-                alertCity: selectedCity.trim()
-            }
-        });
+        try {
+            await updateUserData({
+                preferences: {
+                    ...userData?.preferences,
+                    alertCity: selectedCity.trim()
+                }
+            });
+        } catch (e) {
+            console.warn('[Alerts] Erro ao salvar cidade:', e);
+        }
     };
 
     const activeLocalAlerts = localAlerts.filter(alert => Date.now() <= alert.expiresAt);
@@ -288,21 +320,29 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
 
     // Notificações locais para alertas críticos
     useEffect(() => {
-        if ('Notification' in window && Notification.permission === 'granted') {
-            const criticalAlerts = allAlerts.filter(a => a.level === 'critical' || a.level === 'warning');
-            criticalAlerts.forEach(alert => {
-                const notifiedKey = `notified_${alert.id}`;
-                if (!localStorage.getItem(notifiedKey)) {
-                    new Notification('Meteor - Alerta Meteorológico', {
-                        body: `${alert.title}: ${alert.message}`,
-                        icon: '/favicon.svg',
-                        tag: alert.id,
-                        requireInteraction: alert.level === 'critical'
-                    });
-                    localStorage.setItem(notifiedKey, Date.now().toString());
-                    setTimeout(() => localStorage.removeItem(notifiedKey), alert.expiresAt - Date.now());
-                }
-            });
+        try {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                const criticalAlerts = allAlerts.filter(a => a.level === 'critical' || a.level === 'warning');
+                criticalAlerts.forEach(alert => {
+                    try {
+                        const notifiedKey = `notified_${alert.id}`;
+                        if (!localStorage.getItem(notifiedKey)) {
+                            new Notification('Meteor - Alerta Meteorológico', {
+                                body: `${alert.title}: ${alert.message}`,
+                                icon: '/favicon.svg',
+                                tag: alert.id,
+                                requireInteraction: alert.level === 'critical'
+                            });
+                            localStorage.setItem(notifiedKey, Date.now().toString());
+                            setTimeout(() => localStorage.removeItem(notifiedKey), alert.expiresAt - Date.now());
+                        }
+                    } catch (e) {
+                        console.warn('[Alerts] Erro ao mostrar notificação local:', e);
+                    }
+                });
+            }
+        } catch (e) {
+            console.warn('[Alerts] Erro no efeito de notificações:', e);
         }
     }, [allAlerts]);
 
