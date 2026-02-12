@@ -43,6 +43,9 @@ export const handler: Handler = async (event) => {
   const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
   const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
 
+  console.log('[Test] VAPID Public:', vapidPublicKey ? 'OK' : 'FALTANDO');
+  console.log('[Test] VAPID Private:', vapidPrivateKey ? 'OK' : 'FALTANDO');
+
   if (!vapidPublicKey || !vapidPrivateKey) {
     return {
       statusCode: 503,
@@ -68,12 +71,16 @@ export const handler: Handler = async (event) => {
   const store = createStore('pushSubscriptions');
 
   try {
+    console.log('[Test] Iniciando envio de teste...');
+    
     // Se tem endpoint específico, usa ele
     if (targetEndpoint) {
+      console.log('[Test] Buscando subscription específica...');
       const id = targetEndpoint.slice(-32);
       const data = await store.get(id, { type: 'json' });
       
       if (!data || !data.subscription) {
+        console.log('[Test] Subscription não encontrada:', id);
         return {
           statusCode: 404,
           headers: corsHeaders,
@@ -81,6 +88,7 @@ export const handler: Handler = async (event) => {
         };
       }
 
+      console.log('[Test] Enviando notificação...');
       await webpush.sendNotification(
         data.subscription,
         JSON.stringify({
@@ -94,6 +102,7 @@ export const handler: Handler = async (event) => {
         })
       );
 
+      console.log('[Test] Notificação enviada com sucesso!');
       return {
         statusCode: 200,
         headers: corsHeaders,

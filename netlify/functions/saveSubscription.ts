@@ -47,6 +47,9 @@ export const handler: Handler = async (event) => {
     // Usa endpoint como ID único
     const id = subscription.endpoint.slice(-32);
     
+    console.log('[Save] Salvando subscription:', id);
+    console.log('[Save] Dados:', { city, enabled, endpoint: subscription.endpoint.substring(0, 50) + '...' });
+    
     await store.setJSON(id, {
       subscription,
       city: city || 'Porto Alegre',
@@ -55,7 +58,7 @@ export const handler: Handler = async (event) => {
       lastUpdated: new Date().toISOString(),
     });
 
-    console.log(`[Push] Subscription salva: ${id}, cidade: ${city}`);
+    console.log(`[Save] Subscription salva com sucesso: ${id}`);
 
     return {
       statusCode: 200,
