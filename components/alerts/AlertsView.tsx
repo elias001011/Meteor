@@ -1,10 +1,8 @@
-
-
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import type { WeatherData, WeatherAlert } from '../../types';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import { AlertTriangleIcon, BellIcon, InfoIcon, SmartphoneIcon, SunIcon } from '../icons';
+import { AlertTriangleIcon, BellIcon, InfoIcon, SmartphoneIcon, MapPinIcon } from '../icons';
 import { 
     isPushSupported, 
     subscribeToPush, 
@@ -17,7 +15,7 @@ import {
 
 interface AlertsViewProps {
     currentWeather?: WeatherData | null;
-    dailyForecast?: any[];  // Para pegar UV máximo
+    dailyForecast?: any[];
     apiAlerts?: WeatherAlert[];
 }
 
@@ -49,7 +47,7 @@ const generateLocalAlerts = (weather: WeatherData | null | undefined, dailyForec
     }
     
     // Tempestade
-    if (condition.includes('tempestade') || condition.includes('trovoada')) {
+    if (condition.includes('tempestade') || condition.includes('trovoada') || condition.includes('thunderstorm')) {
         alerts.push({
             id: 'storm-current',
             type: 'storm',
@@ -60,8 +58,7 @@ const generateLocalAlerts = (weather: WeatherData | null | undefined, dailyForec
             expiresAt: now + oneHour
         });
     }
-    
-    else if (condition.includes('chuva forte') || condition.includes('heavy rain')) {
+    else if (condition.includes('chuva forte') || condition.includes('heavy rain') || condition.includes('chuva intensa')) {
         alerts.push({
             id: 'rain-heavy',
             type: 'rain',
@@ -73,6 +70,7 @@ const generateLocalAlerts = (weather: WeatherData | null | undefined, dailyForec
         });
     }
     
+    // Calor extremo
     if (feelsLike >= 38) {
         alerts.push({
             id: 'heat-extreme',
@@ -95,6 +93,7 @@ const generateLocalAlerts = (weather: WeatherData | null | undefined, dailyForec
         });
     }
     
+    // Frio extremo
     if (feelsLike <= 3) {
         alerts.push({
             id: 'cold-extreme',
@@ -117,6 +116,7 @@ const generateLocalAlerts = (weather: WeatherData | null | undefined, dailyForec
         });
     }
     
+    // UV Extremo
     if (uvi !== undefined && uvi >= 11) {
         alerts.push({
             id: 'uv-extreme',
@@ -139,6 +139,7 @@ const generateLocalAlerts = (weather: WeatherData | null | undefined, dailyForec
         });
     }
     
+    // Ventania
     if (windSpeed >= 60) {
         alerts.push({
             id: 'wind-extreme',
@@ -167,57 +168,28 @@ const generateLocalAlerts = (weather: WeatherData | null | undefined, dailyForec
 const getAlertStyles = (level: string) => {
     switch (level) {
         case 'critical':
-            return {
-                bg: 'bg-red-500/20 border-red-500/50',
-                icon: 'text-red-400',
-                pulse: 'bg-red-500'
-            };
+            return { bg: 'bg-red-500/20 border-red-500/50', icon: 'text-red-400', pulse: 'bg-red-500' };
         case 'warning':
-            return {
-                bg: 'bg-orange-500/20 border-orange-500/50',
-                icon: 'text-orange-400',
-                pulse: 'bg-orange-500'
-            };
+            return { bg: 'bg-orange-500/20 border-orange-500/50', icon: 'text-orange-400', pulse: 'bg-orange-500' };
         case 'caution':
-            return {
-                bg: 'bg-yellow-500/20 border-yellow-500/50',
-                icon: 'text-yellow-400',
-                pulse: 'bg-yellow-500'
-            };
+            return { bg: 'bg-yellow-500/20 border-yellow-500/50', icon: 'text-yellow-400', pulse: 'bg-yellow-500' };
         default:
-            return {
-                bg: 'bg-blue-500/20 border-blue-500/50',
-                icon: 'text-blue-400',
-                pulse: 'bg-blue-500'
-            };
+            return { bg: 'bg-blue-500/20 border-blue-500/50', icon: 'text-blue-400', pulse: 'bg-blue-500' };
     }
 };
 
 const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, apiAlerts }) => {
-    const { cardClass, classes, density } = useTheme();
-    const { user, isLoggedIn, userData, updateUserData, login, identityError } = useAuth();
-    const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-    const [lastLocation, setLastLocation] = useState<string | null>(null);
+    const { cardClass } = useTheme();
+    const { user, isLoggedIn, userData, updateUserData, login } = useAuth();
     const [pushSupported, setPushSupported] = useState(false);
     const [pushSubscribed, setPushSubscribed] = useState(false);
     const [isSubscribing, setIsSubscribing] = useState(false);
     const [pushError, setPushError] = useState<string | null>(null);
     const [isIOS, setIsIOS] = useState(false);
     const [isInstalled, setIsInstalled] = useState(false);
+    const [selectedCity, setSelectedCity] = useState(userData?.preferences?.alertCity || '');
 
-    const localAlerts = useMemo(() => {
-        return generateLocalAlerts(currentWeather, dailyForecast);
-    }, [currentWeather, dailyForecast]);
-    useEffect(() => {
-        const currentLocation = currentWeather?.city;
-        if (currentLocation && currentLocation !== lastLocation) {
-            setLastLocation(currentLocation);
-                        if (currentLocation) {
-                const keys = Object.keys(localStorage).filter(k => k.startsWith('notified_'));
-                keys.forEach(k => localStorage.removeItem(k));
-            }
-        }
-    }, [currentWeather?.city, lastLocation]);
+    const localAlerts = useMemo(() => generateLocalAlerts(currentWeather, dailyForecast), [currentWeather, dailyForecast]);
 
     useEffect(() => {
         setPushSupported(isPushSupported());
@@ -231,21 +203,30 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
         checkSubscription();
     }, []);
 
+    // Sincroniza pushSubscribed com morningSummary quando logado
+    useEffect(() => {
+        if (isLoggedIn && userData?.preferences?.pushSubscription) {
+            setPushSubscribed(true);
+        }
+    }, [isLoggedIn, userData?.preferences?.pushSubscription]);
+
     const togglePushNotifications = async () => {
         setPushError(null);
         
         if (pushSubscribed) {
             setIsSubscribing(true);
             const success = await unsubscribeFromPush();
-            setPushSubscribed(!success);
-            if (success && isLoggedIn) {
-                // Remove subscription do userData
-                await updateUserData({
-                    preferences: {
-                        ...userData?.preferences,
-                        pushSubscription: null
-                    }
-                });
+            if (success) {
+                setPushSubscribed(false);
+                if (isLoggedIn) {
+                    await updateUserData({
+                        preferences: {
+                            ...userData?.preferences,
+                            pushSubscription: null,
+                            morningSummary: false
+                        }
+                    });
+                }
             }
             setIsSubscribing(false);
         } else {
@@ -253,12 +234,12 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
             try {
                 const subscription = await subscribeToPush();
                 setPushSubscribed(true);
-                // Salva subscription no userData se estiver logado
                 if (subscription && isLoggedIn) {
                     await updateUserData({
                         preferences: {
                             ...userData?.preferences,
-                            pushSubscription: subscription
+                            pushSubscription: subscription,
+                            morningSummary: true
                         }
                     });
                 }
@@ -278,11 +259,17 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
         }
     };
 
-    const activeLocalAlerts = localAlerts.filter(alert => {
-        if (Date.now() > alert.expiresAt) return false;
-        return true;
-    });
+    const handleCitySave = async () => {
+        if (!selectedCity.trim()) return;
+        await updateUserData({
+            preferences: {
+                ...userData?.preferences,
+                alertCity: selectedCity.trim()
+            }
+        });
+    };
 
+    const activeLocalAlerts = localAlerts.filter(alert => Date.now() <= alert.expiresAt);
     const allAlerts = [...activeLocalAlerts];
     
     if (apiAlerts && apiAlerts.length > 0) {
@@ -299,8 +286,9 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
         });
     }
 
+    // Notificações locais para alertas críticos
     useEffect(() => {
-        if (notificationsEnabled && 'Notification' in window) {
+        if ('Notification' in window && Notification.permission === 'granted') {
             const criticalAlerts = allAlerts.filter(a => a.level === 'critical' || a.level === 'warning');
             criticalAlerts.forEach(alert => {
                 const notifiedKey = `notified_${alert.id}`;
@@ -308,19 +296,17 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                     new Notification('Meteor - Alerta Meteorológico', {
                         body: `${alert.title}: ${alert.message}`,
                         icon: '/favicon.svg',
-                        badge: '/favicon.svg',
                         tag: alert.id,
                         requireInteraction: alert.level === 'critical'
                     });
                     localStorage.setItem(notifiedKey, Date.now().toString());
-                    
-                    setTimeout(() => {
-                        localStorage.removeItem(notifiedKey);
-                    }, alert.expiresAt - Date.now());
+                    setTimeout(() => localStorage.removeItem(notifiedKey), alert.expiresAt - Date.now());
                 }
             });
         }
-    }, [allAlerts, notificationsEnabled]);
+    }, [allAlerts]);
+
+    const isMorningSummaryEnabled = isLoggedIn && userData?.preferences?.morningSummary;
 
     return (
         <div className="h-full overflow-y-auto pb-24 pt-16 lg:pb-6">
@@ -329,7 +315,7 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-xl bg-red-500/20`}>
+                        <div className="p-2 rounded-xl bg-red-500/20">
                             <BellIcon className="w-6 h-6 text-red-400" />
                         </div>
                         <div>
@@ -337,9 +323,9 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                             <p className="text-sm text-gray-400">Monitoramento meteorológico ativo</p>
                         </div>
                     </div>
-                    
                 </div>
 
+                {/* Alertas Ativos */}
                 {allAlerts.length > 0 ? (
                     <div className="space-y-3">
                         <div className="flex items-center justify-between">
@@ -350,18 +336,14 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                         {allAlerts.map(alert => {
                             const styles = getAlertStyles(alert.level);
                             return (
-                                <div 
-                                    key={alert.id} 
-                                    className={`${styles.bg} border rounded-2xl p-4 animate-enter relative`}
-                                >
+                                <div key={alert.id} className={`${styles.bg} border rounded-2xl p-4 animate-enter`}>
                                     <div className="flex items-start gap-3">
-                                        <div className="relative flex-shrink-0">
-                                            <span className={`relative flex h-3 w-3`}>
+                                        <div className="relative flex-shrink-0 mt-1">
+                                            <span className="relative flex h-3 w-3">
                                                 <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${styles.pulse} opacity-75`}></span>
                                                 <span className={`relative inline-flex rounded-full h-3 w-3 ${styles.pulse}`}></span>
                                             </span>
                                         </div>
-                                        
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 mb-1">
                                                 <h4 className="font-bold text-white">{alert.title}</h4>
@@ -374,15 +356,11 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                                                      alert.level === 'warning' ? 'Alerta' : 'Atenção'}
                                                 </span>
                                             </div>
-                                            <p className="text-gray-200 text-sm leading-relaxed">
-                                                {alert.message}
-                                            </p>
+                                            <p className="text-gray-200 text-sm leading-relaxed">{alert.message}</p>
                                             <p className="text-xs text-gray-400 mt-2">
                                                 Expira em: {new Date(alert.expiresAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                             </p>
                                         </div>
-                                        
-
                                     </div>
                                 </div>
                             );
@@ -396,12 +374,11 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                         <h3 className="text-lg font-semibold text-white mb-2">Nenhum Alerta Ativo</h3>
                         <p className="text-gray-400 text-sm">
                             Não há alertas meteorológicos para sua região no momento.
-                            <br />
-                            As condições estão estáveis.
                         </p>
                     </div>
                 )}
 
+                {/* Configuração de Notificações Push - Integrada */}
                 {pushSupported && (
                     <div className={`${cardClass} rounded-2xl p-5`}>
                         <h4 className="font-semibold text-white mb-4 flex items-center gap-2">
@@ -411,19 +388,35 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                         
                         {isIOS && !isInstalled ? (
                             <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
-                                <p className="text-yellow-200 text-sm mb-2">
-                                    <strong>Instalação necessária</strong>
-                                </p>
+                                <p className="text-yellow-200 text-sm mb-2"><strong>Instalação necessária</strong></p>
                                 <p className="text-gray-400 text-sm">
                                     Para receber notificações no iOS, adicione o Meteor à tela inicial primeiro.
                                 </p>
+                            </div>
+                        ) : !isLoggedIn ? (
+                            <div className="space-y-4">
+                                <p className="text-gray-400 text-sm">
+                                    Ative notificações push para receber alertas meteorológicos e resumos diários.
+                                </p>
+                                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
+                                    <p className="text-yellow-200/80 text-sm mb-3">Esta função requer login.</p>
+                                    <button
+                                        onClick={login}
+                                        className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-medium py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                                        </svg>
+                                        Entrar para ativar
+                                    </button>
+                                </div>
                             </div>
                         ) : (
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between">
                                     <div>
                                         <p className="text-white font-medium text-sm">Receber notificações push</p>
-                                        <p className="text-gray-500 text-xs">Funciona mesmo com o app fechado</p>
+                                        <p className="text-gray-500 text-xs">Alertas e resumo diário</p>
                                     </div>
                                     <button
                                         onClick={togglePushNotifications}
@@ -432,11 +425,9 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                                             pushSubscribed ? 'bg-purple-500' : 'bg-gray-600'
                                         }`}
                                     >
-                                        <span
-                                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                                pushSubscribed ? 'translate-x-6' : 'translate-x-1'
-                                            }`}
-                                        />
+                                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                            pushSubscribed ? 'translate-x-6' : 'translate-x-1'
+                                        }`} />
                                     </button>
                                 </div>
                                 
@@ -446,134 +437,110 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                                     </div>
                                 )}
                                 
+                                {/* Resumo Matinal - Aparece quando push está ativo */}
                                 {pushSubscribed && (
-                                    <div className="animate-enter space-y-2">
+                                    <div className="animate-enter space-y-4 pt-4 border-t border-white/10">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className="text-white font-medium text-sm">Resumo diário</p>
+                                                <p className="text-gray-500 text-xs">Previsão do tempo toda manhã</p>
+                                            </div>
+                                            <button
+                                                onClick={() => updateUserData({ 
+                                                    preferences: { 
+                                                        ...userData?.preferences,
+                                                        morningSummary: !userData?.preferences?.morningSummary 
+                                                    }
+                                                })}
+                                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                                    isMorningSummaryEnabled ? 'bg-yellow-500' : 'bg-gray-600'
+                                                }`}
+                                            >
+                                                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                                    isMorningSummaryEnabled ? 'translate-x-6' : 'translate-x-1'
+                                                }`} />
+                                            </button>
+                                        </div>
+
+                                        {isMorningSummaryEnabled && (
+                                            <div className="animate-enter space-y-3">
+                                                <div>
+                                                    <label className="text-sm text-gray-400 mb-2 block">Horário do resumo</label>
+                                                    <select
+                                                        value={userData?.preferences?.summaryTime || '06:00'}
+                                                        onChange={(e) => updateUserData({
+                                                            preferences: {
+                                                                ...userData?.preferences,
+                                                                summaryTime: e.target.value
+                                                            }
+                                                        })}
+                                                        className="w-full bg-gray-900/60 border border-white/10 rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/50"
+                                                    >
+                                                        {['06:00', '07:00', '08:00', '09:00', '10:00', '11:00', '12:00'].map(time => (
+                                                            <option key={time} value={time}>{time}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                
+                                                <div>
+                                                    <label className="text-sm text-gray-400 mb-2 block flex items-center gap-1">
+                                                        <MapPinIcon className="w-3 h-3" /> Cidade para alertas
+                                                    </label>
+                                                    <div className="flex gap-2">
+                                                        <input
+                                                            type="text"
+                                                            value={selectedCity}
+                                                            onChange={(e) => setSelectedCity(e.target.value)}
+                                                            placeholder="Ex: São Paulo"
+                                                            className="flex-1 bg-gray-900/60 border border-white/10 rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/50"
+                                                        />
+                                                        <button
+                                                            onClick={handleCitySave}
+                                                            className="bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/30 text-yellow-300 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+                                                        >
+                                                            Salvar
+                                                        </button>
+                                                    </div>
+                                                    <p className="text-xs text-gray-500 mt-1">
+                                                        Deixe em branco para usar a localização atual
+                                                    </p>
+                                                </div>
+                                                
+                                                <button
+                                                    onClick={async () => {
+                                                        try {
+                                                            const response = await fetch('/.netlify/functions/morningAlerts?test=true');
+                                                            const result = await response.json();
+                                                            if (response.ok && result.success) {
+                                                                alert('Resumo de teste enviado!');
+                                                            } else {
+                                                                alert('Erro: ' + (result.error || 'Tente novamente'));
+                                                            }
+                                                        } catch (e: any) {
+                                                            alert('Erro ao enviar: ' + e.message);
+                                                        }
+                                                    }}
+                                                    className="w-full bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/30 text-yellow-300 py-2 rounded-xl text-sm font-medium transition-colors"
+                                                >
+                                                    Enviar resumo de teste
+                                                </button>
+                                            </div>
+                                        )}
+
                                         <button
                                             onClick={handleTestNotification}
-                                            className="w-full bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/30 text-purple-300 py-2 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                                            className="w-full bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/30 text-purple-300 py-2 rounded-xl text-sm font-medium transition-colors"
                                         >
-                                            <BellIcon className="w-4 h-4" />
-                                            Enviar notificação de teste
+                                            Testar notificação
                                         </button>
-                                        
-                                        <p className="text-xs text-gray-500">
-                                            Notificações ativas. Você receberá alertas mesmo quando o app estiver fechado.
-                                        </p>
                                     </div>
                                 )}
-                                
-
                             </div>
                         )}
                     </div>
                 )}
 
-                <div className={`${cardClass} rounded-2xl p-5`}>
-                    <h4 className="font-semibold text-white mb-4 flex items-center gap-2">
-                        <SunIcon className="w-4 h-4 text-yellow-400" />
-                        Resumo Matinal
-                    </h4>
-                    
-                    {!isLoggedIn ? (
-                        <div className="space-y-4">
-                            <p className="text-gray-400 text-sm">
-                                Receba um resumo diário com a previsão do tempo e alertas importantes.
-                            </p>
-                            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
-                                <p className="text-yellow-200/80 text-sm mb-3">
-                                    Esta função requer login.
-                                </p>
-                                <button
-                                    onClick={login}
-                                    className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-medium py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                                    </svg>
-                                    Entrar para ativar
-                                </button>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-white font-medium text-sm">Receber resumo diário</p>
-                                    <p className="text-gray-500 text-xs">Previsão do dia e alertas importantes</p>
-                                </div>
-                                <button
-                                    onClick={() => updateUserData({ 
-                                        preferences: { 
-                                            ...userData?.preferences,
-                                            morningSummary: !userData?.preferences?.morningSummary 
-                                        }
-                                    })}
-                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                                        userData?.preferences?.morningSummary ? 'bg-yellow-500' : 'bg-gray-600'
-                                    }`}
-                                >
-                                    <span
-                                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                            userData?.preferences?.morningSummary ? 'translate-x-6' : 'translate-x-1'
-                                        }`}
-                                    />
-                                </button>
-                            </div>
-                            
-                            {userData?.preferences?.morningSummary && (
-                                <div className="animate-enter space-y-3">
-                                    <div>
-                                        <label className="text-sm text-gray-400 mb-2 block">Horário do resumo</label>
-                                        <select
-                                            value={userData?.preferences?.summaryTime || '08:00'}
-                                            onChange={(e) => updateUserData({
-                                                preferences: {
-                                                    ...userData?.preferences,
-                                                    summaryTime: e.target.value
-                                                }
-                                            })}
-                                            className="w-full bg-gray-900/60 border border-white/10 rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/50"
-                                        >
-                                            {['06:00', '07:00', '08:00', '09:00', '10:00', '11:00', '12:00'].map(time => (
-                                                <option key={time} value={time}>{time}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    
-                                    <button
-                                        onClick={async () => {
-                                            try {
-                                                const response = await fetch('/.netlify/functions/morningAlerts?test=true', {
-                                                    method: 'GET',
-                                                    headers: { 'Content-Type': 'application/json' }
-                                                });
-                                                const result = await response.json();
-                                                console.log('Resposta morningAlerts:', result);
-                                                if (response.ok && result.success) {
-                                                    alert('✅ Resumo enviado! Verifique suas notificações push.');
-                                                } else {
-                                                    alert('Erro: ' + (result.error || result.message || JSON.stringify(result)));
-                                                }
-                                            } catch (e: any) {
-                                                console.error('Erro:', e);
-                                                alert('Erro ao enviar resumo: ' + e.message);
-                                            }
-                                        }}
-                                        className="w-full bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/30 text-yellow-300 py-2 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
-                                    >
-                                        <SunIcon className="w-4 h-4" />
-                                        Enviar resumo de teste
-                                    </button>
-                                    
-                                    <p className="text-xs text-gray-500">
-                                        Inclui temperatura máxima/mínima e chance de chuva.
-                                    </p>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </div>
-
+                {/* O que monitoramos */}
                 <div className={`${cardClass} rounded-2xl p-5`}>
                     <h4 className="font-semibold text-white mb-4 flex items-center gap-2">
                         <AlertTriangleIcon className="w-4 h-4 text-yellow-400" />
