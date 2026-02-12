@@ -1,6 +1,18 @@
 import type { Handler, HandlerEvent, HandlerContext } from '@netlify/functions';
 import { getStore } from '@netlify/blobs';
 
+// Helper para criar store com credenciais do ambiente
+const createStore = (name: string) => {
+  const siteID = process.env.NETLIFY_BLOBS_SITE_ID;
+  const token = process.env.NETLIFY_BLOBS_TOKEN;
+  
+  if (siteID && token) {
+    return getStore({ name, siteID, token });
+  }
+  
+  return getStore(name);
+};
+
 export const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -21,7 +33,7 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
   }
 
   try {
-    const store = getStore('pushSubscriptions');
+    const store = createStore('pushSubscriptions');
     const { subscription } = JSON.parse(event.body || '{}');
 
     if (!subscription || !subscription.endpoint) {

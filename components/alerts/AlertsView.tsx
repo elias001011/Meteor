@@ -31,7 +31,6 @@ interface LocalAlert {
     expiresAt: number;
 }
 
-// Alertas gerados baseados nas condições atuais
 const generateLocalAlerts = (weather: WeatherData | null | undefined, dailyForecast?: any[]): LocalAlert[] => {
     if (!weather) return [];
     
@@ -44,7 +43,6 @@ const generateLocalAlerts = (weather: WeatherData | null | undefined, dailyForec
     const feelsLike = weather.feels_like ?? temp;
     const windSpeed = weather.windSpeed;
     
-    // UV: tenta pegar do current, se não tiver, pega do daily forecast
     let uvi = weather.uvi;
     if ((uvi === undefined || uvi === null) && dailyForecast && dailyForecast.length > 0) {
         uvi = dailyForecast[0].uvi;
@@ -63,7 +61,6 @@ const generateLocalAlerts = (weather: WeatherData | null | undefined, dailyForec
         });
     }
     
-    // Chuva forte
     else if (condition.includes('chuva forte') || condition.includes('heavy rain')) {
         alerts.push({
             id: 'rain-heavy',
@@ -76,7 +73,6 @@ const generateLocalAlerts = (weather: WeatherData | null | undefined, dailyForec
         });
     }
     
-    // Calor extremo
     if (feelsLike >= 38) {
         alerts.push({
             id: 'heat-extreme',
@@ -99,7 +95,6 @@ const generateLocalAlerts = (weather: WeatherData | null | undefined, dailyForec
         });
     }
     
-    // Frio extremo
     if (feelsLike <= 3) {
         alerts.push({
             id: 'cold-extreme',
@@ -122,7 +117,6 @@ const generateLocalAlerts = (weather: WeatherData | null | undefined, dailyForec
         });
     }
     
-    // UV Extremo
     if (uvi !== undefined && uvi >= 11) {
         alerts.push({
             id: 'uv-extreme',
@@ -145,7 +139,6 @@ const generateLocalAlerts = (weather: WeatherData | null | undefined, dailyForec
         });
     }
     
-    // Ventania
     if (windSpeed >= 60) {
         alerts.push({
             id: 'wind-extreme',
@@ -205,8 +198,6 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
     const { user, isLoggedIn, userData, updateUserData, login, identityError } = useAuth();
     const [notificationsEnabled, setNotificationsEnabled] = useState(false);
     const [lastLocation, setLastLocation] = useState<string | null>(null);
-    
-    // Estados para notificações push
     const [pushSupported, setPushSupported] = useState(false);
     const [pushSubscribed, setPushSubscribed] = useState(false);
     const [isSubscribing, setIsSubscribing] = useState(false);
@@ -214,31 +205,25 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
     const [isIOS, setIsIOS] = useState(false);
     const [isInstalled, setIsInstalled] = useState(false);
 
-    // Gerar alertas locais
     const localAlerts = useMemo(() => {
         return generateLocalAlerts(currentWeather, dailyForecast);
     }, [currentWeather, dailyForecast]);
-
-    // Verifica mudança de localização e recarrega alertas
     useEffect(() => {
         const currentLocation = currentWeather?.city;
         if (currentLocation && currentLocation !== lastLocation) {
             setLastLocation(currentLocation);
-            // Limpa alertas notificados quando muda a localização
-            if (currentLocation) {
+                if (currentLocation) {
                 const keys = Object.keys(localStorage).filter(k => k.startsWith('notified_'));
                 keys.forEach(k => localStorage.removeItem(k));
             }
         }
     }, [currentWeather?.city, lastLocation]);
 
-    // Verifica suporte a notificações push
     useEffect(() => {
         setPushSupported(isPushSupported());
         setIsIOS(isIOSSafari());
         setIsInstalled(isPWAInstalled());
         
-        // Verifica status da inscrição
         const checkSubscription = async () => {
             const { isSubscribed } = await getPushSubscriptionStatus();
             setPushSubscribed(isSubscribed);
@@ -246,18 +231,15 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
         checkSubscription();
     }, []);
 
-    // Handler para ativar/desativar push
     const togglePushNotifications = async () => {
         setPushError(null);
         
         if (pushSubscribed) {
-            // Cancela inscrição
             setIsSubscribing(true);
             const success = await unsubscribeFromPush();
             setPushSubscribed(!success);
             setIsSubscribing(false);
         } else {
-            // Cria inscrição
             setIsSubscribing(true);
             try {
                 await subscribeToPush();
@@ -270,7 +252,6 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
         }
     };
 
-    // Handler para testar notificação
     const handleTestNotification = async () => {
         try {
             await sendTestNotification();
@@ -279,16 +260,14 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
         }
     };
 
-    // Filtrar apenas alertas expirados (sem dispensar - mostrar todos)
     const activeLocalAlerts = localAlerts.filter(alert => {
         if (Date.now() > alert.expiresAt) return false;
         return true;
     });
 
-    // Combinar com alertas da API (OpenWeather)
     const allAlerts = [...activeLocalAlerts];
     
-    // Adicionar alertas da API se existirem
+    if (apiAlerts && apiAlerts.length > 0) {
     if (apiAlerts && apiAlerts.length > 0) {
         apiAlerts.forEach((apiAlert, index) => {
             allAlerts.push({
@@ -303,12 +282,10 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
         });
     }
 
-    // Enviar notificação push para alertas críticos/importantes
     useEffect(() => {
         if (notificationsEnabled && 'Notification' in window) {
             const criticalAlerts = allAlerts.filter(a => a.level === 'critical' || a.level === 'warning');
             criticalAlerts.forEach(alert => {
-                // Verificar se já notificamos sobre este alerta
                 const notifiedKey = `notified_${alert.id}`;
                 if (!localStorage.getItem(notifiedKey)) {
                     new Notification('Meteor - Alerta Meteorológico', {
@@ -320,7 +297,6 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                     });
                     localStorage.setItem(notifiedKey, Date.now().toString());
                     
-                    // Limpar notificação após expirar
                     setTimeout(() => {
                         localStorage.removeItem(notifiedKey);
                     }, alert.expiresAt - Date.now());
@@ -347,7 +323,6 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                     
                 </div>
 
-                {/* Alertas Ativos */}
                 {allAlerts.length > 0 ? (
                     <div className="space-y-3">
                         <div className="flex items-center justify-between">
@@ -397,7 +372,6 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                         })}
                     </div>
                 ) : (
-                    /* Sem Alertas */
                     <div className={`${cardClass} rounded-3xl p-8 text-center`}>
                         <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                             <InfoIcon className="w-8 h-8 text-emerald-400" />
@@ -411,7 +385,6 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                     </div>
                 )}
 
-                {/* Configuração de Notificações Push */}
                 {pushSupported && (
                     <div className={`${cardClass} rounded-2xl p-5`}>
                         <h4 className="font-semibold text-white mb-4 flex items-center gap-2">
@@ -425,7 +398,7 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                                     <strong>Instalação necessária</strong>
                                 </p>
                                 <p className="text-gray-400 text-sm">
-                                    Para receber notificações push no iOS, adicione o Meteor à tela inicial primeiro.
+                                    Para receber notificações no iOS, adicione o Meteor à tela inicial primeiro.
                                 </p>
                             </div>
                         ) : (
@@ -472,17 +445,12 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                                     </div>
                                 )}
                                 
-                                <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-3">
-                                    <p className="text-xs text-purple-200/80">
-                                        <strong>Funciona offline:</strong> As notificações push são entregues pelo sistema operacional, mesmo quando o app não está aberto.
-                                    </p>
-                                </div>
+
                             </div>
                         )}
                     </div>
                 )}
 
-                {/* Resumo Matinal */}
                 <div className={`${cardClass} rounded-2xl p-5`}>
                     <h4 className="font-semibold text-white mb-4 flex items-center gap-2">
                         <SunIcon className="w-4 h-4 text-yellow-400" />
@@ -492,11 +460,11 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                     {!isLoggedIn ? (
                         <div className="space-y-4">
                             <p className="text-gray-400 text-sm">
-                                📬 Receba um resumo diário com a previsão do tempo e alertas importantes diretamente no seu navegador.
+                                Receba um resumo diário com a previsão do tempo e alertas importantes.
                             </p>
                             <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
                                 <p className="text-yellow-200/80 text-sm mb-3">
-                                    ⚠️ Esta função só está disponível caso você esteja logado.
+                                    Esta função requer login.
                                 </p>
                                 <button
                                     onClick={login}
@@ -580,12 +548,8 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                                         Enviar resumo de teste
                                     </button>
                                     
-                                    <p className="text-xs text-yellow-200/60">
-                                        💡 O resumo inclui: temperatura máxima/mínima, chance de chuva e alertas governamentais (se houver).
-                                    </p>
-                                    
                                     <p className="text-xs text-gray-500">
-                                        Economia de dados: Uma única verificação por dia no horário selecionado.
+                                        Inclui temperatura máxima/mínima e chance de chuva.
                                     </p>
                                 </div>
                             )}
@@ -593,7 +557,6 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                     )}
                 </div>
 
-                {/* Informações de Monitoramento */}
                 <div className={`${cardClass} rounded-2xl p-5`}>
                     <h4 className="font-semibold text-white mb-4 flex items-center gap-2">
                         <AlertTriangleIcon className="w-4 h-4 text-yellow-400" />
@@ -616,11 +579,8 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                     </div>
                 </div>
 
-                {/* Disclaimer */}
                 <div className="text-center text-xs text-gray-500 pt-2">
-                    Alertas são gerados automaticamente baseados nos dados meteorológicos.
-                    <br />
-                    Sempre consulte fontes oficiais em situações de emergência.
+                    Alertas gerados automaticamente. Consulte fontes oficiais em emergências.
                 </div>
             </div>
         </div>
