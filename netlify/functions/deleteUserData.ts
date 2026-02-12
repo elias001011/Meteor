@@ -19,21 +19,11 @@ export const handler: Handler = async (event) => {
   const userId = auth.replace('Bearer ', '').slice(0, 32) || 'anonymous';
 
   try {
-    // Tenta deletar do Netlify Blobs
-    try {
-      const store = getStore('userData');
-      await store.delete(userId);
-      
-      const pushStore = getStore('pushSubscriptions');
-      await pushStore.delete(userId);
-    } catch (blobsError: any) {
-      // Se Blobs não estiver configurado, apenas loga o erro
-      if (blobsError.message?.includes('environment has not been configured')) {
-        console.log('Blobs não configurado, dados não foram deletados da nuvem');
-      } else {
-        throw blobsError;
-      }
-    }
+    const store = getStore('userData');
+    await store.delete(userId);
+    
+    const pushStore = getStore('pushSubscriptions');
+    await pushStore.delete(userId);
 
     return {
       statusCode: 200,

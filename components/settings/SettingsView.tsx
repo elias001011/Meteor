@@ -651,6 +651,45 @@ const SettingsView: React.FC<SettingsViewProps> = ({
             alert('Erro ao excluir conta: ' + result.error);
         }
     };
+
+    // Solicitação de exclusão de dados via email
+    const [showDataDeletionRequest, setShowDataDeletionRequest] = useState(false);
+    const [deletionReason, setDeletionReason] = useState('');
+    const [isRequestingDeletion, setIsRequestingDeletion] = useState(false);
+
+    const handleRequestDataDeletion = async () => {
+        if (!isLoggedIn || !user?.email) {
+            alert('Você precisa estar logado para solicitar a exclusão de dados.');
+            return;
+        }
+
+        setIsRequestingDeletion(true);
+        try {
+            const response = await fetch('/.netlify/functions/requestDataDeletion', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: user.email,
+                    userId: user.id,
+                    reason: deletionReason
+                })
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                alert('✅ Solicitação enviada com sucesso! Você receberá uma confirmação por email em breve.');
+                setShowDataDeletionRequest(false);
+                setDeletionReason('');
+            } else {
+                alert('Erro ao enviar solicitação: ' + (result.error || 'Tente novamente mais tarde'));
+            }
+        } catch (error) {
+            alert('Erro ao enviar solicitação. Tente novamente mais tarde.');
+        } finally {
+            setIsRequestingDeletion(false);
+        }
+    };
     
     const formatLastSync = () => {
         if (!lastSyncTime) return 'Nunca sincronizado';
@@ -835,30 +874,39 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                 Sair da Conta
                             </button>
                             
-                            {!showDeleteConfirm ? (
+                            {/* Solicitar Exclusão de Dados */}
+                            {!showDataDeletionRequest ? (
                                 <button 
-                                    onClick={() => setShowDeleteConfirm(true)}
+                                    onClick={() => setShowDataDeletionRequest(true)}
                                     className="w-full border border-red-500/30 text-red-400/70 hover:text-red-400 hover:bg-red-500/10 py-2 rounded-xl font-medium text-sm transition-all"
                                 >
-                                    Excluir minha conta
+                                    Solicitar exclusão dos dados
                                 </button>
                             ) : (
-                                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 space-y-2 animate-enter">
-                                    <p className="text-red-300 text-xs text-center">
-                                        Tem certeza? Esta ação é irreversível!
+                                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 space-y-3 animate-enter">
+                                    <p className="text-red-300 text-sm">
+                                        Enviaremos uma solicitação para exclusão dos seus dados. Você receberá uma confirmação por email.
                                     </p>
+                                    <textarea
+                                        placeholder="Motivo da exclusão (opcional)..."
+                                        value={deletionReason}
+                                        onChange={(e) => setDeletionReason(e.target.value)}
+                                        className="w-full bg-gray-900/60 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-red-500/50 resize-none"
+                                        rows={2}
+                                    />
                                     <div className="flex gap-2">
                                         <button 
-                                            onClick={() => setShowDeleteConfirm(false)}
+                                            onClick={() => setShowDataDeletionRequest(false)}
                                             className="flex-1 bg-gray-700 text-white py-2 rounded-lg text-sm"
                                         >
                                             Cancelar
                                         </button>
                                         <button 
-                                            onClick={handleDeleteAccount}
-                                            className="flex-1 bg-red-500 text-white py-2 rounded-lg text-sm font-medium"
+                                            onClick={handleRequestDataDeletion}
+                                            disabled={isRequestingDeletion}
+                                            className="flex-1 bg-red-500 text-white py-2 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
-                                            Sim, excluir
+                                            {isRequestingDeletion ? 'Enviando...' : 'Enviar solicitação'}
                                         </button>
                                     </div>
                                 </div>
@@ -930,7 +978,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                 <button onClick={onOpenChangelog} className={`w-full group relative overflow-hidden rounded-2xl border border-white/10 bg-gray-900/60 hover:bg-gray-900/80 transition-all p-4 text-left flex items-center justify-between`}>
                     <div className="flex items-center gap-4 relative z-10">
                         <div className={`p-3 rounded-full bg-gradient-to-br ${classes.gradient} shadow-lg`}><SparklesIcon className="w-5 h-5 text-white" /></div>
-                        <div><p className="text-xs text-gray-400 font-medium uppercase tracking-wider mb-0.5">Meteor App</p><p className="text-white font-bold">Versão 5.5.0</p><p className="text-xs text-gray-500 mt-0.5">Desenvolvido por @elias_jrnunes</p></div>
+                        <div><p className="text-xs text-gray-400 font-medium uppercase tracking-wider mb-0.5">Meteor App</p><p className="text-white font-bold">Versão 5.5.2</p><p className="text-xs text-gray-500 mt-0.5">Desenvolvido por @elias_jrnunes</p></div>
                     </div>
                     <ChevronLeftIcon className="w-5 h-5 rotate-180 text-gray-500" />
                 </button>
