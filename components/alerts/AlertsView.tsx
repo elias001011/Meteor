@@ -212,7 +212,7 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
         const currentLocation = currentWeather?.city;
         if (currentLocation && currentLocation !== lastLocation) {
             setLastLocation(currentLocation);
-                if (currentLocation) {
+                        if (currentLocation) {
                 const keys = Object.keys(localStorage).filter(k => k.startsWith('notified_'));
                 keys.forEach(k => localStorage.removeItem(k));
             }
@@ -267,7 +267,6 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
 
     const allAlerts = [...activeLocalAlerts];
     
-    if (apiAlerts && apiAlerts.length > 0) {
     if (apiAlerts && apiAlerts.length > 0) {
         apiAlerts.forEach((apiAlert, index) => {
             allAlerts.push({
