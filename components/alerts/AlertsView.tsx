@@ -321,6 +321,82 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                     </div>
                 </div>
 
+                {/* Alertas Ativos */}
+                {allAlerts.length > 0 ? (
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-medium text-gray-300">Alertas Ativos ({allAlerts.length})</h3>
+                            <span className="text-xs text-gray-500">Atualizado agora</span>
+                        </div>
+                        
+                        {allAlerts.map(alert => {
+                            const styles = getAlertStyles(alert.level);
+                            return (
+                                <div key={alert.id} className={`${styles.bg} border rounded-2xl p-4 animate-enter`}>
+                                    <div className="flex items-start gap-3">
+                                        <div className="relative flex-shrink-0 mt-1">
+                                            <span className="relative flex h-3 w-3">
+                                                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${styles.pulse} opacity-75`}></span>
+                                                <span className={`relative inline-flex rounded-full h-3 w-3 ${styles.pulse}`}></span>
+                                            </span>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <h4 className="font-bold text-white">{alert.title}</h4>
+                                                <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${
+                                                    alert.level === 'critical' ? 'bg-red-500 text-white' :
+                                                    alert.level === 'warning' ? 'bg-orange-500 text-white' :
+                                                    'bg-yellow-500 text-black'
+                                                }`}>
+                                                    {alert.level === 'critical' ? 'Crítico' : 
+                                                     alert.level === 'warning' ? 'Alerta' : 'Atenção'}
+                                                </span>
+                                            </div>
+                                            <p className="text-gray-200 text-sm leading-relaxed">{alert.message}</p>
+                                            <p className="text-xs text-gray-400 mt-2">
+                                                Expira em: {new Date(alert.expiresAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    <div className={`${cardClass} rounded-3xl p-8 text-center`}>
+                        <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <InfoIcon className="w-8 h-8 text-emerald-400" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-white mb-2">Nenhum Alerta Ativo</h3>
+                        <p className="text-gray-400 text-sm">
+                            Não há alertas meteorológicos para sua região no momento.
+                        </p>
+                    </div>
+                )}
+
+                {/* O que monitoramos */}
+                <div className={`${cardClass} rounded-2xl p-5`}>
+                    <h4 className="font-semibold text-white mb-4 flex items-center gap-2">
+                        <AlertTriangleIcon className="w-4 h-4 text-yellow-400" />
+                        O que monitoramos
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                        {[
+                            { label: 'Tempestades', color: 'text-red-400' },
+                            { label: 'Calor Extremo', color: 'text-orange-400' },
+                            { label: 'Frio Intenso', color: 'text-cyan-400' },
+                            { label: 'Índice UV', color: 'text-purple-400' },
+                            { label: 'Ventos Fortes', color: 'text-blue-400' },
+                            { label: 'Chuvas Intensas', color: 'text-indigo-400' },
+                        ].map((item, i) => (
+                            <div key={i} className="flex items-center gap-2">
+                                <span className={`w-2 h-2 rounded-full ${item.color.replace('text', 'bg')}`}></span>
+                                <span className="text-sm text-gray-300">{item.label}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
                 {/* Card de Notificações Push */}
                 {pushSupported && (
                     <div className={`${cardClass} rounded-2xl p-5 border border-purple-500/20`}>
@@ -410,82 +486,6 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                         </div>
                     </div>
                 )}
-
-                {/* Alertas Ativos */}
-                {allAlerts.length > 0 ? (
-                    <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-sm font-medium text-gray-300">Alertas Ativos ({allAlerts.length})</h3>
-                            <span className="text-xs text-gray-500">Atualizado agora</span>
-                        </div>
-                        
-                        {allAlerts.map(alert => {
-                            const styles = getAlertStyles(alert.level);
-                            return (
-                                <div key={alert.id} className={`${styles.bg} border rounded-2xl p-4 animate-enter`}>
-                                    <div className="flex items-start gap-3">
-                                        <div className="relative flex-shrink-0 mt-1">
-                                            <span className="relative flex h-3 w-3">
-                                                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${styles.pulse} opacity-75`}></span>
-                                                <span className={`relative inline-flex rounded-full h-3 w-3 ${styles.pulse}`}></span>
-                                            </span>
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <h4 className="font-bold text-white">{alert.title}</h4>
-                                                <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${
-                                                    alert.level === 'critical' ? 'bg-red-500 text-white' :
-                                                    alert.level === 'warning' ? 'bg-orange-500 text-white' :
-                                                    'bg-yellow-500 text-black'
-                                                }`}>
-                                                    {alert.level === 'critical' ? 'Crítico' : 
-                                                     alert.level === 'warning' ? 'Alerta' : 'Atenção'}
-                                                </span>
-                                            </div>
-                                            <p className="text-gray-200 text-sm leading-relaxed">{alert.message}</p>
-                                            <p className="text-xs text-gray-400 mt-2">
-                                                Expira em: {new Date(alert.expiresAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                ) : (
-                    <div className={`${cardClass} rounded-3xl p-8 text-center`}>
-                        <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <InfoIcon className="w-8 h-8 text-emerald-400" />
-                        </div>
-                        <h3 className="text-lg font-semibold text-white mb-2">Nenhum Alerta Ativo</h3>
-                        <p className="text-gray-400 text-sm">
-                            Não há alertas meteorológicos para sua região no momento.
-                        </p>
-                    </div>
-                )}
-
-                {/* O que monitoramos */}
-                <div className={`${cardClass} rounded-2xl p-5`}>
-                    <h4 className="font-semibold text-white mb-4 flex items-center gap-2">
-                        <AlertTriangleIcon className="w-4 h-4 text-yellow-400" />
-                        O que monitoramos
-                    </h4>
-                    <div className="grid grid-cols-2 gap-3">
-                        {[
-                            { label: 'Tempestades', color: 'text-red-400' },
-                            { label: 'Calor Extremo', color: 'text-orange-400' },
-                            { label: 'Frio Intenso', color: 'text-cyan-400' },
-                            { label: 'Índice UV', color: 'text-purple-400' },
-                            { label: 'Ventos Fortes', color: 'text-blue-400' },
-                            { label: 'Chuvas Intensas', color: 'text-indigo-400' },
-                        ].map((item, i) => (
-                            <div key={i} className="flex items-center gap-2">
-                                <span className={`w-2 h-2 rounded-full ${item.color.replace('text', 'bg')}`}></span>
-                                <span className="text-sm text-gray-300">{item.label}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
 
                 <div className="text-center text-xs text-gray-500 pt-2">
                     Alertas gerados automaticamente. Consulte fontes oficiais em emergências.
