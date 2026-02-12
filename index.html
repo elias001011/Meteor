@@ -14,9 +14,17 @@
     
     <!-- Variáveis de ambiente para o cliente -->
     <script>
-      window.ENV = {
-        VAPID_PUBLIC_KEY: '${VAPID_PUBLIC_KEY}'
-      };
+      // Busca configurações do servidor
+      fetch('/.netlify/functions/getConfig')
+        .then(r => r.json())
+        .then(config => {
+          window.ENV = config;
+          console.log('[Config] VAPID configurado:', !!config.VAPID_PUBLIC_KEY);
+        })
+        .catch(() => {
+          window.ENV = { VAPID_PUBLIC_KEY: '' };
+          console.warn('[Config] Falha ao carregar config');
+        });
     </script>
     <meta name="google-site-verification" content="cU9d25IRMJEBNspnWpK9STRAuYlgt512xWcDMV5UZrI" />
     <title>Meteor</title>

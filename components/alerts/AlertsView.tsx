@@ -202,7 +202,6 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                 setPushCity(savedCity);
             } else {
                 // Tenta cidade atual ou última localização
-                const lastCoords = localStorage.getItem('last_coords');
                 const lastCity = localStorage.getItem('last_city');
                 
                 if (lastCity) {
@@ -214,20 +213,39 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                 }
             }
             
-            // Verifica status atual
-            try {
-                const status = await getPushStatus();
-                setPushEnabled(status.isSubscribed);
-                if (status.city) {
-                    setPushCity(status.city);
+            // Verifica status atual - só ativa se localStorage confirmar
+            const localEnabled = localStorage.getItem('meteor_push_enabled');
+            if (localEnabled === 'true') {
+                try {
+                    const status = await getPushStatus();
+                    setPushEnabled(status.isSubscribed);
+                    // Se não tem subscription mais, limpa
+                    if (!status.isSubscribed) {
+                        localStorage.removeItem('meteor_push_enabled');
+                    }
+                } catch (e) {
+                    console.warn('Erro ao verificar status do push:', e);
+                    setPushEnabled(false);
                 }
-            } catch (e) {
-                console.warn('Erro ao verificar status do push:', e);
+            } else {
+                // Garante que começa desativado
+                setPushEnabled(false);
+                // Limpa qualquer subscription perdida
+                try {
+                    const registration = await navigator.serviceWorker?.ready;
+                    const subscription = await registration?.pushManager?.getSubscription();
+                    if (subscription) {
+                        await subscription.unsubscribe();
+                        console.log('[Push] Subscription antiga limpa');
+                    }
+                } catch (e) {
+                    // Ignora erro
+                }
             }
         };
         
         initPush();
-    }, [currentWeather?.city]);
+    }, []); // Roda uma vez só no mount
 
     const handleTogglePush = async () => {
         setPushMessage(null);

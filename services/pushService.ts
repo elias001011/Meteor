@@ -3,9 +3,17 @@
  * Simplificado e robusto, usando Web Push API
  */
 
-const VAPID_PUBLIC_KEY = typeof window !== 'undefined' 
-  ? (window as any).ENV?.VAPID_PUBLIC_KEY || '' 
-  : '';
+// Pega a chave VAPID do window.ENV (injetada pelo Netlify) ou usa variável de ambiente
+const getVapidPublicKey = (): string => {
+  if (typeof window !== 'undefined') {
+    const fromWindow = (window as any).ENV?.VAPID_PUBLIC_KEY;
+    if (fromWindow && fromWindow !== 'undefined' && fromWindow !== '') {
+      return fromWindow;
+    }
+  }
+  // Fallback para desenvolvimento
+  return '';
+};
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   try {
@@ -14,20 +22,28 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
     const rawData = atob(base64);
     return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
   } catch (error) {
+    console.error('[Push] Erro ao processar chave VAPID:', error);
     throw new Error('Falha ao processar chave VAPID');
   }
 }
 
 export const isPushSupported = (): boolean => {
   try {
-    return 'serviceWorker' in navigator && 'PushManager' in window;
+    const supported = 'serviceWorker' in navigator && 'PushManager' in window;
+    console.log('[Push] Suporte detectado:', supported);
+    return supported;
   } catch (e) {
+    console.error('[Push] Erro ao verificar suporte:', e);
     return false;
   }
 };
 
 export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration | null> => {
-  if (!('serviceWorker' in navigator)) return null;
+  if (!('serviceWorker' in navigator)) {
+    console.warn('[Push] Service Worker não suportado');
+    return null;
+  }
+  
   if (!window.isSecureContext) {
     console.warn('[Push] HTTPS necessário para push');
     return null;
@@ -35,9 +51,17 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
 
   try {
     const existing = await navigator.serviceWorker.getRegistration('/sw.js');
-    if (existing) return existing;
+    if (existing) {
+      console.log('[Push] SW existente encontrado');
+      // Força update do SW
+      await existing.update();
+      return existing;
+    }
     
-    return await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    console.log('[Push] Registrando novo SW...');
+    const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    console.log('[Push] SW registrado com sucesso');
+    return registration;
   } catch (error: any) {
     console.error('[Push] Erro ao registrar SW:', error.message);
     return null;
@@ -48,7 +72,11 @@ export const requestNotificationPermission = async (): Promise<NotificationPermi
   if (!('Notification' in window)) {
     throw new Error('Notificações não suportadas neste navegador');
   }
-  return await Notification.requestPermission();
+  
+  console.log('[Push] Solicitando permissão...');
+  const permission = await Notification.requestPermission();
+  console.log('[Push] Permissão:', permission);
+  return permission;
 };
 
 export interface PushSubscriptionData {
@@ -68,7 +96,7 @@ export const subscribeToPush = async (city: string): Promise<PushSubscription | 
 
     const permission = await requestNotificationPermission();
     if (permission !== 'granted') {
-      throw new Error('Permissão de notificação negada');
+      throw new Error('Permissão de notificação negada pelo usuário');
     }
 
     const registration = await registerServiceWorker();
@@ -77,15 +105,20 @@ export const subscribeToPush = async (city: string): Promise<PushSubscription | 
     }
 
     // Verifica se já existe subscription
-    const existing = await registration.pushManager.getSubscription();
+    let existing = await registration.pushManager.getSubscription();
+    
+    // Se existe, remove primeiro (limpa subscription antiga)
     if (existing) {
-      console.log('[Push] Subscription já existe');
-      await saveSubscription(existing, city);
-      return existing;
+      console.log('[Push] Removendo subscription antiga...');
+      await existing.unsubscribe();
+      console.log('[Push] Subscription antiga removida');
     }
 
+    const VAPID_PUBLIC_KEY = getVapidPublicKey();
+    console.log('[Push] VAPID Key disponível:', VAPID_PUBLIC_KEY ? 'Sim' : 'Não');
+    
     if (!VAPID_PUBLIC_KEY) {
-      throw new Error('Chave VAPID não configurada');
+      throw new Error('Chave VAPID não configurada no frontend. Verifique as variáveis de ambiente.');
     }
 
     console.log('[Push] Criando nova subscription...');
@@ -95,13 +128,14 @@ export const subscribeToPush = async (city: string): Promise<PushSubscription | 
       applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
     });
     
-    console.log('[Push] Subscription criada com sucesso');
+    console.log('[Push] Subscription criada:', subscription.endpoint.substring(0, 50) + '...');
     
     // Salva no servidor
     await saveSubscription(subscription, city);
     
     // Salva localmente
     localStorage.setItem('meteor_push_city', city);
+    localStorage.setItem('meteor_push_enabled', 'true');
     
     return subscription;
     
@@ -112,33 +146,46 @@ export const subscribeToPush = async (city: string): Promise<PushSubscription | 
 };
 
 export const unsubscribeFromPush = async (): Promise<boolean> => {
+  console.log('[Push] Desativando notificações...');
+  
   try {
     const registration = await navigator.serviceWorker.ready;
     const subscription = await registration.pushManager.getSubscription();
     
     if (subscription) {
+      console.log('[Push] Unsubscribing...');
       await subscription.unsubscribe();
       
       // Remove do servidor
-      await fetch('/.netlify/functions/deleteSubscription', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ endpoint: subscription.endpoint })
-      });
+      try {
+        await fetch('/.netlify/functions/deleteSubscription', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint: subscription.endpoint })
+        });
+      } catch (e) {
+        console.warn('[Push] Erro ao remover do servidor:', e);
+      }
       
-      localStorage.removeItem('meteor_push_city');
       console.log('[Push] Desinscrito com sucesso');
-      return true;
     }
-    return false;
+    
+    // Limpa localStorage
+    localStorage.removeItem('meteor_push_city');
+    localStorage.removeItem('meteor_push_enabled');
+    
+    return true;
   } catch (error: any) {
     console.error('[Push] Erro ao desinscrever:', error.message);
     localStorage.removeItem('meteor_push_city');
+    localStorage.removeItem('meteor_push_enabled');
     return false;
   }
 };
 
 const saveSubscription = async (subscription: PushSubscription, city: string): Promise<void> => {
+  console.log('[Push] Salvando subscription no servidor...');
+  
   try {
     const response = await fetch('/.netlify/functions/saveSubscription', {
       method: 'POST',
@@ -151,7 +198,8 @@ const saveSubscription = async (subscription: PushSubscription, city: string): P
     });
     
     if (!response.ok) {
-      throw new Error('Falha ao salvar subscription no servidor');
+      const errorText = await response.text();
+      throw new Error(`Falha ao salvar: ${errorText}`);
     }
     
     console.log('[Push] Subscription salva no servidor');
@@ -163,16 +211,38 @@ const saveSubscription = async (subscription: PushSubscription, city: string): P
 
 export const getPushStatus = async (): Promise<{ isSubscribed: boolean; city: string | null }> => {
   try {
+    // Verifica localStorage primeiro (mais rápido)
+    const localEnabled = localStorage.getItem('meteor_push_enabled');
+    const localCity = localStorage.getItem('meteor_push_city');
+    
+    // Se não tem no localStorage, considera desativado
+    if (localEnabled !== 'true') {
+      console.log('[Push] Status: desativado (localStorage)');
+      return { isSubscribed: false, city: localCity };
+    }
+    
+    // Verifica se a subscription ainda existe no navegador
     const registration = await navigator.serviceWorker.ready;
     const subscription = await registration.pushManager.getSubscription();
-    const city = localStorage.getItem('meteor_push_city');
-    return { isSubscribed: !!subscription, city };
+    
+    if (!subscription) {
+      // Limpa localStorage se não tem subscription
+      localStorage.removeItem('meteor_push_enabled');
+      console.log('[Push] Status: desativado (sem subscription)');
+      return { isSubscribed: false, city: localCity };
+    }
+    
+    console.log('[Push] Status: ativo');
+    return { isSubscribed: true, city: localCity };
   } catch (error) {
+    console.error('[Push] Erro ao verificar status:', error);
     return { isSubscribed: false, city: null };
   }
 };
 
 export const sendTestNotification = async (): Promise<void> => {
+  console.log('[Push] Enviando notificação de teste...');
+  
   try {
     const response = await fetch('/.netlify/functions/sendTestNotification', {
       method: 'POST',
@@ -181,7 +251,7 @@ export const sendTestNotification = async (): Promise<void> => {
     
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Falha ao enviar notificação de teste');
+      throw new Error(error.message || 'Falha ao enviar teste');
     }
     
     console.log('[Push] Notificação de teste enviada');
