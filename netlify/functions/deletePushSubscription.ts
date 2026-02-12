@@ -1,4 +1,3 @@
-
 import type { Handler, HandlerEvent, HandlerContext } from '@netlify/functions';
 import { getStore } from '@netlify/blobs';
 
@@ -22,7 +21,6 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
   }
 
   try {
-    const store = getStore('pushSubscriptions');
     const { endpoint } = JSON.parse(event.body || '{}');
 
     if (!endpoint) {
@@ -33,8 +31,24 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
       };
     }
 
-    const subscriptionId = endpoint.slice(-32);
-    await store.delete(subscriptionId);
+    // Tenta usar Netlify Blobs
+    try {
+      const store = getStore('pushSubscriptions');
+      const subscriptionId = endpoint.slice(-32);
+      await store.delete(subscriptionId);
+    } catch (blobsError: any) {
+      if (blobsError.message?.includes('environment has not been configured')) {
+        return {
+          statusCode: 503,
+          headers: corsHeaders,
+          body: JSON.stringify({ 
+            error: 'Armazenamento não configurado',
+            message: 'Netlify Blobs precisa ser habilitado'
+          }),
+        };
+      }
+      throw blobsError;
+    }
 
     return {
       statusCode: 200,

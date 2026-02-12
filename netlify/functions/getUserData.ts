@@ -15,14 +15,26 @@ export const handler: Handler = async (event) => {
     const auth = event.headers.authorization || '';
     const userId = auth.replace('Bearer ', '').slice(0, 32) || 'anonymous';
     
-    const store = getStore('userData');
-    const data = await store.get(userId, { type: 'json' });
-
-    return {
-      statusCode: 200,
-      headers: cors,
-      body: JSON.stringify(data || {}),
-    };
+    // Tenta usar Netlify Blobs
+    try {
+      const store = getStore('userData');
+      const data = await store.get(userId, { type: 'json' });
+      return {
+        statusCode: 200,
+        headers: cors,
+        body: JSON.stringify(data || {}),
+      };
+    } catch (blobsError: any) {
+      // Se Blobs não estiver configurado, retorna dados vazios
+      if (blobsError.message?.includes('environment has not been configured')) {
+        return {
+          statusCode: 200,
+          headers: cors,
+          body: JSON.stringify({}),
+        };
+      }
+      throw blobsError;
+    }
   } catch (err) {
     return { statusCode: 200, headers: cors, body: JSON.stringify({}) };
   }

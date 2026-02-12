@@ -1,4 +1,3 @@
-
 import type { Handler, HandlerEvent, HandlerContext } from '@netlify/functions';
 import { getStore } from '@netlify/blobs';
 
@@ -22,7 +21,6 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
   }
 
   try {
-    const store = getStore('pushSubscriptions');
     const { subscription } = JSON.parse(event.body || '{}');
 
     if (!subscription || !subscription.endpoint) {
@@ -36,11 +34,27 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
     // Usa o endpoint como ID único
     const subscriptionId = subscription.endpoint.slice(-32);
     
-    await store.setJSON(subscriptionId, {
-      subscription,
-      createdAt: new Date().toISOString(),
-      lastUsed: new Date().toISOString(),
-    });
+    // Tenta usar Netlify Blobs
+    try {
+      const store = getStore('pushSubscriptions');
+      await store.setJSON(subscriptionId, {
+        subscription,
+        createdAt: new Date().toISOString(),
+        lastUsed: new Date().toISOString(),
+      });
+    } catch (blobsError: any) {
+      if (blobsError.message?.includes('environment has not been configured')) {
+        return {
+          statusCode: 503,
+          headers: corsHeaders,
+          body: JSON.stringify({ 
+            error: 'Armazenamento não configurado',
+            message: 'Netlify Blobs precisa ser habilitado para salvar subscriptions'
+          }),
+        };
+      }
+      throw blobsError;
+    }
 
     return {
       statusCode: 200,
