@@ -184,7 +184,17 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
     const [pushSupported, setPushSupported] = useState(false);
     const [pushSubscribed, setPushSubscribed] = useState(() => {
         // Recupera do localStorage de forma síncrona ao montar
-        return !!localStorage.getItem('meteor_push_subscription');
+        try {
+            const raw = localStorage.getItem('meteor_push_subscription');
+            if (!raw) return false;
+            const parsed = JSON.parse(raw);
+            // Verifica se a subscription tem a estrutura mínima necessária
+            return !!(parsed && parsed.endpoint && parsed.keys);
+        } catch (e) {
+            // Limpa dados corrompidos
+            localStorage.removeItem('meteor_push_subscription');
+            return false;
+        }
     });
     const [isSubscribing, setIsSubscribing] = useState(false);
     const [pushError, setPushError] = useState<string | null>(null);
@@ -205,6 +215,8 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
     const togglePushNotifications = async () => {
         setPushError(null);
         
+        setPushError(null);
+        
         if (pushSubscribed) {
             // Desliga imediatamente na UI (responsividade)
             setPushSubscribed(false);
@@ -214,10 +226,10 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
             
             try {
                 await unsubscribeFromPush();
-                if (isLoggedIn) {
+                if (isLoggedIn && userData) {
                     await updateUserData({
                         preferences: {
-                            ...userData?.preferences,
+                            ...userData.preferences,
                             pushSubscription: null,
                             morningSummary: false
                         }
@@ -225,6 +237,7 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                 }
             } catch (e) {
                 // Mesmo se falhar no navegador, mantém desligado na UI
+                console.warn('[Meteor] Erro ao desinscrever:', e);
             } finally {
                 setIsSubscribing(false);
             }
@@ -232,19 +245,29 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
             setIsSubscribing(true);
             try {
                 const subscription = await subscribeToPush();
-                setPushSubscribed(true);
-                if (subscription && isLoggedIn) {
-                    await updateUserData({
-                        preferences: {
-                            ...userData?.preferences,
-                            pushSubscription: subscription,
-                            morningSummary: true
-                        }
-                    });
+                if (subscription) {
+                    setPushSubscribed(true);
+                    // Limpa erro se houve sucesso
+                    setPushError(null);
+                    
+                    if (isLoggedIn && userData) {
+                        // Salva apenas os dados serializáveis
+                        await updateUserData({
+                            preferences: {
+                                ...userData.preferences,
+                                pushSubscription: subscription.toJSON ? subscription.toJSON() : subscription,
+                                morningSummary: true
+                            }
+                        });
+                    }
+                } else {
+                    throw new Error('Não foi possível ativar as notificações');
                 }
             } catch (error: any) {
                 setPushSubscribed(false);
+                localStorage.removeItem('meteor_push_subscription');
                 setPushError(error.message || 'Erro ao ativar notificações');
+                console.error('[Meteor] Erro ao ativar push:', error);
             } finally {
                 setIsSubscribing(false);
             }
@@ -252,10 +275,11 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
     };
 
     const handleTestNotification = async () => {
+        setPushError(null);
         try {
             await sendTestNotification();
         } catch (error: any) {
-            setPushError(error.message);
+            setPushError(error.message || 'Erro ao enviar notificação de teste');
         }
     };
 

@@ -12,27 +12,38 @@
       }
     </script>
     
-    <!-- Limpa cache do Service Worker para atualização forçada v5.4 -->
+    <!-- Service Worker Registration - v6.0 (Fixed for Android/TWA) -->
     <script>
+      // Apenas registra o SW, nunca limpa automaticamente (causa problemas com push)
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(regs => {
-          for (let reg of regs) {
-            reg.unregister();
-          }
-        });
-        caches.keys().then(names => {
-          for (let name of names) {
-            caches.delete(name);
-          }
+        window.addEventListener('load', () => {
+          // Para TWA/Android, usamos um delay maior para garantir que o Firebase esteja pronto
+          const isTWA = window.matchMedia('(display-mode: standalone)').matches && 
+                        /Android/.test(navigator.userAgent);
+          const delay = isTWA ? 2000 : 0;
+          
+          setTimeout(() => {
+            navigator.serviceWorker.register('/sw.js', { scope: '/' })
+              .then(registration => {
+                console.log('[Meteor] SW registrado:', registration.scope);
+              })
+              .catch(error => {
+                console.log('[Meteor] SW falhou:', error);
+              });
+          }, delay);
         });
       }
     </script>
     
     <!-- Variáveis de ambiente para o cliente -->
     <script>
-      window.ENV = {
-        VAPID_PUBLIC_KEY: '${VAPID_PUBLIC_KEY}'
-      };
+      // VAPID key com fallback para evitar erro atob em desenvolvimento
+      (function() {
+        const vapidKey = '${VAPID_PUBLIC_KEY}';
+        window.ENV = {
+          VAPID_PUBLIC_KEY: vapidKey && vapidKey !== '${' + 'VAPID_PUBLIC_KEY}' ? vapidKey : ''
+        };
+      })();
     </script>
     <meta name="google-site-verification" content="cU9d25IRMJEBNspnWpK9STRAuYlgt512xWcDMV5UZrI" />
     <title>Meteor</title>
