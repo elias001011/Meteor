@@ -4,6 +4,20 @@ import webpush from 'web-push';
 
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type' };
 
+// Helper para criar store com credenciais do ambiente
+const createStore = (name: string) => {
+  const siteID = process.env.NETLIFY_BLOBS_SITE_ID;
+  const token = process.env.NETLIFY_BLOBS_TOKEN;
+  
+  // Se temos as variáveis de ambiente, usa-as explicitamente
+  if (siteID && token) {
+    return getStore({ name, siteID, token });
+  }
+  
+  // Caso contrário, tenta usar o comportamento padrão (funciona no ambiente Netlify)
+  return getStore(name);
+};
+
 export const handler: Handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: cors, body: '' };
   
@@ -64,8 +78,8 @@ export const handler: Handler = async (event) => {
   const isTest = event.queryStringParameters?.test === 'true';
   const targetTime = isTest ? null : currentTime;
   
-  const userStore = getStore('userData');
-  const pushStore = getStore('pushSubscriptions');
+  const userStore = createStore('userData');
+  const pushStore = createStore('pushSubscriptions');
   
   try {
     const list = await userStore.list();
