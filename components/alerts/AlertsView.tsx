@@ -197,9 +197,26 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
         setIsInstalled(isPWAInstalled());
         
         const checkSubscription = async () => {
-            // Verifica no navegador primeiro
-            const { isSubscribed } = await getPushSubscriptionStatus();
-            setPushSubscribed(isSubscribed);
+            // Primeiro verifica dados salvos (mais rápido)
+            const savedSub = localStorage.getItem('meteor_push_subscription');
+            if (savedSub) {
+                setPushSubscribed(true);
+            }
+            
+            // Depois verifica no navegador para confirmar
+            try {
+                const { isSubscribed } = await getPushSubscriptionStatus();
+                // Só atualiza se for false (usuário removeu permissão)
+                if (!isSubscribed && savedSub) {
+                    setPushSubscribed(false);
+                    localStorage.removeItem('meteor_push_subscription');
+                } else if (isSubscribed && !savedSub) {
+                    // Se tem no navegador mas não no localStorage, sincroniza
+                    setPushSubscribed(true);
+                }
+            } catch (e) {
+                // Se falhar a verificação, mantém o estado do localStorage
+            }
         };
         checkSubscription();
     }, []);
