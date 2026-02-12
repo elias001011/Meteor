@@ -443,7 +443,7 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                                         <div className="flex items-center justify-between">
                                             <div>
                                                 <p className="text-white font-medium text-sm">Resumo diário</p>
-                                                <p className="text-gray-500 text-xs">Previsão do tempo toda manhã</p>
+                                                <p className="text-gray-500 text-xs">Todos os dias às 07:00</p>
                                             </div>
                                             <button
                                                 onClick={() => updateUserData({ 
@@ -464,23 +464,6 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
 
                                         {isMorningSummaryEnabled && (
                                             <div className="animate-enter space-y-3">
-                                                <div>
-                                                    <label className="text-sm text-gray-400 mb-2 block">Horário do resumo</label>
-                                                    <select
-                                                        value={userData?.preferences?.summaryTime || '06:00'}
-                                                        onChange={(e) => updateUserData({
-                                                            preferences: {
-                                                                ...userData?.preferences,
-                                                                summaryTime: e.target.value
-                                                            }
-                                                        })}
-                                                        className="w-full bg-gray-900/60 border border-white/10 rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/50"
-                                                    >
-                                                        {['06:00', '07:00', '08:00', '09:00', '10:00', '11:00', '12:00'].map(time => (
-                                                            <option key={time} value={time}>{time}</option>
-                                                        ))}
-                                                    </select>
-                                                </div>
                                                 
                                                 <div>
                                                     <label className="text-sm text-gray-400 mb-2 block flex items-center gap-1">

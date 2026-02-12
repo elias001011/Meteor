@@ -116,14 +116,9 @@ export const handler: Handler = async (event) => {
   const API_KEY = process.env.CLIMA_API;
   if (!API_KEY) return { statusCode: 503, headers: cors, body: JSON.stringify({ error: 'API não configurada' }) };
   
-  // Hora atual Brasil (UTC-3)
-  const now = new Date();
-  const brHour = now.getUTCHours() - 3;
-  const currentTime = `${String(brHour).padStart(2, '0')}:00`;
-  
-  // Modo teste: bypass de horário
+  // Horário fixo: 7h da manhã (Brasília UTC-3)
+  // O cron-job.org deve ser configurado para rodar às 7h
   const isTest = event.queryStringParameters?.test === 'true';
-  const targetTime = isTest ? null : currentTime;
   
   const userStore = createStore('userData');
   
@@ -133,7 +128,6 @@ export const handler: Handler = async (event) => {
     let sent = 0;
     let usersChecked = 0;
     let skippedNoSubscription = 0;
-    let skippedWrongTime = 0;
     let alertsFound = 0;
     
     for (const key of list.blobs || []) {
@@ -142,13 +136,6 @@ export const handler: Handler = async (event) => {
         if (!data?.preferences?.morningSummary) continue;
         
         usersChecked++;
-        
-        // Verifica horário do usuário (bypass no modo teste)
-        const userTime = data.preferences.summaryTime || '06:00';
-        if (targetTime && userTime !== targetTime) {
-          skippedWrongTime++;
-          continue;
-        }
         
         // Busca subscription nos dados do usuário
         const subscription = data.preferences?.pushSubscription;
@@ -223,11 +210,9 @@ export const handler: Handler = async (event) => {
       body: JSON.stringify({ 
         success: true, 
         sent, 
-        time: currentTime,
         alertsFound,
         stats: {
           usersChecked,
-          skippedWrongTime,
           skippedNoSubscription
         }
       }) 
