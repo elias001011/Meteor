@@ -258,9 +258,18 @@ export const sendTestNotification = async (): Promise<void> => {
   console.log('[Push] Enviando notificação de teste...');
   
   try {
+    // Pega o endpoint atual
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.getSubscription();
+    
+    if (!subscription) {
+      throw new Error('Você precisa ativar as notificações primeiro');
+    }
+    
     const response = await fetch('/.netlify/functions/sendTestNotification', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endpoint: subscription.endpoint })
     });
     
     if (!response.ok) {
