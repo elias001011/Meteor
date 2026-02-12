@@ -22,9 +22,3 @@
   from = "/.well-known/assetlinks.json"
   to = "/assetlinks.json"
   status = 200
-
-[context.android]
-  command = "vite build"
-  
-  [context.android.environment]
-    VAPID_PUBLIC_KEY = "${VAPID_PUBLIC_KEY}"
