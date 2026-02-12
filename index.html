@@ -12,22 +12,6 @@
       }
     </script>
     
-    <!-- Limpa cache do Service Worker para atualização forçada v5.4 -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(regs => {
-          for (let reg of regs) {
-            reg.unregister();
-          }
-        });
-        caches.keys().then(names => {
-          for (let name of names) {
-            caches.delete(name);
-          }
-        });
-      }
-    </script>
-    
     <!-- Variáveis de ambiente para o cliente -->
     <script>
       window.ENV = {
