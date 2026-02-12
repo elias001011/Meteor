@@ -2,6 +2,8 @@ const PUBLIC_VAPID_KEY = typeof window !== 'undefined'
   ? (window as any).ENV?.VAPID_PUBLIC_KEY || '' 
   : '';
 
+console.log('[DEBUG] VAPID_PUBLIC_KEY carregada:', PUBLIC_VAPID_KEY ? 'SIM (' + PUBLIC_VAPID_KEY.slice(0, 10) + '...)' : 'NÃO');
+
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -59,17 +61,21 @@ export const requestNotificationPermission = async (): Promise<NotificationPermi
 };
 
 export const subscribeToPush = async (): Promise<PushSubscription | null> => {
+  console.log('[DEBUG] subscribeToPush iniciado');
   try {
     if (!isPushSupported()) {
       throw new Error('Notificações push não são suportadas neste navegador');
     }
+    console.log('[DEBUG] Push é suportado');
 
     if (isIOSSafari() && !isPWAInstalled()) {
       throw new Error('Para receber notificações no iOS, instale o app na tela inicial');
     }
 
     // Solicita permissão ANTES de qualquer coisa
+    console.log('[DEBUG] Solicitando permissão...');
     const permission = await requestNotificationPermission();
+    console.log('[DEBUG] Permissão:', permission);
     if (permission !== 'granted') {
       throw new Error('Permissão para notificações negada. Clique no ícone de cadeado na barra de endereço para permitir.');
     }
@@ -86,6 +92,7 @@ export const subscribeToPush = async (): Promise<PushSubscription | null> => {
       return existingSubscription;
     }
 
+    console.log('[DEBUG] PUBLIC_VAPID_KEY disponível:', !!PUBLIC_VAPID_KEY);
     if (!PUBLIC_VAPID_KEY) {
       throw new Error('Chave VAPID não configurada no servidor');
     }
