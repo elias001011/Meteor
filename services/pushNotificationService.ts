@@ -40,6 +40,17 @@ export const isPWAInstalled = (): boolean => {
   }
 };
 
+// Detecta se é Android
+export const isAndroid = (): boolean => {
+  return /Android/i.test(navigator.userAgent);
+};
+
+// Detecta se é Chrome no Android
+export const isChromeAndroid = (): boolean => {
+  const ua = navigator.userAgent;
+  return /Android/i.test(ua) && /Chrome/i.test(ua) && !/Firefox/i.test(ua) && !/Edg/i.test(ua);
+};
+
 export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration | null> => {
   console.log('[Push] Iniciando registro do SW...');
   
@@ -54,29 +65,51 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
   }
 
   try {
-    // Verifica se já existe um registro
     console.log('[Push] Verificando registro existente...');
     const existingRegistration = await navigator.serviceWorker.getRegistration('/sw.js');
     if (existingRegistration) {
       console.log('[Push] Registro existente encontrado:', existingRegistration.scope);
       console.log('[Push] Estado do SW:', existingRegistration.active?.state || 'não ativo');
+      
+      // Se não estiver ativo, aguarda
+      if (!existingRegistration.active && existingRegistration.installing) {
+        console.log('[Push] Aguardando ativação...');
+        await new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('Timeout aguardando SW ativar'));
+          }, 5000);
+          
+          existingRegistration.installing?.addEventListener('statechange', (e) => {
+            const state = (e.target as ServiceWorker).state;
+            console.log('[Push] SW statechange:', state);
+            if (state === 'activated') {
+              clearTimeout(timeout);
+              resolve();
+            }
+          });
+        });
+      }
+      
       return existingRegistration;
     }
     
-    // Tenta registrar novo
     console.log('[Push] Registrando novo SW...');
     const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
     console.log('[Push] SW registrado:', registration.scope);
-    console.log('[Push] Estado inicial:', registration.installing?.state || registration.active?.state);
     
-    // Aguarda ativação se necessário
+    // Aguarda ativação
     if (registration.installing) {
-      console.log('[Push] Aguardando instalação...');
-      await new Promise<void>((resolve) => {
+      console.log('[Push] Aguardando instalação/ativação...');
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Timeout aguardando SW ativar'));
+        }, 5000);
+        
         const sw = registration.installing;
         sw?.addEventListener('statechange', () => {
-          console.log('[Push] Mudança de estado:', sw.state);
+          console.log('[Push] SW statechange:', sw.state);
           if (sw.state === 'activated') {
+            clearTimeout(timeout);
             resolve();
           }
         });
@@ -86,10 +119,7 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
     return registration;
   } catch (error: any) {
     console.error('[Push] Erro ao registrar SW:', error.name, error.message);
-    if (error.name === 'SecurityError' || error.message?.includes('secure')) {
-      throw new Error('Service Worker requer HTTPS ou localhost');
-    }
-    throw new Error('Não foi possível registrar o Service Worker: ' + (error.message || 'Erro desconhecido'));
+    throw error;
   }
 };
 
@@ -109,6 +139,9 @@ export const requestNotificationPermission = async (): Promise<NotificationPermi
 
 export const subscribeToPush = async (): Promise<PushSubscription | null> => {
   console.log('[Push] === Iniciando subscribeToPush ===');
+  console.log('[Push] UserAgent:', navigator.userAgent);
+  console.log('[Push] isAndroid:', isAndroid());
+  console.log('[Push] isChromeAndroid:', isChromeAndroid());
   
   try {
     if (!isPushSupported()) {
@@ -119,19 +152,57 @@ export const subscribeToPush = async (): Promise<PushSubscription | null> => {
       throw new Error('Para receber notificações no iOS, instale o app na tela inicial');
     }
 
-    // Solicita permissão
+    // NOVO: Verificação específica para Chrome Android
+    if (isChromeAndroid()) {
+      console.log('[Push] Detectado Chrome Android - aplicando workarounds');
+      
+      // Verifica se está em contexto seguro
+      if (!window.isSecureContext) {
+        throw new Error('Chrome Android requer HTTPS para push');
+      }
+      
+      // Verifica se tem permissão de notificação no sistema (não só no browser)
+      if ('permissions' in navigator) {
+        try {
+          const status = await navigator.permissions.query({ name: 'notifications' as PermissionName });
+          console.log('[Push] Permission status:', status.state);
+        } catch (e) {
+          console.log('[Push] Não conseguiu verificar permission status');
+        }
+      }
+    }
+
     const permission = await requestNotificationPermission();
     if (permission !== 'granted') {
       throw new Error('Permissão para notificações negada');
     }
 
-    // Registra SW
-    const registration = await registerServiceWorker();
+    // NOVO: Para Chrome Android, tenta usar navigator.serviceWorker.ready primeiro
+    let registration: ServiceWorkerRegistration | null = null;
+    
+    if (isChromeAndroid()) {
+      try {
+        console.log('[Push] Chrome Android: tentando navigator.serviceWorker.ready...');
+        registration = await navigator.serviceWorker.ready;
+        console.log('[Push] Chrome Android: SW ready funciou!');
+      } catch (readyError: any) {
+        console.log('[Push] Chrome Android: SW ready falhou:', readyError.message);
+        // Continua para tentar registro normal
+      }
+    }
+    
+    if (!registration) {
+      registration = await registerServiceWorker();
+    }
+    
     if (!registration) {
       throw new Error('Não foi possível registrar o Service Worker');
     }
 
-    // Verifica se já existe subscription
+    console.log('[Push] Registro obtido:', registration.scope);
+    console.log('[Push] SW ativo?', !!registration.active);
+
+    // Verifica subscription existente
     console.log('[Push] Verificando subscription existente...');
     let existingSubscription: PushSubscription | null = null;
     try {
@@ -139,7 +210,6 @@ export const subscribeToPush = async (): Promise<PushSubscription | null> => {
       console.log('[Push] Subscription existente:', existingSubscription ? 'SIM' : 'NÃO');
     } catch (e: any) {
       console.error('[Push] Erro ao verificar subscription:', e.message);
-      // Continua mesmo se falhar
     }
     
     if (existingSubscription) {
@@ -147,7 +217,7 @@ export const subscribeToPush = async (): Promise<PushSubscription | null> => {
       return existingSubscription;
     }
 
-    // Verifica VAPID key
+    // Verifica VAPID
     console.log('[Push] VAPID Key disponível:', !!PUBLIC_VAPID_KEY);
     console.log('[Push] VAPID Key tamanho:', PUBLIC_VAPID_KEY.length);
     
@@ -155,7 +225,6 @@ export const subscribeToPush = async (): Promise<PushSubscription | null> => {
       throw new Error('Chave VAPID não configurada no servidor');
     }
 
-    // Converte VAPID key
     let applicationServerKey: Uint8Array;
     try {
       applicationServerKey = urlBase64ToUint8Array(PUBLIC_VAPID_KEY);
@@ -165,11 +234,17 @@ export const subscribeToPush = async (): Promise<PushSubscription | null> => {
       throw new Error('Erro ao processar chave VAPID');
     }
 
-    // FAZ A SUBSCRIPTION
+    // FAZ A SUBSCRIPTION COM TRATAMENTO ESPECÍFICO
     console.log('[Push] Chamando pushManager.subscribe()...');
-    console.log('[Push] UserAgent:', navigator.userAgent.substring(0, 50));
     
     try {
+      // NOVO: Para Chrome Android, adiciona um pequeno delay antes de subscrever
+      // Isso ajuda em casos onde o SW acabou de ativar
+      if (isChromeAndroid()) {
+        console.log('[Push] Chrome Android: aguardando 500ms antes de subscrever...');
+        await new Promise(r => setTimeout(r, 500));
+      }
+      
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey
@@ -178,26 +253,26 @@ export const subscribeToPush = async (): Promise<PushSubscription | null> => {
       console.log('[Push] Subscription criada com sucesso!');
       console.log('[Push] Endpoint:', subscription.endpoint?.substring(0, 50) + '...');
       
-      // Salva localmente
       try {
         localStorage.setItem('meteor_push_subscription', JSON.stringify(subscription));
-      } catch (e) {
-        // Ignora erro de localStorage
-      }
+      } catch (e) {}
       
       return subscription;
+      
     } catch (subscribeError: any) {
       console.error('[Push] ERRO NA SUBSCRIPTION:');
       console.error('  - Nome:', subscribeError.name);
       console.error('  - Mensagem:', subscribeError.message);
-      console.error('  - Código:', subscribeError.code);
+      console.error('  - Stack:', subscribeError.stack);
       
-      // Erros específicos do Chrome Android/FCM
-      if (subscribeError.message?.includes('subscription')) {
-        throw new Error('Falha na subscription: ' + subscribeError.message);
-      }
-      if (subscribeError.message?.includes('permission')) {
-        throw new Error('Permissão negada pelo sistema');
+      // Mensagem específica para Chrome Android
+      if (isChromeAndroid()) {
+        if (subscribeError.message?.includes('registration')) {
+          throw new Error('Falha no registro de push. Se você está usando o app instalado (TWA), verifique se as notificações estão habilitadas nas configurações do Android.');
+        }
+        if (subscribeError.name === 'AbortError' || subscribeError.name === 'NotAllowedError') {
+          throw new Error('Push bloqueado. Para Chrome Android/TWA: 1) Verifique se o app tem permissão de notificação nas configurações do Android, 2) Tente usar pelo navegador Chrome primeiro.');
+        }
       }
       
       throw subscribeError;
