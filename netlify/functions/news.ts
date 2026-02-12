@@ -134,10 +134,6 @@ const handler: Handler = async (event: HandlerEvent) => {
                 };
         }
 
-        // Log seguro (sem expor a query completa para proteger privacidade)
-        const safeEndpoint = endpoint === 'search' ? 'search' : 'top-headlines';
-        console.log(`[GNews API] Request from ${clientIP.slice(0, 8)}...: ${safeEndpoint}`);
-        
         const response = await fetch(apiUrl, {
             headers: {
                 'Accept': 'application/json',
@@ -146,7 +142,6 @@ const handler: Handler = async (event: HandlerEvent) => {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({ message: 'Erro desconhecido na GNews API' }));
-            console.error('[GNews API] Error:', errorData);
             
             // Rate limit específico
             if (response.status === 429) {

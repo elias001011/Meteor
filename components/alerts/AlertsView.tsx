@@ -203,7 +203,6 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
     }, []);
 
     const togglePushNotifications = async () => {
-        console.log('[DEBUG] Toggle clicado, estado atual:', pushSubscribed);
         setPushError(null);
         
         if (pushSubscribed) {
@@ -230,11 +229,9 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                 setIsSubscribing(false);
             }
         } else {
-            console.log('[DEBUG] Tentando ativar push...');
             setIsSubscribing(true);
             try {
                 const subscription = await subscribeToPush();
-                console.log('[DEBUG] Subscription obtida:', subscription ? 'SIM' : 'NÃO');
                 setPushSubscribed(true);
                 if (subscription && isLoggedIn) {
                     await updateUserData({

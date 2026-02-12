@@ -82,7 +82,6 @@ export async function* streamChatResponse(
 
             // 1. CHECK FOR [SEARCH_REQUIRED]
             if (rawText.includes('[SEARCH_REQUIRED]')) {
-                console.log("AI Requested Search via Stealth Command");
                 // Inform user that search is happening
                 yield { text: "Buscando informações atualizadas na web...", isFinal: false };
                 
@@ -90,9 +89,7 @@ export async function* streamChatResponse(
                 const dateQuery = `${prompt} ${new Date().toLocaleDateString('pt-BR')}`;
                 try {
                     currentSearchResults = await getSearchResults(dateQuery);
-                    console.log("Search completed, results:", currentSearchResults?.length || 0);
                 } catch (e) {
-                    console.error("Auto-search failed:", e);
                     currentSearchResults = []; // Continue loop so AI knows it failed via empty results
                 }
                 toolUsedLabel = "Busca Web (Auto)";
@@ -104,7 +101,6 @@ export async function* streamChatResponse(
             const weatherMatch = rawText.match(/\[WEATHER_QUERY=(.*?)\]/);
             if (weatherMatch && weatherMatch[1]) {
                 const cityQuery = weatherMatch[1];
-                console.log(`AI Requested Weather for: ${cityQuery}`);
                 
                 // Inform user
                 yield { text: `Consultando clima de ${cityQuery}...`, isFinal: false };
@@ -127,12 +123,10 @@ export async function* streamChatResponse(
                                 condition: d.conditionIcon 
                             }))
                         };
-                        console.log("Weather data retrieved:", weatherToolResult);
                     } else {
                         weatherToolResult = { error: "Cidade não encontrada." };
                     }
                 } catch (e) {
-                    console.error("Weather tool error:", e);
                     weatherToolResult = { error: "Falha ao buscar clima." };
                 }
                 
@@ -169,7 +163,6 @@ export async function* streamChatResponse(
             return;
 
         } catch (error) {
-            console.error("Error in chat stream:", error);
             yield { text: `Erro: ${error instanceof Error ? error.message : 'Desconhecido'}`, isFinal: true };
             return;
         }
