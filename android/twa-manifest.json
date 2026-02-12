@@ -1,0 +1,48 @@
+{
+  "packageId": "app.meteor.weather",
+  "host": "meteor.app",
+  "name": "Meteor",
+  "launcherName": "Meteor",
+  "display": "standalone",
+  "themeColor": "#131B2E",
+  "navigationColor": "#131B2E",
+  "navigationColorDark": "#131B2E",
+  "navigationDividerColor": "#131B2E",
+  "navigationDividerColorDark": "#131B2E",
+  "backgroundColor": "#111827",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://meteor.app/favicon.svg",
+  "maskableIconUrl": "https://meteor.app/favicon.svg",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "meteor"
+  },
+  "appVersionName": "5.6.0",
+  "appVersionCode": 56,
+  "shortcuts": [
+    {
+      "name": "Previsão",
+      "shortName": "Previsão",
+      "description": "Ver previsão do tempo",
+      "url": "/",
+      "icon": "https://meteor.app/favicon.svg"
+    },
+    {
+      "name": "Alertas",
+      "shortName": "Alertas",
+      "description": "Ver alertas meteorológicos",
+      "url": "/?view=alerts",
+      "icon": "https://meteor.app/favicon.svg"
+    },
+    {
+      "name": "Mapa",
+      "shortName": "Mapa",
+      "description": "Ver mapa meteorológico",
+      "url": "/?view=map",
+      "icon": "https://meteor.app/favicon.svg"
+    }
+  ],
+  "generatorApp": "bubblewrap-cli"
+}
