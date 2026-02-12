@@ -3,25 +3,41 @@ const PUBLIC_VAPID_KEY = typeof window !== 'undefined'
   : '';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
-  const padding = '='.repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const rawData = atob(base64);
-  return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
+  try {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = atob(base64);
+    return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
+  } catch (error) {
+    throw new Error('Falha ao processar chave VAPID');
+  }
 }
 
 export const isPushSupported = (): boolean => {
-  return 'serviceWorker' in navigator && 'PushManager' in window;
+  try {
+    return 'serviceWorker' in navigator && 'PushManager' in window;
+  } catch (e) {
+    return false;
+  }
 };
 
 export const isIOSSafari = (): boolean => {
-  const ua = window.navigator.userAgent;
-  const iOS = !!ua.match(/iPad/i) || !!ua.match(/iPhone/i);
-  const webkit = !!ua.match(/WebKit/i);
-  return iOS && webkit && !ua.match(/CriOS/i);
+  try {
+    const ua = window.navigator.userAgent;
+    const iOS = !!ua.match(/iPad/i) || !!ua.match(/iPhone/i);
+    const webkit = !!ua.match(/WebKit/i);
+    return iOS && webkit && !ua.match(/CriOS/i);
+  } catch (e) {
+    return false;
+  }
 };
 
 export const isPWAInstalled = (): boolean => {
-  return window.matchMedia('(display-mode: standalone)').matches;
+  try {
+    return window.matchMedia('(display-mode: standalone)').matches;
+  } catch (e) {
+    return false;
+  }
 };
 
 export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration | null> => {
@@ -54,8 +70,12 @@ export const requestNotificationPermission = async (): Promise<NotificationPermi
     throw new Error('Notificações não suportadas neste navegador');
   }
 
-  const permission = await Notification.requestPermission();
-  return permission;
+  try {
+    const permission = await Notification.requestPermission();
+    return permission;
+  } catch (e) {
+    throw new Error('Erro ao solicitar permissão de notificação');
+  }
 };
 
 export const subscribeToPush = async (): Promise<PushSubscription | null> => {
@@ -68,10 +88,9 @@ export const subscribeToPush = async (): Promise<PushSubscription | null> => {
       throw new Error('Para receber notificações no iOS, instale o app na tela inicial');
     }
 
-    // Solicita permissão ANTES de qualquer coisa
     const permission = await requestNotificationPermission();
     if (permission !== 'granted') {
-      throw new Error('Permissão para notificações negada. Clique no ícone de cadeado na barra de endereço para permitir.');
+      throw new Error('Permissão para notificações negada');
     }
 
     const registration = await registerServiceWorker();
@@ -81,8 +100,12 @@ export const subscribeToPush = async (): Promise<PushSubscription | null> => {
 
     const existingSubscription = await registration.pushManager.getSubscription();
     if (existingSubscription) {
-      await saveSubscriptionToServer(existingSubscription);
-      localStorage.setItem('meteor_push_subscription', JSON.stringify(existingSubscription));
+      try {
+        await saveSubscriptionToServer(existingSubscription);
+        localStorage.setItem('meteor_push_subscription', JSON.stringify(existingSubscription));
+      } catch (e) {
+        // Continua mesmo se falhar salvar no servidor
+      }
       return existingSubscription;
     }
 
@@ -90,16 +113,28 @@ export const subscribeToPush = async (): Promise<PushSubscription | null> => {
       throw new Error('Chave VAPID não configurada no servidor');
     }
 
+    let applicationServerKey: Uint8Array;
+    try {
+      applicationServerKey = urlBase64ToUint8Array(PUBLIC_VAPID_KEY);
+    } catch (e) {
+      throw new Error('Erro ao processar chave VAPID');
+    }
+
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(PUBLIC_VAPID_KEY)
+      applicationServerKey
     });
 
-    await saveSubscriptionToServer(subscription);
-    localStorage.setItem('meteor_push_subscription', JSON.stringify(subscription));
+    try {
+      await saveSubscriptionToServer(subscription);
+      localStorage.setItem('meteor_push_subscription', JSON.stringify(subscription));
+    } catch (e) {
+      // Continua mesmo se falhar salvar no servidor
+    }
     
     return subscription;
-  } catch (error) {
+  } catch (error: any) {
+    localStorage.removeItem('meteor_push_subscription');
     throw error;
   }
 };
@@ -111,12 +146,17 @@ export const unsubscribeFromPush = async (): Promise<boolean> => {
     
     if (subscription) {
       await subscription.unsubscribe();
-      await deleteSubscriptionFromServer(subscription);
+      try {
+        await deleteSubscriptionFromServer(subscription);
+      } catch (e) {
+        // Ignora erro ao deletar do servidor
+      }
       localStorage.removeItem('meteor_push_subscription');
       return true;
     }
     return false;
   } catch (error) {
+    localStorage.removeItem('meteor_push_subscription');
     return false;
   }
 };
@@ -139,7 +179,6 @@ export const getPushSubscriptionStatus = async (): Promise<{
 
 const saveSubscriptionToServer = async (subscription: PushSubscription): Promise<void> => {
   try {
-    // Pega o userId do localStorage se existir (usuário logado)
     const userData = localStorage.getItem('meteor_user_data');
     const userId = userData ? JSON.parse(userData)?.email : null;
     
@@ -166,21 +205,25 @@ const deleteSubscriptionFromServer = async (subscription: PushSubscription): Pro
 };
 
 export const sendTestNotification = async (): Promise<void> => {
-  const registration = await navigator.serviceWorker.ready;
-  
-  if (Notification.permission !== 'granted') {
-    throw new Error('Permissão para notificações não concedida');
-  }
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    
+    if (Notification.permission !== 'granted') {
+      throw new Error('Permissão para notificações não concedida');
+    }
 
-  await registration.showNotification('Meteor - Teste', {
-    body: 'Notificações estão funcionando corretamente!',
-    icon: '/favicon.svg',
-    badge: '/favicon.svg',
-    tag: 'test',
-    requireInteraction: false,
-    actions: [
-      { action: 'open', title: 'Abrir' },
-      { action: 'dismiss', title: 'OK' }
-    ]
-  });
+    await registration.showNotification('Meteor - Teste', {
+      body: 'Notificações estão funcionando corretamente!',
+      icon: '/favicon.svg',
+      badge: '/favicon.svg',
+      tag: 'test',
+      requireInteraction: false,
+      actions: [
+        { action: 'open', title: 'Abrir' },
+        { action: 'dismiss', title: 'OK' }
+      ]
+    });
+  } catch (error: any) {
+    throw new Error(error.message || 'Erro ao enviar notificação de teste');
+  }
 };
