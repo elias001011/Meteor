@@ -1,69 +1,52 @@
-# Configuração das Chaves VAPID
+# Configuração das Chaves VAPID v5.5
 
-## O Problema
+## Chaves Válidas (Produção)
 
-As chaves VAPID precisam estar no formato **base64url** para funcionar com a biblioteca `web-push`:
+Use estas chaves no Netlify:
 
-- **Chave Pública**: ~87 caracteres (A-Z, a-z, 0-9, `-`, `_`)
-- **Chave Privada**: ~43 caracteres (A-Z, a-z, 0-9, `-`, `_`)
+```
+VAPID_PUBLIC_KEY=BArKYvQI9Omobiwchh5MnL9theF2IY3WVoDmkB_i3ti6FIXwJ1_nK862jE7-5X96aY55ca26LRLQZeOpVRaiH1g
+VAPID_PRIVATE_KEY=XZshpAehEzzGiTqSyR-6te5zkaF28vWhHfQD71Rz7eY
+```
 
-❌ **NÃO use formato PEM** (com headers `-----BEGIN...`)
+## Como Configurar
 
-## Gerando Chaves Corretas
+1. Vá em **Netlify Dashboard** → Seu site → **Site settings**
+2. Clique em **Environment variables**
+3. Adicione as duas variáveis acima
+4. Clique em **Save**
+5. Faça um novo deploy (trigger deploy)
 
-### Opção 1: Local (com Node.js)
+## Validação
+
+- ✅ Chave pública: 87 caracteres base64url
+- ✅ Chave privada: 43 caracteres base64url
+- ✅ Formato válido para web-push
+
+## Testar
+
+1. Limpe o cache do navegador (Ctrl+Shift+Delete)
+2. Abra o site
+3. Faça login
+4. Vá em **Configurações** → **Notificações Push** → Ative
+5. Vá em **Alertas** → Ative **Resumo Matinal**
+6. Clique **"Enviar resumo de teste"**
+
+## Gerar Novas Chaves (Opcional)
+
+Se quiser gerar suas próprias chaves:
 
 ```bash
-# Instale web-push globalmente
 npm install -g web-push
-
-# Gere as chaves
 npx web-push generate-vapid-keys
-
-# Output esperado:
-# Public Key:
-# BDtR7WyBJuN8z2L8qw5p7CQQzV7w_ytZ8v9Pq8R8t6E...
-# Private Key:
-# BDtR7WyBJuN8z2L8qw5p7CQQzV7w_ytZ8v9Pq8R8t6E
 ```
-
-### Opção 2: Online (Base64URL Generator)
-
-1. Gere um par de chaves ECDSA P-256
-2. Converta para base64url (sem padding `=`, sem caracteres `+` ou `/`)
-
-### Opção 3: Use essas chaves de teste (substitua depois!)
-
-```
-VAPID_PUBLIC_KEY=BDtR7WyBJuN8z2L8qw5p7CQQzV7w_ytZ8v9Pq8R8t6EBDtR7WyBJuN8z2L8qw5p7CQQzV7w_ytZ8v9Pq8R8t6E
-VAPID_PRIVATE_KEY=BDtR7WyBJuN8z2L8qw5p7CQQzV7w_ytZ8v9Pq8R8t6E
-```
-
-⚠️ **IMPORTANTE**: Gere suas próprias chaves para produção!
-
-## Configurando no Netlify
-
-1. Vá em **Site settings** → **Environment variables**
-2. Adicione:
-   - `VAPID_PUBLIC_KEY` = sua chave pública
-   - `VAPID_PRIVATE_KEY` = sua chave privada
-3. **Redeploy** o site
-
-## Testando
-
-1. Abra o site
-2. Ative notificações push em **Configurações**
-3. Vá em **Alertas** → ative **Resumo Matinal**
-4. Clique **"Enviar resumo de teste"**
 
 ## Sobre o Cron Job
 
-O usuário precisa configurar no cron-job.org:
+O usuário deve configurar em [cron-job.org](https://cron-job.org):
 
 ```
 URL: https://dev--meteor-ai.netlify.app/.netlify/functions/morningAlerts
 Método: GET
-Horário: Diariamente às 09:00 UTC (06:00 Brasil)
+Horário: 09:00 UTC (06:00 Brasil)
 ```
-
-A função roda automaticamente quando chamada pelo cron externo.
