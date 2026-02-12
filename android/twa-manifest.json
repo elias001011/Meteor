@@ -20,8 +20,8 @@
     "path": "./android.keystore",
     "alias": "meteor"
   },
-  "appVersionName": "5.6",
-  "appVersionCode": 57,
+  "appVersionName": "5.6.1",
+  "appVersionCode": 58,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
   "fallbackType": "customtabs",
@@ -38,5 +38,5 @@
   "additionalTrustedOrigins": [],
   "retainedBundles": [],
   "displayOverride": [],
-  "appVersion": "5.6"
+  "appVersion": "5.6.1"
 }
