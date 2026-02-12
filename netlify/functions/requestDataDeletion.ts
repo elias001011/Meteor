@@ -61,12 +61,12 @@ export const handler: Handler = async (event) => {
     });
 
     if (!resendResponse.ok) {
-      const errorData = await resendResponse.json();
-      console.error('Erro Resend:', errorData);
+      const errorText = await resendResponse.text();
+      console.error('Erro Resend:', resendResponse.status, errorText);
       return {
         statusCode: 500,
         headers: cors,
-        body: JSON.stringify({ error: 'Erro ao enviar email', details: errorData }),
+        body: JSON.stringify({ error: 'Erro ao enviar notificação', details: errorText }),
       };
     }
 
@@ -75,7 +75,7 @@ export const handler: Handler = async (event) => {
       headers: cors,
       body: JSON.stringify({ 
         success: true, 
-        message: 'Solicitação enviada com sucesso. Você receberá uma confirmação em breve.' 
+        message: 'Solicitação registrada com sucesso.' 
       }),
     };
   } catch (err: any) {

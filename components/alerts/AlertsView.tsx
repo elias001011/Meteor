@@ -238,12 +238,30 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
             setIsSubscribing(true);
             const success = await unsubscribeFromPush();
             setPushSubscribed(!success);
+            if (success && isLoggedIn) {
+                // Remove subscription do userData
+                await updateUserData({
+                    preferences: {
+                        ...userData?.preferences,
+                        pushSubscription: null
+                    }
+                });
+            }
             setIsSubscribing(false);
         } else {
             setIsSubscribing(true);
             try {
-                await subscribeToPush();
+                const subscription = await subscribeToPush();
                 setPushSubscribed(true);
+                // Salva subscription no userData se estiver logado
+                if (subscription && isLoggedIn) {
+                    await updateUserData({
+                        preferences: {
+                            ...userData?.preferences,
+                            pushSubscription: subscription
+                        }
+                    });
+                }
             } catch (error: any) {
                 setPushError(error.message || 'Erro ao ativar notificações');
             } finally {

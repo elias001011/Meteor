@@ -79,7 +79,6 @@ export const handler: Handler = async (event) => {
   const targetTime = isTest ? null : currentTime;
   
   const userStore = createStore('userData');
-  const pushStore = createStore('pushSubscriptions');
   
   try {
     const list = await userStore.list();
@@ -103,9 +102,9 @@ export const handler: Handler = async (event) => {
           continue;
         }
         
-        // Busca subscription
-        const subData = await pushStore.get(key.key, { type: 'json' });
-        if (!subData?.subscription) {
+        // Busca subscription nos dados do usuário
+        const subscription = data.preferences?.pushSubscription;
+        if (!subscription) {
           skippedNoSubscription++;
           continue;
         }
@@ -131,7 +130,7 @@ export const handler: Handler = async (event) => {
         if (today.pop > 0.3) msg += ` 🌧️ ${Math.round(today.pop * 100)}% chuva.`;
         
         // Envia push
-        await webpush.sendNotification(subData.subscription, JSON.stringify({
+        await webpush.sendNotification(subscription, JSON.stringify({
           title: `🌤️ Resumo do Dia - ${city}`,
           body: msg,
           icon: '/favicon.svg',
