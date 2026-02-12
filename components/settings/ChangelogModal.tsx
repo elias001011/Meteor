@@ -28,6 +28,18 @@ const ChangelogModal: React.FC<any> = ({ isOpen, onClose }) => {
 
     const versions = [
         {
+            version: "6.0.0",
+            title: "Novo Sistema de Notificações Push",
+            changes: [
+                "Sistema de push reescrito do zero, mais simples e robusto.",
+                "Notificações às 9h da manhã com resumo do clima.",
+                "Alertas governamentais em notificações separadas.",
+                "Funciona mesmo com o app fechado (background).",
+                "Suporte a teste de notificação instantâneo.",
+                "Seleção de cidade específica para cada usuário."
+            ]
+        },
+        {
             version: "5.3.0",
             title: "Remoção de Notificações Push",
             changes: [
