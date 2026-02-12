@@ -64,25 +64,8 @@ export const handler: Handler = async (event) => {
   const isTest = event.queryStringParameters?.test === 'true';
   const targetTime = isTest ? null : currentTime;
   
-  // Tenta usar Netlify Blobs
-  let userStore: any;
-  let pushStore: any;
-  try {
-    userStore = getStore('userData');
-    pushStore = getStore('pushSubscriptions');
-  } catch (blobsError: any) {
-    if (blobsError.message?.includes('environment has not been configured')) {
-      return { 
-        statusCode: 503, 
-        headers: cors, 
-        body: JSON.stringify({ 
-          error: 'Netlify Blobs não configurado',
-          message: 'O recurso de Blobs precisa ser habilitado para este site no Netlify'
-        }) 
-      };
-    }
-    throw blobsError;
-  }
+  const userStore = getStore('userData');
+  const pushStore = getStore('pushSubscriptions');
   
   try {
     const list = await userStore.list();

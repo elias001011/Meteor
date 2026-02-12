@@ -483,13 +483,33 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                 )}
 
                 {/* Resumo Matinal */}
-                {isLoggedIn && (
-                    <div className={`${cardClass} rounded-2xl p-5`}>
-                        <h4 className="font-semibold text-white mb-4 flex items-center gap-2">
-                            <SunIcon className="w-4 h-4 text-yellow-400" />
-                            Resumo Matinal
-                        </h4>
-                        
+                <div className={`${cardClass} rounded-2xl p-5`}>
+                    <h4 className="font-semibold text-white mb-4 flex items-center gap-2">
+                        <SunIcon className="w-4 h-4 text-yellow-400" />
+                        Resumo Matinal
+                    </h4>
+                    
+                    {!isLoggedIn ? (
+                        <div className="space-y-4">
+                            <p className="text-gray-400 text-sm">
+                                📬 Receba um resumo diário com a previsão do tempo e alertas importantes diretamente no seu navegador.
+                            </p>
+                            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
+                                <p className="text-yellow-200/80 text-sm mb-3">
+                                    ⚠️ Esta função só está disponível caso você esteja logado.
+                                </p>
+                                <button
+                                    onClick={login}
+                                    className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-medium py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                                    </svg>
+                                    Entrar para ativar
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">
                                 <div>
@@ -570,8 +590,8 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                                 </div>
                             )}
                         </div>
-                    </div>
-                )}
+                    )}
+                </div>
 
                 {/* Informações de Monitoramento */}
                 <div className={`${cardClass} rounded-2xl p-5`}>

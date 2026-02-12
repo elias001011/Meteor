@@ -28,6 +28,17 @@ const ChangelogModal: React.FC<any> = ({ isOpen, onClose }) => {
 
     const versions = [
         {
+            version: "5.5.2",
+            title: "Exclusão de Dados & Resumo Matinal Universal",
+            changes: [
+                "Card Resumo Matinal visível para todos: Mostra aviso quando não logado.",
+                "Botão de login no card: Facilita ativação do resumo matinal.",
+                "Solicitar exclusão de dados: Envio de email via Resend para administrador.",
+                "Removido tratamento de erro de Blobs: Funciona automaticamente no Netlify.",
+                "Função requestDataDeletion: Nova função para solicitar exclusão via email."
+            ]
+        },
+        {
             version: "5.5.0",
             title: "Validação VAPID & Push Estável",
             changes: [
