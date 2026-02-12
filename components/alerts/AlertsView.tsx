@@ -1,7 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import type { WeatherData, WeatherAlert } from '../../types';
 import { useTheme } from '../context/ThemeContext';
-import { AlertTriangleIcon, BellIcon, InfoIcon } from '../icons';
+import { AlertTriangleIcon, BellIcon, InfoIcon, MapPinIcon } from '../icons';
+import { 
+  isPushSupported, 
+  subscribeToPush, 
+  unsubscribeFromPush, 
+  getPushStatus,
+  sendTestNotification
+} from '../../services/pushService';
 
 interface AlertsViewProps {
     currentWeather?: WeatherData | null;
@@ -18,6 +25,9 @@ interface LocalAlert {
     timestamp: number;
     expiresAt: number;
 }
+
+// Cidade padrão
+const DEFAULT_CITY = 'Porto Alegre';
 
 const generateLocalAlerts = (weather: WeatherData | null | undefined, dailyForecast?: any[]): LocalAlert[] => {
     if (!weather) return [];
@@ -170,8 +180,112 @@ const getAlertStyles = (level: string) => {
 
 const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, apiAlerts }) => {
     const { cardClass } = useTheme();
+    
+    // Estados do push
+    const [pushSupported, setPushSupported] = useState(false);
+    const [pushEnabled, setPushEnabled] = useState(false);
+    const [pushCity, setPushCity] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [pushMessage, setPushMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
 
     const localAlerts = useMemo(() => generateLocalAlerts(currentWeather, dailyForecast), [currentWeather, dailyForecast]);
+
+    // Inicializa cidade padrão
+    useEffect(() => {
+        const initPush = async () => {
+            // Verifica suporte
+            setPushSupported(isPushSupported());
+            
+            // Busca cidade salva ou define padrão
+            const savedCity = localStorage.getItem('meteor_push_city');
+            if (savedCity) {
+                setPushCity(savedCity);
+            } else {
+                // Tenta cidade atual ou última localização
+                const lastCity = localStorage.getItem('last_city');
+                
+                if (lastCity) {
+                    setPushCity(lastCity);
+                } else if (currentWeather?.city) {
+                    setPushCity(currentWeather.city);
+                } else {
+                    setPushCity(DEFAULT_CITY);
+                }
+            }
+            
+            // Verifica status atual - só ativa se localStorage confirmar
+            const localEnabled = localStorage.getItem('meteor_push_enabled');
+            if (localEnabled === 'true') {
+                try {
+                    const status = await getPushStatus();
+                    setPushEnabled(status.isSubscribed);
+                    // Se não tem subscription mais, limpa
+                    if (!status.isSubscribed) {
+                        localStorage.removeItem('meteor_push_enabled');
+                    }
+                } catch (e) {
+                    console.warn('Erro ao verificar status do push:', e);
+                    setPushEnabled(false);
+                }
+            } else {
+                // Garante que começa desativado
+                setPushEnabled(false);
+                // Limpa qualquer subscription perdida
+                try {
+                    const registration = await navigator.serviceWorker?.ready;
+                    const subscription = await registration?.pushManager?.getSubscription();
+                    if (subscription) {
+                        await subscription.unsubscribe();
+                        console.log('[Push] Subscription antiga limpa');
+                    }
+                } catch (e) {
+                    // Ignora erro
+                }
+            }
+        };
+        
+        initPush();
+    }, []); // Roda uma vez só no mount
+
+    const handleTogglePush = async () => {
+        setPushMessage(null);
+        setIsLoading(true);
+        
+        try {
+            if (pushEnabled) {
+                // Desativa
+                await unsubscribeFromPush();
+                setPushEnabled(false);
+                setPushMessage({ type: 'success', text: 'Notificações desativadas' });
+            } else {
+                // Ativa
+                const city = pushCity.trim() || DEFAULT_CITY;
+                await subscribeToPush(city);
+                setPushEnabled(true);
+                setPushMessage({ type: 'success', text: 'Notificações ativadas! Você receberá o resumo às 9h.' });
+                localStorage.setItem('meteor_push_city', city);
+            }
+        } catch (error: any) {
+            console.error('Erro no toggle push:', error);
+            setPushMessage({ type: 'error', text: error.message || 'Erro ao ativar notificações' });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleTestNotification = async () => {
+        setPushMessage(null);
+        setIsLoading(true);
+        
+        try {
+            await sendTestNotification();
+            setPushMessage({ type: 'success', text: 'Notificação de teste enviada!' });
+        } catch (error: any) {
+            setPushMessage({ type: 'error', text: error.message || 'Erro ao enviar teste' });
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const activeLocalAlerts = localAlerts.filter(alert => Date.now() <= alert.expiresAt);
     const allAlerts = [...activeLocalAlerts];
@@ -282,6 +396,96 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                         ))}
                     </div>
                 </div>
+
+                {/* Card de Notificações Push */}
+                {pushSupported && (
+                    <div className={`${cardClass} rounded-2xl p-5 border border-purple-500/20`}>
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2 rounded-xl bg-purple-500/20">
+                                <BellIcon className="w-5 h-5 text-purple-400" />
+                            </div>
+                            <div>
+                                <h3 className="font-semibold text-white">Notificações Diárias</h3>
+                                <p className="text-xs text-gray-400">Resumo do clima todas as manhãs</p>
+                            </div>
+                        </div>
+
+                        {/* Descrição */}
+                        <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 mb-4">
+                            <p className="text-sm text-blue-200">
+                                <strong>📱 Como funciona:</strong> Todos os dias às <strong>9:00 da manhã</strong> você receberá uma notificação com o resumo do clima da cidade escolhida. Se houver alertas meteorológicos oficiais, você receberá em notificações separadas.
+                            </p>
+                            <p className="text-xs text-gray-400 mt-2">
+                                Funciona mesmo com o app fechado! 🔒
+                            </p>
+                        </div>
+
+                        {/* Cidade */}
+                        <div className="mb-4">
+                            <label className="text-sm text-gray-300 mb-2 block flex items-center gap-2">
+                                <MapPinIcon className="w-4 h-4" />
+                                Cidade para notificações
+                            </label>
+                            <input
+                                type="text"
+                                value={pushCity}
+                                onChange={(e) => setPushCity(e.target.value)}
+                                disabled={pushEnabled || isLoading}
+                                placeholder="Ex: Porto Alegre"
+                                className="w-full bg-gray-900/60 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                                {pushEnabled 
+                                    ? 'Desative para alterar a cidade' 
+                                    : 'Padrão: Porto Alegre (se não houver localização)'}
+                            </p>
+                        </div>
+
+                        {/* Botões */}
+                        <div className="flex gap-3">
+                            <button
+                                onClick={handleTogglePush}
+                                disabled={isLoading}
+                                className={`flex-1 py-3 px-4 rounded-xl font-medium text-sm transition-all disabled:opacity-50 ${
+                                    pushEnabled 
+                                        ? 'bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30' 
+                                        : 'bg-purple-500 hover:bg-purple-600 text-white'
+                                }`}
+                            >
+                                {isLoading ? 'Processando...' : pushEnabled ? 'Desativar notificações' : 'Ativar notificações'}
+                            </button>
+                            
+                            {pushEnabled && (
+                                <button
+                                    onClick={handleTestNotification}
+                                    disabled={isLoading}
+                                    className="px-4 py-3 rounded-xl bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium transition-all disabled:opacity-50"
+                                >
+                                    Testar
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Mensagem */}
+                        {pushMessage && (
+                            <div className={`mt-3 p-3 rounded-xl text-sm ${
+                                pushMessage.type === 'success' 
+                                    ? 'bg-green-500/10 border border-green-500/20 text-green-300' 
+                                    : 'bg-red-500/10 border border-red-500/20 text-red-300'
+                            }`}>
+                                {pushMessage.text}
+                            </div>
+                        )}
+
+                        {/* Status */}
+                        <div className="mt-3 flex items-center gap-2 text-xs">
+                            <span className={`w-2 h-2 rounded-full ${pushEnabled ? 'bg-green-500 animate-pulse' : 'bg-gray-500'}`} />
+                            <span className={pushEnabled ? 'text-green-400' : 'text-gray-400'}>
+                                {pushEnabled ? 'Notificações ativas' : 'Notificações desativadas'}
+                            </span>
+                        </div>
+                    </div>
+                )}
 
                 <div className="text-center text-xs text-gray-500 pt-2">
                     Alertas gerados automaticamente. Consulte fontes oficiais em emergências.

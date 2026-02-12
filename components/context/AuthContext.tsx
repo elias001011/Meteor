@@ -363,6 +363,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.removeItem('meteor_sync_pending');
       localStorage.removeItem('meteor_settings');
       localStorage.removeItem('chat_history');
+      localStorage.removeItem('meteor_push_city');
       
       // Limpa dados do usuário
       setUserData(null);
