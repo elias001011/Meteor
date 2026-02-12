@@ -1,4 +1,4 @@
-const CACHE_NAME = 'meteor-cache-v2';
+const CACHE_NAME = 'meteor-cache-v3';
 const APP_SHELL_URLS = [
   '/',
   '/index.html',
@@ -6,10 +6,14 @@ const APP_SHELL_URLS = [
 ];
 
 self.addEventListener('install', event => {
+  console.log('[SW] Instalando v6.0...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => cache.addAll(APP_SHELL_URLS))
-      .then(() => self.skipWaiting())
+      .then(() => {
+        console.log('[SW] Instalado, skipWaiting...');
+        return self.skipWaiting();
+      })
   );
 });
 
@@ -58,8 +62,10 @@ self.addEventListener('fetch', event => {
 // NOTIFICAÇÕES PUSH - Meteor v6.0
 // ============================================
 
+console.log('[SW] Service Worker v6.0 ativo');
+
 self.addEventListener('push', event => {
-  console.log('[SW] Push recebido:', event);
+  console.log('[SW] Push recebido:', event.data ? event.data.text() : 'sem dados');
 
   let data = {
     title: 'Meteor',
