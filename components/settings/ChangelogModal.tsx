@@ -28,71 +28,13 @@ const ChangelogModal: React.FC<any> = ({ isOpen, onClose }) => {
 
     const versions = [
         {
-            version: "5.7.0",
-            title: "Correções de Bugs",
+            version: "5.3.0",
+            title: "Remoção de Notificações Push",
             changes: [
-                "Sistema de notícias: Implementado fallback para GNews API.",
+                "Sistema de notificações push removido temporariamente.",
                 "Otimização: Notícias só carregam quando a aba é aberta.",
                 "Correções no histórico de chat: Melhorias na persistência de conversas.",
                 "Estabilidade geral: Correções de bugs menores."
-            ]
-        },
-        {
-            version: "5.6.0",
-            title: "Notificações Push Simplificadas & PWA",
-            changes: [
-                "Integração Push + Resumo Matinal: Toggle unificado para notificações.",
-                "Horário fixo às 7h: Resumo diário enviado todos os dias às 07:00.",
-                "Aviso PWA: Notificação sobre instalação para receber alertas offline.",
-                "Correção toggle auto-desligando: Estado salvo corretamente no userData.",
-                "Seleção de cidade para alertas: Configure cidade específica para notificações."
-            ]
-        },
-        {
-            version: "5.5.2",
-            title: "Exclusão de Dados & Resumo Matinal Universal",
-            changes: [
-                "Card Resumo Matinal visível para todos: Mostra aviso quando não logado.",
-                "Botão de login no card: Facilita ativação do resumo matinal.",
-                "Solicitar exclusão de dados: Envio de email via Resend para administrador.",
-                "Removido tratamento de erro de Blobs: Funciona automaticamente no Netlify.",
-                "Função requestDataDeletion: Nova função para solicitar exclusão via email."
-            ]
-        },
-        {
-            version: "5.5.0",
-            title: "Validação VAPID & Push Estável",
-            changes: [
-                "Validação de chaves VAPID: Verificação de formato base64url nas funções.",
-                "Modo teste para resumo: Botão de teste bypassa verificação de horário.",
-                "Documentação VAPID: Guia completo para configuração de chaves push.",
-                "Chaves VAPID atualizadas: Novas chaves geradas para produção.",
-                "Removido sistema de email: Apenas push notifications (Resend removido)."
-            ]
-        },
-        {
-            version: "5.4.0",
-            title: "Alertas Inteligentes & Resumo Matinal",
-            changes: [
-                "Sistema de alertas offline: Notificações push e email mesmo com app fechado.",
-                "Resumo matinal configurável: Usuário escolhe horário (06h às 12h).",
-                "Cidade fixa para alertas: Usuário define cidade específica.",
-                "Economia de API: Uma chamada One Call por cidade, independente de usuários.",
-                "Alertas governamentais + personalizados: UV, calor, vento, tempestade.",
-                "Botão de teste: Enviar resumo matinal de teste instantaneamente.",
-                "Integração Resend: Emails funcionando com domínio de teste."
-            ]
-        },
-        {
-            version: "5.1.0",
-            title: "Refinamento & Alertas",
-            changes: [
-                "Nova aba Alertas: Monitoramento automático de condições meteorológicas críticas.",
-                "Notificações push: Suporte a alertas nativos do navegador (opcional).",
-                "Dicas Sustentáveis: Seção com 20 dicas ecológicas que rotacionam automaticamente.",
-                "Weather Insights simplificado: Focado em alertas básicos (tempestade, chuva, temperatura).",
-                "Correções de acentuação: Português corrigido em todas as seções.",
-                "Backup v5.0: Branch de backup criada para preservar versão anterior."
             ]
         },
         {
