@@ -187,7 +187,7 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
             const raw = localStorage.getItem('meteor_push_subscription');
             if (!raw) return false;
             const parsed = JSON.parse(raw);
-            return !!(parsed && parsed.endpoint && parsed.keys);
+            return !!(parsed && parsed.endpoint);
         } catch (e) {
             localStorage.removeItem('meteor_push_subscription');
             return false;
@@ -215,14 +215,15 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
         setPushError(null);
         
         if (pushSubscribed) {
+            // Desliga imediatamente na UI (responsividade)
             setPushSubscribed(false);
+            // Remove do localStorage IMEDIATAMENTE para evitar problema ao trocar de aba
             localStorage.removeItem('meteor_push_subscription');
             setIsSubscribing(true);
             
             try {
                 await unsubscribeFromPush();
                 if (isLoggedIn && userData) {
-                    // Async separado para não bloquear UI
                     setTimeout(async () => {
                         try {
                             await updateUserData({
@@ -246,19 +247,16 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
             setIsSubscribing(true);
             try {
                 const subscription = await subscribeToPush();
-                
                 if (subscription) {
                     setPushSubscribed(true);
                     setPushError(null);
-                    
-                    // Salvar no userData de forma assíncrona separada
                     if (isLoggedIn && userData) {
                         setTimeout(async () => {
                             try {
                                 await updateUserData({
                                     preferences: {
                                         ...userData.preferences,
-                                        pushSubscription: subscription.toJSON(),
+                                        pushSubscription: subscription,
                                         morningSummary: true
                                     }
                                 });
@@ -282,11 +280,10 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
     };
 
     const handleTestNotification = async () => {
-        setPushError(null);
         try {
             await sendTestNotification();
         } catch (error: any) {
-            setPushError(error.message || 'Erro ao enviar notificação de teste');
+            setPushError(error.message);
         }
     };
 
@@ -323,25 +320,29 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
 
     // Notificações locais para alertas críticos
     useEffect(() => {
-        if ('Notification' in window && Notification.permission === 'granted') {
-            const criticalAlerts = allAlerts.filter(a => a.level === 'critical' || a.level === 'warning');
-            criticalAlerts.forEach(alert => {
-                try {
-                    const notifiedKey = `notified_${alert.id}`;
-                    if (!localStorage.getItem(notifiedKey)) {
-                        new Notification('Meteor - Alerta Meteorológico', {
-                            body: `${alert.title}: ${alert.message}`,
-                            icon: '/favicon.svg',
-                            tag: alert.id,
-                            requireInteraction: alert.level === 'critical'
-                        });
-                        localStorage.setItem(notifiedKey, Date.now().toString());
-                        setTimeout(() => localStorage.removeItem(notifiedKey), alert.expiresAt - Date.now());
+        try {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                const criticalAlerts = allAlerts.filter(a => a.level === 'critical' || a.level === 'warning');
+                criticalAlerts.forEach(alert => {
+                    try {
+                        const notifiedKey = `notified_${alert.id}`;
+                        if (!localStorage.getItem(notifiedKey)) {
+                            new Notification('Meteor - Alerta Meteorológico', {
+                                body: `${alert.title}: ${alert.message}`,
+                                icon: '/favicon.svg',
+                                tag: alert.id,
+                                requireInteraction: alert.level === 'critical'
+                            });
+                            localStorage.setItem(notifiedKey, Date.now().toString());
+                            setTimeout(() => localStorage.removeItem(notifiedKey), alert.expiresAt - Date.now());
+                        }
+                    } catch (e) {
+                        console.warn('[Alerts] Erro ao mostrar notificação local:', e);
                     }
-                } catch (e) {
-                    console.warn('[Alerts] Erro ao mostrar notificação local:', e);
-                }
-            });
+                });
+            }
+        } catch (e) {
+            console.warn('[Alerts] Erro no efeito de notificações:', e);
         }
     }, [allAlerts]);
 
@@ -476,6 +477,8 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                                     </div>
                                 )}
                                 
+                                {/* Resumo Matinal - Aparece quando push está ativo */}
+                                {/* Aviso PWA */}
                                 {!isInstalled && (
                                     <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3">
                                         <p className="text-blue-200 text-xs">
@@ -492,18 +495,12 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                                                 <p className="text-gray-500 text-xs">Todos os dias às 07:00</p>
                                             </div>
                                             <button
-                                                onClick={() => {
-                                                    try {
-                                                        updateUserData({ 
-                                                            preferences: { 
-                                                                ...userData?.preferences,
-                                                                morningSummary: !userData?.preferences?.morningSummary 
-                                                            }
-                                                        });
-                                                    } catch (e) {
-                                                        console.warn('[Alerts] Erro ao toggle morningSummary:', e);
+                                                onClick={() => updateUserData({ 
+                                                    preferences: { 
+                                                        ...userData?.preferences,
+                                                        morningSummary: !userData?.preferences?.morningSummary 
                                                     }
-                                                }}
+                                                })}
                                                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                                                     isMorningSummaryEnabled ? 'bg-yellow-500' : 'bg-gray-600'
                                                 }`}

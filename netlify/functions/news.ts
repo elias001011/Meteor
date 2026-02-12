@@ -1,70 +1,16 @@
-
-
 import { type Handler, type HandlerEvent } from "@netlify/functions";
 
-const GNEWS_API_KEY = process.env.GNEWS_API;
 const BASE_URL = "https://gnews.io/api/v4";
-
-// Categorias disponíveis na GNews
 const VALID_CATEGORIES = ['general', 'world', 'nation', 'business', 'technology', 'entertainment', 'sports', 'science', 'health'];
 
-// Rate limiting simples baseado em IP (em memória - reseta a cada deploy)
-// Para produção com alta carga, considere usar Netlify Blobs ou outra solução persistente
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
-const RATE_LIMIT_REQUESTS = 30; // 30 requests por hora por IP
-const RATE_LIMIT_WINDOW = 3600000; // 1 hora em ms
-
-const getClientIP = (event: HandlerEvent): string => {
-    // Tentar obter IP de vários headers possíveis
-    const headers = event.headers;
-    return headers['x-forwarded-for']?.split(',')[0]?.trim() || 
-           headers['x-real-ip'] || 
-           headers['client-ip'] || 
-           'unknown';
-};
-
-const checkRateLimit = (ip: string): boolean => {
-    const now = Date.now();
-    const record = rateLimitMap.get(ip);
-    
-    if (!record || now > record.resetTime) {
-        // Primeira requisição ou janela expirada
-        rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
-        return true;
-    }
-    
-    if (record.count >= RATE_LIMIT_REQUESTS) {
-        return false;
-    }
-    
-    record.count++;
-    return true;
-};
-
-// Sanitização de input para prevenir XSS
-const sanitizeInput = (input: string): string => {
-    return input
-        .replace(/[<>]/g, '') // Remove < e >
-        .replace(/["']/g, '') // Remove aspas
-        .trim()
-        .slice(0, 100); // Limita a 100 caracteres
-};
-
 const handler: Handler = async (event: HandlerEvent) => {
-    // Log para debug
-    console.log('[GNews] Request recebida:', {
-        httpMethod: event.httpMethod,
-        headers: event.headers,
-        queryStringParameters: event.queryStringParameters,
-        hasApiKey: !!GNEWS_API_KEY,
-        apiKeyPrefix: GNEWS_API_KEY ? GNEWS_API_KEY.substring(0, 10) + '...' : 'VAZIA'
-    });
-    
-    if (!GNEWS_API_KEY) {
-        console.error('[GNews] API key não configurada');
+    const PRIMARY_KEY = process.env.GNEWS_API;
+    const FALLBACK_KEY = process.env.GNEWS_2;
+
+    if (!PRIMARY_KEY && !FALLBACK_KEY) {
         return { 
             statusCode: 500, 
-            body: JSON.stringify({ message: "Serviço de notícias indisponível - API key não configurada." }) 
+            body: JSON.stringify({ message: "API keys not configured" }) 
         };
     }
 
@@ -72,123 +18,96 @@ const handler: Handler = async (event: HandlerEvent) => {
         return { statusCode: 405, body: 'Method Not Allowed' };
     }
 
-    // Rate limiting
-    const clientIP = getClientIP(event);
-    if (!checkRateLimit(clientIP)) {
-        return {
-            statusCode: 429,
-            body: JSON.stringify({ message: "Muitas requisições. Tente novamente em alguns minutos." }),
-        };
-    }
-
     try {
         const { endpoint, q, category, lang, country, max } = event.queryStringParameters || {};
         
-        // Parâmetros padrão otimizados para o Brasil
         const defaultLang = 'pt';
         const defaultCountry = 'br';
         const defaultMax = '10';
 
-        let apiUrl: string;
-
+        let params = new URLSearchParams();
+        
         switch (endpoint) {
             case 'top-headlines': {
-                // Notícias principais/top headlines
-                const params = new URLSearchParams({
-                    apikey: GNEWS_API_KEY,
-                    lang: lang || defaultLang,
-                    country: country || defaultCountry,
-                    max: max || defaultMax,
-                });
+                params.set('lang', lang || defaultLang);
+                params.set('country', country || defaultCountry);
+                params.set('max', max || defaultMax);
                 
-                // Categoria opcional
                 if (category && VALID_CATEGORIES.includes(category)) {
-                    params.append('category', category);
+                    params.set('category', category);
                 }
-                
-                apiUrl = `${BASE_URL}/top-headlines?${params.toString()}`;
                 break;
             }
             
             case 'search': {
-                // Busca por palavras-chave
-                const sanitizedQuery = sanitizeInput(q || '');
-                if (!sanitizedQuery || sanitizedQuery.length < 2) {
+                const query = (q || '').trim().slice(0, 100);
+                if (!query || query.length < 2) {
                     return { 
                         statusCode: 400, 
-                        body: JSON.stringify({ message: "Termo de busca é obrigatório (mínimo 2 caracteres)." }) 
+                        body: JSON.stringify({ message: "Search query required (min 2 chars)" }) 
                     };
                 }
                 
-                const params = new URLSearchParams({
-                    apikey: GNEWS_API_KEY,
-                    q: sanitizedQuery,
-                    lang: sanitizeInput(lang || defaultLang).slice(0, 2),
-                    max: Math.min(parseInt(max || defaultMax, 10), 20).toString(), // Max 20
-                });
+                params.set('q', query);
+                params.set('lang', (lang || defaultLang).slice(0, 2));
+                params.set('max', Math.min(parseInt(max || defaultMax, 10), 20).toString());
                 
-                // Filtro de país opcional
                 if (country) {
-                    params.append('country', country);
+                    params.set('country', country);
                 }
-                
-                apiUrl = `${BASE_URL}/search?${params.toString()}`;
                 break;
             }
             
             default:
                 return { 
                     statusCode: 400, 
-                    body: JSON.stringify({ message: 'Endpoint inválido. Use "top-headlines" ou "search".' }) 
+                    body: JSON.stringify({ message: 'Invalid endpoint' }) 
                 };
         }
 
-        const response = await fetch(apiUrl, {
-            headers: {
-                'Accept': 'application/json',
-            },
+        // Tenta com a API primária
+        const keyToUse = PRIMARY_KEY || FALLBACK_KEY!;
+        params.set('apikey', keyToUse);
+        const apiUrl = `${BASE_URL}/${endpoint}?${params.toString()}`;
+        
+        console.log('[News] Trying primary API...');
+        let response = await fetch(apiUrl, { 
+            headers: { 'Accept': 'application/json' },
+            signal: AbortSignal.timeout(10000)
         });
+        console.log('[News] Primary response:', response.status);
+
+        // Se falhou com 403 ou 429 e tem fallback, tenta
+        if ((response.status === 403 || response.status === 429) && PRIMARY_KEY && FALLBACK_KEY) {
+            console.log('[News] Primary failed, trying fallback...');
+            params.set('apikey', FALLBACK_KEY);
+            const fallbackUrl = `${BASE_URL}/${endpoint}?${params.toString()}`;
+            response = await fetch(fallbackUrl, { 
+                headers: { 'Accept': 'application/json' },
+                signal: AbortSignal.timeout(10000)
+            });
+            console.log('[News] Fallback response:', response.status);
+        }
 
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ message: 'Erro desconhecido na GNews API' }));
-            
-            console.error('[GNews] Erro da API:', {
-                status: response.status,
-                statusText: response.statusText,
-                errorData,
-                apiUrl: apiUrl.replace(GNEWS_API_KEY!, '***')
-            });
-            
-            // Rate limit específico
-            if (response.status === 429) {
-                return {
-                    statusCode: 429,
-                    body: JSON.stringify({ 
-                        message: "Limite de requisições atingido. Tente novamente em alguns minutos." 
-                    }),
-                };
-            }
-            
+            const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
             return {
                 statusCode: response.status,
-                body: JSON.stringify({ 
-                    message: errorData.message || "Erro ao buscar notícias." 
-                }),
+                body: JSON.stringify({ message: errorData.message || "Error fetching news" }),
             };
         }
 
         const data = await response.json();
         
-        // Processar e sanitizar os dados antes de retornar
         const sanitizedArticles = (data.articles || []).map((article: any) => ({
-            title: article.title?.trim() || 'Sem título',
+            title: article.title?.trim() || 'No title',
             description: article.description?.trim() || '',
             content: article.content?.trim() || '',
             url: article.url,
             image: article.image || null,
             publishedAt: article.publishedAt,
             source: {
-                name: article.source?.name || 'Fonte desconhecida',
+                name: article.source?.name || 'Unknown source',
                 url: article.source?.url || '',
             },
         }));
@@ -197,7 +116,7 @@ const handler: Handler = async (event: HandlerEvent) => {
             statusCode: 200,
             headers: { 
                 'Content-Type': 'application/json',
-                'Cache-Control': 'public, max-age=300', // Cache de 5 minutos
+                'Cache-Control': 'public, max-age=300',
             },
             body: JSON.stringify({
                 totalArticles: data.totalArticles || sanitizedArticles.length,
@@ -206,11 +125,11 @@ const handler: Handler = async (event: HandlerEvent) => {
         };
 
     } catch (error) {
-        console.error("[GNews Function] Fatal error:", error);
+        console.error("[News] Error:", error);
         return {
             statusCode: 500,
             body: JSON.stringify({ 
-                message: error instanceof Error ? error.message : "Erro interno ao processar notícias." 
+                message: error instanceof Error ? error.message : "Internal error" 
             }),
         };
     }
