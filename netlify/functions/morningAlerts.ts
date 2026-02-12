@@ -133,7 +133,9 @@ export const handler: Handler = async (event) => {
     for (const key of list.blobs || []) {
       try {
         const data = await userStore.get(key.key, { type: 'json' });
-        if (!data?.preferences?.morningSummary) continue;
+        // No modo teste, envia para quem tem subscription (independente do toggle)
+        // No modo normal, só envia se morningSummary estiver ativo
+        if (!isTest && !data?.preferences?.morningSummary) continue;
         
         usersChecked++;
         
