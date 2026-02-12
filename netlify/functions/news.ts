@@ -51,11 +51,20 @@ const sanitizeInput = (input: string): string => {
 };
 
 const handler: Handler = async (event: HandlerEvent) => {
+    // Log para debug
+    console.log('[GNews] Request recebida:', {
+        httpMethod: event.httpMethod,
+        headers: event.headers,
+        queryStringParameters: event.queryStringParameters,
+        hasApiKey: !!GNEWS_API_KEY,
+        apiKeyPrefix: GNEWS_API_KEY ? GNEWS_API_KEY.substring(0, 10) + '...' : 'VAZIA'
+    });
+    
     if (!GNEWS_API_KEY) {
         console.error('[GNews] API key não configurada');
         return { 
             statusCode: 500, 
-            body: JSON.stringify({ message: "Serviço de notícias indisponível." }) 
+            body: JSON.stringify({ message: "Serviço de notícias indisponível - API key não configurada." }) 
         };
     }
 
@@ -142,6 +151,13 @@ const handler: Handler = async (event: HandlerEvent) => {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({ message: 'Erro desconhecido na GNews API' }));
+            
+            console.error('[GNews] Erro da API:', {
+                status: response.status,
+                statusText: response.statusText,
+                errorData,
+                apiUrl: apiUrl.replace(GNEWS_API_KEY!, '***')
+            });
             
             // Rate limit específico
             if (response.status === 429) {
