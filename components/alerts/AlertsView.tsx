@@ -182,7 +182,10 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
     const { cardClass } = useTheme();
     const { user, isLoggedIn, userData, updateUserData, login } = useAuth();
     const [pushSupported, setPushSupported] = useState(false);
-    const [pushSubscribed, setPushSubscribed] = useState(false);
+    const [pushSubscribed, setPushSubscribed] = useState(() => {
+        // Recupera do localStorage de forma síncrona ao montar
+        return !!localStorage.getItem('meteor_push_subscription');
+    });
     const [isSubscribing, setIsSubscribing] = useState(false);
     const [pushError, setPushError] = useState<string | null>(null);
     const [isIOS, setIsIOS] = useState(false);
