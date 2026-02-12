@@ -1,6 +1,6 @@
 {
   "packageId": "app.meteor.weather",
-  "host": "meteor-android.netlify.app",
+  "host": "meteor.app",
   "name": "Meteor",
   "launcherName": "Meteor",
   "display": "standalone",
@@ -12,8 +12,8 @@
   "backgroundColor": "#111827",
   "enableNotifications": true,
   "startUrl": "/",
-  "iconUrl": "https://meteor-android.netlify.app/favicon.svg",
-  "maskableIconUrl": "https://meteor-android.netlify.app/favicon.svg",
+  "iconUrl": "https://raw.githubusercontent.com/elias001011/Meteor/dev/favicon.svg",
+  "maskableIconUrl": "https://raw.githubusercontent.com/elias001011/Meteor/dev/favicon.svg",
   "splashScreenFadeOutDuration": 300,
   "signingKey": {
     "path": "./android.keystore",
@@ -21,28 +21,6 @@
   },
   "appVersionName": "5.6.0",
   "appVersionCode": 56,
-  "shortcuts": [
-    {
-      "name": "Previsão",
-      "shortName": "Previsão",
-      "description": "Ver previsão do tempo",
-      "url": "/",
-      "icon": "https://meteor-android.netlify.app/favicon.svg"
-    },
-    {
-      "name": "Alertas",
-      "shortName": "Alertas",
-      "description": "Ver alertas meteorológicos",
-      "url": "/?view=alerts",
-      "icon": "https://meteor-android.netlify.app/favicon.svg"
-    },
-    {
-      "name": "Mapa",
-      "shortName": "Mapa",
-      "description": "Ver mapa meteorológico",
-      "url": "/?view=map",
-      "icon": "https://meteor-android.netlify.app/favicon.svg"
-    }
-  ],
+  "shortcuts": [],
   "generatorApp": "bubblewrap-cli"
 }
