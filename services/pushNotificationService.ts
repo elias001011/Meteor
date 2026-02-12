@@ -40,113 +40,88 @@ export const isPWAInstalled = (): boolean => {
   }
 };
 
-export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration | null> => {
-  if (!('serviceWorker' in navigator)) {
-    return null;
-  }
+// Detecta Chrome Mobile específico
+export const isChromeMobile = (): boolean => {
+  const ua = navigator.userAgent;
+  return /Android/.test(ua) && /Chrome/.test(ua) && !/Edg/.test(ua) && !/Firefox/.test(ua);
+};
 
-  if (!window.isSecureContext) {
-    throw new Error('Service Worker requer HTTPS ou localhost');
-  }
+export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration | null> => {
+  if (!('serviceWorker' in navigator)) return null;
+  if (!window.isSecureContext) throw new Error('HTTPS necessário');
 
   try {
-    const existingRegistration = await navigator.serviceWorker.getRegistration('/sw.js');
-    if (existingRegistration) {
-      return existingRegistration;
-    }
+    const existing = await navigator.serviceWorker.getRegistration('/sw.js');
+    if (existing) return existing;
     
-    const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
-    return registration;
+    return await navigator.serviceWorker.register('/sw.js', { scope: '/' });
   } catch (error: any) {
-    throw new Error('Não foi possível registrar o Service Worker: ' + (error.message || 'Erro desconhecido'));
+    throw new Error('Erro ao registrar SW: ' + error.message);
   }
 };
 
 export const requestNotificationPermission = async (): Promise<NotificationPermission> => {
   if (!('Notification' in window)) {
-    throw new Error('Notificações não suportadas neste navegador');
+    throw new Error('Notificações não suportadas');
   }
-
-  const permission = await Notification.requestPermission();
-  return permission;
+  return await Notification.requestPermission();
 };
 
 export const subscribeToPush = async (): Promise<PushSubscription | null> => {
-  console.log('[Push] === INICIANDO ===');
-  console.log('[Push] UserAgent:', navigator.userAgent);
+  console.log('[Push] Iniciando... UA:', navigator.userAgent.substring(0, 60));
   
   try {
     if (!isPushSupported()) {
-      throw new Error('Notificações push não são suportadas neste navegador');
+      throw new Error('Push não suportado neste navegador');
     }
 
     if (isIOSSafari() && !isPWAInstalled()) {
-      throw new Error('Para receber notificações no iOS, instale o app na tela inicial');
+      throw new Error('Instale o app na tela inicial (iOS)');
     }
 
     const permission = await requestNotificationPermission();
-    console.log('[Push] Permissão:', permission);
-    
     if (permission !== 'granted') {
-      throw new Error('Permissão para notificações negada pelo usuário');
+      throw new Error('Permissão negada pelo usuário');
     }
 
-    console.log('[Push] Registrando SW...');
     const registration = await registerServiceWorker();
-    if (!registration) {
-      throw new Error('Não foi possível registrar o Service Worker');
-    }
-    console.log('[Push] SW registrado:', registration.scope);
+    if (!registration) throw new Error('Falha ao registrar Service Worker');
 
-    console.log('[Push] Verificando subscription existente...');
-    const existingSubscription = await registration.pushManager.getSubscription();
-    console.log('[Push] Existente:', existingSubscription ? 'SIM' : 'NÃO');
-    
-    if (existingSubscription) {
-      console.log('[Push] Retornando subscription existente');
-      return existingSubscription;
-    }
+    // Verifica se já existe
+    const existing = await registration.pushManager.getSubscription();
+    if (existing) return existing;
 
-    console.log('[Push] VAPID disponível:', !!PUBLIC_VAPID_KEY);
     if (!PUBLIC_VAPID_KEY) {
-      throw new Error('Chave VAPID não configurada no servidor');
+      throw new Error('VAPID key não configurada');
     }
 
-    let applicationServerKey: Uint8Array;
-    try {
-      applicationServerKey = urlBase64ToUint8Array(PUBLIC_VAPID_KEY);
-    } catch (e) {
-      throw new Error('Erro ao processar chave VAPID');
-    }
-
-    console.log('[Push] Chamando subscribe...');
+    console.log('[Push] Tentando subscrever...');
     
-    // TENTA SUBSCREVER - SEM TRADUÇÃO DE ERRO
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey
+      applicationServerKey: urlBase64ToUint8Array(PUBLIC_VAPID_KEY)
     });
     
-    console.log('[Push] SUCESSO! Endpoint:', subscription.endpoint.substring(0, 30));
-    
-    try {
-      localStorage.setItem('meteor_push_subscription', JSON.stringify(subscription));
-    } catch (e) {}
-    
+    console.log('[Push] Sucesso!');
+    localStorage.setItem('meteor_push_subscription', JSON.stringify(subscription));
     return subscription;
     
   } catch (error: any) {
-    // LOG DO ERRO ORIGINAL SEM MODIFICAR
-    console.error('[Push] ERRO ORIGINAL:');
-    console.error('  name:', error.name);
-    console.error('  message:', error.message);
-    console.error('  code:', error.code);
-    console.error('  full:', error);
-    
-    // Limpa localStorage
+    console.error('[Push] ERRO:', error.name, error.message);
     localStorage.removeItem('meteor_push_subscription');
     
-    // RETORNA O ERRO ORIGINAL SEM TRADUÇÃO
+    // MENSAGEM ESPECÍFICA PARA O ERRO DO CHROME MOBILE
+    if (error.message?.includes('push service error') || error.message?.includes('Registration failed')) {
+      throw new Error(
+        'Não foi possível ativar notificações push. ' +
+        'No Chrome Android, isso pode ocorrer devido a:\n\n' +
+        '1. Google Play Services desatualizado\n' +
+        '2. Restrições de rede/rede móvel\n' +
+        '3. Problema temporário nos servidores do Google\n\n' +
+        'Tente novamente mais tarde ou use Firefox (que funciona melhor em Android).'
+      );
+    }
+    
     throw error;
   }
 };
@@ -175,10 +150,7 @@ export const getPushSubscriptionStatus = async (): Promise<{
   try {
     const registration = await navigator.serviceWorker.ready;
     const subscription = await registration.pushManager.getSubscription();
-    return {
-      isSubscribed: !!subscription,
-      subscription
-    };
+    return { isSubscribed: !!subscription, subscription };
   } catch (error) {
     return { isSubscribed: false, subscription: null };
   }
@@ -188,18 +160,13 @@ export const sendTestNotification = async (): Promise<void> => {
   const registration = await navigator.serviceWorker.ready;
   
   if (Notification.permission !== 'granted') {
-    throw new Error('Permissão para notificações não concedida');
+    throw new Error('Permissão não concedida');
   }
 
   await registration.showNotification('Meteor - Teste', {
-    body: 'Notificações estão funcionando corretamente!',
+    body: 'Notificações funcionando!',
     icon: '/favicon.svg',
     badge: '/favicon.svg',
-    tag: 'test',
-    requireInteraction: false,
-    actions: [
-      { action: 'open', title: 'Abrir' },
-      { action: 'dismiss', title: 'OK' }
-    ]
+    tag: 'test'
   });
 };
