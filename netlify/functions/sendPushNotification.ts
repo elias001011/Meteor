@@ -60,6 +60,31 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
     };
   }
 
+  // Valida formato das chaves (base64url)
+  const isBase64Url = (str: string) => /^[A-Za-z0-9_-]+$/.test(str);
+  
+  if (!isBase64Url(vapidPublicKey) || vapidPublicKey.length < 80) {
+    return {
+      statusCode: 503,
+      headers: corsHeaders,
+      body: JSON.stringify({
+        error: 'VAPID_PUBLIC_KEY inválido',
+        tip: 'Gere chaves com: npx web-push generate-vapid-keys'
+      }),
+    };
+  }
+  
+  if (!isBase64Url(vapidPrivateKey) || vapidPrivateKey.length < 40) {
+    return {
+      statusCode: 503,
+      headers: corsHeaders,
+      body: JSON.stringify({
+        error: 'VAPID_PRIVATE_KEY inválido',
+        tip: 'Gere chaves com: npx web-push generate-vapid-keys'
+      }),
+    };
+  }
+
   try {
     // Configura web-push
     webpush.setVapidDetails(
