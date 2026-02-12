@@ -33,9 +33,6 @@ export const handler: Handler = async (event) => {
   try {
     const store = createStore('userData');
     await store.delete(userId);
-    
-    const pushStore = createStore('pushSubscriptions');
-    await pushStore.delete(userId);
 
     return {
       statusCode: 200,
