@@ -28,6 +28,17 @@ const ChangelogModal: React.FC<any> = ({ isOpen, onClose }) => {
 
     const versions = [
         {
+            version: "5.5.0",
+            title: "Validação VAPID & Push Estável",
+            changes: [
+                "Validação de chaves VAPID: Verificação de formato base64url nas funções.",
+                "Modo teste para resumo: Botão de teste bypassa verificação de horário.",
+                "Documentação VAPID: Guia completo para configuração de chaves push.",
+                "Chaves VAPID atualizadas: Novas chaves geradas para produção.",
+                "Removido sistema de email: Apenas push notifications (Resend removido)."
+            ]
+        },
+        {
             version: "5.4.0",
             title: "Alertas Inteligentes & Resumo Matinal",
             changes: [
