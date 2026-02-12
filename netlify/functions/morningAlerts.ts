@@ -4,6 +4,13 @@ import webpush from 'web-push';
 
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type' };
 
+// Formato VAPID válido (base64url):
+// Public: ~87 caracteres (A-Z, a-z, 0-9, -, _)
+// Private: ~43 caracteres (A-Z, a-z, 0-9, -, _)
+// Exemplo de chaves válidas (substitua pelas suas):
+// VAPID_PUBLIC_KEY=BDtR7WyBJuN8z2L8qw5p7CQQzV7w_ytZ8v9Pq8R8t6E...
+// VAPID_PRIVATE_KEY=BDtR7WyBJuN8z2L8qw5p7CQQzV7w_ytZ8v9Pq8R8t6E
+
 export const handler: Handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: cors, body: '' };
   
@@ -14,14 +21,58 @@ export const handler: Handler = async (event) => {
     return { statusCode: 503, headers: cors, body: JSON.stringify({ error: 'VAPID não configurado' }) };
   }
   
-  webpush.setVapidDetails('mailto:alerts@meteor.app', vapidPublic, vapidPrivate);
+  // Validação do formato das chaves
+  const isBase64Url = (str: string) => /^[A-Za-z0-9_-]+$/.test(str);
+  
+  if (!isBase64Url(vapidPublic) || vapidPublic.length < 80) {
+    return { 
+      statusCode: 503, 
+      headers: cors, 
+      body: JSON.stringify({ 
+        error: 'VAPID_PUBLIC_KEY inválido', 
+        details: 'Deve estar no formato base64url (usar web-push generate-vapid-keys)',
+        format: 'Comum erro: chave em formato PEM ou com headers. Use: npx web-push generate-vapid-keys'
+      }) 
+    };
+  }
+  
+  if (!isBase64Url(vapidPrivate) || vapidPrivate.length < 40) {
+    return { 
+      statusCode: 503, 
+      headers: cors, 
+      body: JSON.stringify({ 
+        error: 'VAPID_PRIVATE_KEY inválido', 
+        details: 'Deve estar no formato base64url (~43 caracteres)',
+        format: 'Comum erro: chave em formato PEM. Use: npx web-push generate-vapid-keys'
+      }) 
+    };
+  }
+  
+  try {
+    webpush.setVapidDetails('mailto:alerts@meteor.app', vapidPublic, vapidPrivate);
+  } catch (err: any) {
+    return { 
+      statusCode: 503, 
+      headers: cors, 
+      body: JSON.stringify({ 
+        error: 'Erro ao configurar VAPID', 
+        message: err.message,
+        tip: 'Gere novas chaves com: npx web-push generate-vapid-keys'
+      }) 
+    };
+  }
   
   const API_KEY = process.env.CLIMA_API;
   if (!API_KEY) return { statusCode: 503, headers: cors, body: JSON.stringify({ error: 'API não configurada' }) };
   
-  // Hora atual Brasil
-  const hour = String(new Date().getUTCHours() - 3).padStart(2, '0');
-  const currentTime = `${hour}:00`;
+  // Hora atual Brasil (UTC-3)
+  const now = new Date();
+  const brHour = now.getUTCHours() - 3;
+  const currentTime = `${String(brHour).padStart(2, '0')}:00`;
+  
+  // Modo teste: bypass de horário
+  const isTest = event.queryStringParameters?.test === 'true';
+  const targetTime = isTest ? null : currentTime;
   
   try {
     const userStore = getStore('userData');
@@ -29,16 +80,30 @@ export const handler: Handler = async (event) => {
     const list = await userStore.list();
     
     let sent = 0;
+    let usersChecked = 0;
+    let skippedNoSubscription = 0;
+    let skippedWrongTime = 0;
     
     for (const key of list.blobs || []) {
       try {
         const data = await userStore.get(key.key, { type: 'json' });
         if (!data?.preferences?.morningSummary) continue;
-        if (data.preferences.summaryTime !== currentTime) continue;
+        
+        usersChecked++;
+        
+        // Verifica horário do usuário (bypass no modo teste)
+        const userTime = data.preferences.summaryTime || '06:00';
+        if (targetTime && userTime !== targetTime) {
+          skippedWrongTime++;
+          continue;
+        }
         
         // Busca subscription
         const subData = await pushStore.get(key.key, { type: 'json' });
-        if (!subData?.subscription) continue;
+        if (!subData?.subscription) {
+          skippedNoSubscription++;
+          continue;
+        }
         
         // Pega clima (simplificado)
         const lat = data.preferences?.lat || -23.5;
@@ -71,10 +136,25 @@ export const handler: Handler = async (event) => {
         }));
         
         sent++;
-      } catch (e) {}
+      } catch (e) {
+        // Silencia erros individuais
+      }
     }
     
-    return { statusCode: 200, headers: cors, body: JSON.stringify({ success: true, sent, time: currentTime }) };
+    return { 
+      statusCode: 200, 
+      headers: cors, 
+      body: JSON.stringify({ 
+        success: true, 
+        sent, 
+        time: currentTime,
+        stats: {
+          usersChecked,
+          skippedWrongTime,
+          skippedNoSubscription
+        }
+      }) 
+    };
     
   } catch (err: any) {
     return { statusCode: 500, headers: cors, body: JSON.stringify({ error: err.message || 'Erro desconhecido' }) };

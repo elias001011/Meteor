@@ -538,7 +538,7 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                                     <button
                                         onClick={async () => {
                                             try {
-                                                const response = await fetch('/.netlify/functions/morningAlerts', {
+                                                const response = await fetch('/.netlify/functions/morningAlerts?test=true', {
                                                     method: 'GET',
                                                     headers: { 'Content-Type': 'application/json' }
                                                 });
