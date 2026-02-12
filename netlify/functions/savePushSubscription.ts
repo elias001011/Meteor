@@ -44,10 +44,11 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
       };
     }
 
-    // Usa o endpoint como ID único
-    const subscriptionId = subscription.endpoint.slice(-32);
+    // Usa o mesmo userId das outras funções (baseado no token) ou endpoint como fallback
+    const auth = event.headers.authorization || '';
+    const userId = auth.replace('Bearer ', '').slice(0, 32) || subscription.endpoint.slice(-32);
     
-    await store.setJSON(subscriptionId, {
+    await store.setJSON(userId, {
       subscription,
       createdAt: new Date().toISOString(),
       lastUsed: new Date().toISOString(),

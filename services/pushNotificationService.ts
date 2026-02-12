@@ -136,10 +136,14 @@ export const getPushSubscriptionStatus = async (): Promise<{
 
 const saveSubscriptionToServer = async (subscription: PushSubscription): Promise<void> => {
   try {
+    // Pega o userId do localStorage se existir (usuário logado)
+    const userData = localStorage.getItem('meteor_user_data');
+    const userId = userData ? JSON.parse(userData)?.email : null;
+    
     await fetch('/.netlify/functions/savePushSubscription', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subscription })
+      body: JSON.stringify({ subscription, userId })
     });
   } catch (error) {
     // Silently fail

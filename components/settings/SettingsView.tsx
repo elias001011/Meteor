@@ -678,7 +678,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
             const result = await response.json();
 
             if (response.ok && result.success) {
-                alert('✅ Solicitação enviada com sucesso! Você receberá uma confirmação por email em breve.');
+                alert('✅ Solicitação enviada com sucesso! Analisaremos seu pedido em breve.');
                 setShowDataDeletionRequest(false);
                 setDeletionReason('');
             } else {
@@ -885,7 +885,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                             ) : (
                                 <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 space-y-3 animate-enter">
                                     <p className="text-red-300 text-sm">
-                                        Enviaremos uma solicitação para exclusão dos seus dados. Você receberá uma confirmação por email.
+                                        Envie uma solicitação para exclusão dos seus dados. Nossa equipe analisará seu pedido.
                                     </p>
                                     <textarea
                                         placeholder="Motivo da exclusão (opcional)..."
