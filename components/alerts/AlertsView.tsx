@@ -209,6 +209,8 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
         if (pushSubscribed) {
             // Desliga imediatamente na UI (responsividade)
             setPushSubscribed(false);
+            // Remove do localStorage IMEDIATAMENTE para evitar problema ao trocar de aba
+            localStorage.removeItem('meteor_push_subscription');
             setIsSubscribing(true);
             
             try {
