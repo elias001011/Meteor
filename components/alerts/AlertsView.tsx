@@ -183,15 +183,12 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
     const { user, isLoggedIn, userData, updateUserData, login } = useAuth();
     const [pushSupported, setPushSupported] = useState(false);
     const [pushSubscribed, setPushSubscribed] = useState(() => {
-        // Recupera do localStorage de forma síncrona ao montar
         try {
             const raw = localStorage.getItem('meteor_push_subscription');
             if (!raw) return false;
             const parsed = JSON.parse(raw);
-            // Verifica se a subscription tem a estrutura mínima necessária
             return !!(parsed && parsed.endpoint && parsed.keys);
         } catch (e) {
-            // Limpa dados corrompidos
             localStorage.removeItem('meteor_push_subscription');
             return false;
         }
@@ -205,39 +202,43 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
     const localAlerts = useMemo(() => generateLocalAlerts(currentWeather, dailyForecast), [currentWeather, dailyForecast]);
 
     useEffect(() => {
-        setPushSupported(isPushSupported());
-        setIsIOS(isIOSSafari());
-        setIsInstalled(isPWAInstalled());
-        // NÃO verificamos mais no navegador - só confiamos no localStorage
-        // Isso evita o flicker do toggle ao recarregar
+        try {
+            setPushSupported(isPushSupported());
+            setIsIOS(isIOSSafari());
+            setIsInstalled(isPWAInstalled());
+        } catch (e) {
+            console.warn('[Alerts] Erro ao detectar suporte:', e);
+        }
     }, []);
 
     const togglePushNotifications = async () => {
         setPushError(null);
         
-        setPushError(null);
-        
         if (pushSubscribed) {
-            // Desliga imediatamente na UI (responsividade)
             setPushSubscribed(false);
-            // Remove do localStorage IMEDIATAMENTE para evitar problema ao trocar de aba
             localStorage.removeItem('meteor_push_subscription');
             setIsSubscribing(true);
             
             try {
                 await unsubscribeFromPush();
                 if (isLoggedIn && userData) {
-                    await updateUserData({
-                        preferences: {
-                            ...userData.preferences,
-                            pushSubscription: null,
-                            morningSummary: false
+                    // Async separado para não bloquear UI
+                    setTimeout(async () => {
+                        try {
+                            await updateUserData({
+                                preferences: {
+                                    ...userData.preferences,
+                                    pushSubscription: null,
+                                    morningSummary: false
+                                }
+                            });
+                        } catch (e) {
+                            console.warn('[Alerts] Erro ao atualizar userData:', e);
                         }
-                    });
+                    }, 0);
                 }
             } catch (e) {
-                // Mesmo se falhar no navegador, mantém desligado na UI
-                console.warn('[Meteor] Erro ao desinscrever:', e);
+                console.warn('[Alerts] Erro ao desinscrever:', e);
             } finally {
                 setIsSubscribing(false);
             }
@@ -245,20 +246,26 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
             setIsSubscribing(true);
             try {
                 const subscription = await subscribeToPush();
+                
                 if (subscription) {
                     setPushSubscribed(true);
-                    // Limpa erro se houve sucesso
                     setPushError(null);
                     
+                    // Salvar no userData de forma assíncrona separada
                     if (isLoggedIn && userData) {
-                        // Salva apenas os dados serializáveis
-                        await updateUserData({
-                            preferences: {
-                                ...userData.preferences,
-                                pushSubscription: subscription.toJSON ? subscription.toJSON() : subscription,
-                                morningSummary: true
+                        setTimeout(async () => {
+                            try {
+                                await updateUserData({
+                                    preferences: {
+                                        ...userData.preferences,
+                                        pushSubscription: subscription.toJSON(),
+                                        morningSummary: true
+                                    }
+                                });
+                            } catch (e) {
+                                console.warn('[Alerts] Erro ao salvar preferências:', e);
                             }
-                        });
+                        }, 0);
                     }
                 } else {
                     throw new Error('Não foi possível ativar as notificações');
@@ -267,7 +274,7 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                 setPushSubscribed(false);
                 localStorage.removeItem('meteor_push_subscription');
                 setPushError(error.message || 'Erro ao ativar notificações');
-                console.error('[Meteor] Erro ao ativar push:', error);
+                console.error('[Alerts] Erro ao ativar push:', error);
             } finally {
                 setIsSubscribing(false);
             }
@@ -285,12 +292,16 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
 
     const handleCitySave = async () => {
         if (!selectedCity.trim()) return;
-        await updateUserData({
-            preferences: {
-                ...userData?.preferences,
-                alertCity: selectedCity.trim()
-            }
-        });
+        try {
+            await updateUserData({
+                preferences: {
+                    ...userData?.preferences,
+                    alertCity: selectedCity.trim()
+                }
+            });
+        } catch (e) {
+            console.warn('[Alerts] Erro ao salvar cidade:', e);
+        }
     };
 
     const activeLocalAlerts = localAlerts.filter(alert => Date.now() <= alert.expiresAt);
@@ -315,16 +326,20 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
         if ('Notification' in window && Notification.permission === 'granted') {
             const criticalAlerts = allAlerts.filter(a => a.level === 'critical' || a.level === 'warning');
             criticalAlerts.forEach(alert => {
-                const notifiedKey = `notified_${alert.id}`;
-                if (!localStorage.getItem(notifiedKey)) {
-                    new Notification('Meteor - Alerta Meteorológico', {
-                        body: `${alert.title}: ${alert.message}`,
-                        icon: '/favicon.svg',
-                        tag: alert.id,
-                        requireInteraction: alert.level === 'critical'
-                    });
-                    localStorage.setItem(notifiedKey, Date.now().toString());
-                    setTimeout(() => localStorage.removeItem(notifiedKey), alert.expiresAt - Date.now());
+                try {
+                    const notifiedKey = `notified_${alert.id}`;
+                    if (!localStorage.getItem(notifiedKey)) {
+                        new Notification('Meteor - Alerta Meteorológico', {
+                            body: `${alert.title}: ${alert.message}`,
+                            icon: '/favicon.svg',
+                            tag: alert.id,
+                            requireInteraction: alert.level === 'critical'
+                        });
+                        localStorage.setItem(notifiedKey, Date.now().toString());
+                        setTimeout(() => localStorage.removeItem(notifiedKey), alert.expiresAt - Date.now());
+                    }
+                } catch (e) {
+                    console.warn('[Alerts] Erro ao mostrar notificação local:', e);
                 }
             });
         }
@@ -461,8 +476,6 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                                     </div>
                                 )}
                                 
-                                {/* Resumo Matinal - Aparece quando push está ativo */}
-                                {/* Aviso PWA */}
                                 {!isInstalled && (
                                     <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3">
                                         <p className="text-blue-200 text-xs">
@@ -479,12 +492,18 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                                                 <p className="text-gray-500 text-xs">Todos os dias às 07:00</p>
                                             </div>
                                             <button
-                                                onClick={() => updateUserData({ 
-                                                    preferences: { 
-                                                        ...userData?.preferences,
-                                                        morningSummary: !userData?.preferences?.morningSummary 
+                                                onClick={() => {
+                                                    try {
+                                                        updateUserData({ 
+                                                            preferences: { 
+                                                                ...userData?.preferences,
+                                                                morningSummary: !userData?.preferences?.morningSummary 
+                                                            }
+                                                        });
+                                                    } catch (e) {
+                                                        console.warn('[Alerts] Erro ao toggle morningSummary:', e);
                                                     }
-                                                })}
+                                                }}
                                                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                                                     isMorningSummaryEnabled ? 'bg-yellow-500' : 'bg-gray-600'
                                                 }`}

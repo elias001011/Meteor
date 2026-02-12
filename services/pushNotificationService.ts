@@ -9,7 +9,6 @@ function isValidBase64Url(base64String: string): boolean {
   if (!base64String || typeof base64String !== 'string') {
     return false;
   }
-  // Remove padding e caracteres especiais para validação
   const base64Regex = /^[A-Za-z0-9_-]+$/;
   const cleanString = base64String.replace(/=+$/, '');
   return base64Regex.test(cleanString) && cleanString.length > 0;
@@ -27,7 +26,6 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
     const padding = '='.repeat((4 - base64String.length % 4) % 4);
     const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
     
-    // Validação adicional antes de atob
     if (!/^[A-Za-z0-9+/=]+$/.test(base64)) {
       throw new Error('Formato de chave inválido');
     }
@@ -71,16 +69,13 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
   }
 
   try {
-    // Verifica se já existe um registro ativo
     const existingRegistration = await navigator.serviceWorker.getRegistration('/sw.js');
     if (existingRegistration && existingRegistration.active) {
       return existingRegistration;
     }
     
-    // Tenta registrar
     const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
     
-    // Aguarda o SW estar ativo
     if (registration.installing) {
       await new Promise<void>((resolve) => {
         registration.installing?.addEventListener('statechange', (e) => {
@@ -117,15 +112,51 @@ const cleanupCorruptedPushData = (): void => {
     const raw = localStorage.getItem('meteor_push_subscription');
     if (raw) {
       const parsed = JSON.parse(raw);
-      // Verifica se tem a estrutura mínima necessária
       if (!parsed || !parsed.endpoint || !parsed.keys) {
-        console.warn('[Meteor] Removendo subscription corrompida do localStorage');
         localStorage.removeItem('meteor_push_subscription');
       }
     }
   } catch (e) {
-    // Se não consegue fazer parse, remove
     localStorage.removeItem('meteor_push_subscription');
+  }
+};
+
+/**
+ * Tenta usar Firebase Cloud Messaging (para TWA/Android)
+ */
+const tryFCM = async (): Promise<PushSubscription | null> => {
+  try {
+    const isTWAEnv = isTWA();
+    const hasFirebase = !!(window as any).firebaseMessaging && !!(window as any).firebaseGetToken;
+    
+    if (!isTWAEnv || !hasFirebase) {
+      return null;
+    }
+    
+    const token = await (window as any).firebaseGetToken();
+    if (!token) {
+      return null;
+    }
+    
+    // Cria um objeto compatível com PushSubscription
+    const fcmSubscription = {
+      endpoint: 'fcm:' + token,
+      expirationTime: null,
+      keys: { fcm: 'true' },
+      toJSON: () => ({ 
+        endpoint: 'fcm:' + token, 
+        expirationTime: null,
+        keys: { fcm: 'true' } 
+      })
+    } as any;
+    
+    await saveSubscriptionToServer(fcmSubscription);
+    localStorage.setItem('meteor_push_subscription', JSON.stringify(fcmSubscription.toJSON()));
+    
+    return fcmSubscription;
+  } catch (fcmError) {
+    console.warn('[Meteor] FCM falhou, usando Web Push padrão:', fcmError);
+    return null;
   }
 };
 
@@ -139,13 +170,11 @@ export const subscribeToPush = async (): Promise<PushSubscription | null> => {
       throw new Error('Para receber notificações no iOS, instale o app na tela inicial');
     }
 
-    // Limpa dados corrompidos antes de começar
     cleanupCorruptedPushData();
 
-    // Solicita permissão ANTES de qualquer coisa
     const permission = await requestNotificationPermission();
     if (permission !== 'granted') {
-      throw new Error('Permissão para notificações negada. Clique no ícone de cadeado na barra de endereço para permitir.');
+      throw new Error('Permissão para notificações negada');
     }
 
     const registration = await registerServiceWorker();
@@ -153,30 +182,15 @@ export const subscribeToPush = async (): Promise<PushSubscription | null> => {
       throw new Error('Não foi possível registrar o Service Worker');
     }
 
-    // Aguarda o SW estar pronto
     await navigator.serviceWorker.ready;
 
-    // Para TWA, tenta usar Firebase primeiro
-    if (isTWA() && (window as any).firebaseMessaging) {
-      try {
-        const token = await (window as any).firebaseGetToken();
-        if (token) {
-          console.log('[Meteor] Firebase token obtido:', token);
-          // Salva token do Firebase como subscription alternativa
-          const fcmSubscription = {
-            endpoint: 'fcm:' + token,
-            keys: { fcm: true },
-            toJSON: () => ({ endpoint: 'fcm:' + token, keys: { fcm: true } })
-          } as any;
-          await saveSubscriptionToServer(fcmSubscription);
-          localStorage.setItem('meteor_push_subscription', JSON.stringify(fcmSubscription.toJSON()));
-          return fcmSubscription;
-        }
-      } catch (fcmError) {
-        console.warn('[Meteor] Falha ao usar FCM, fallback para Web Push:', fcmError);
-      }
+    // Tenta FCM primeiro (para TWA/Android)
+    const fcmSubscription = await tryFCM();
+    if (fcmSubscription) {
+      return fcmSubscription;
     }
 
+    // Fallback para Web Push padrão
     const existingSubscription = await registration.pushManager.getSubscription();
     if (existingSubscription) {
       await saveSubscriptionToServer(existingSubscription);
@@ -184,13 +198,13 @@ export const subscribeToPush = async (): Promise<PushSubscription | null> => {
       return existingSubscription;
     }
 
-    // Valida a chave VAPID
+    // Valida VAPID
     if (!PUBLIC_VAPID_KEY) {
-      throw new Error('Chave VAPID não configurada no servidor. Contate o suporte.');
+      throw new Error('Chave VAPID não configurada no servidor');
     }
 
     if (!isValidBase64Url(PUBLIC_VAPID_KEY)) {
-      throw new Error('Chave VAPID inválida. Verifique a configuração do servidor.');
+      throw new Error('Chave VAPID inválida');
     }
 
     let applicationServerKey: Uint8Array;
@@ -206,16 +220,14 @@ export const subscribeToPush = async (): Promise<PushSubscription | null> => {
     });
 
     if (!subscription || !subscription.endpoint) {
-      throw new Error('Falha ao criar subscription de push');
+      throw new Error('Falha ao criar subscription');
     }
 
     await saveSubscriptionToServer(subscription);
-    // Salva apenas os dados serializáveis
     localStorage.setItem('meteor_push_subscription', JSON.stringify(subscription.toJSON()));
     
     return subscription;
   } catch (error: any) {
-    // Limpa o localStorage em caso de erro para permitir retry
     if (error.message?.includes('VAPID') || error.message?.includes('subscription')) {
       localStorage.removeItem('meteor_push_subscription');
     }
@@ -236,7 +248,6 @@ export const unsubscribeFromPush = async (): Promise<boolean> => {
     }
     return false;
   } catch (error) {
-    // Mesmo em caso de erro, limpa o localStorage
     localStorage.removeItem('meteor_push_subscription');
     return false;
   }
@@ -260,11 +271,10 @@ export const getPushSubscriptionStatus = async (): Promise<{
 
 const saveSubscriptionToServer = async (subscription: PushSubscription | any): Promise<void> => {
   try {
-    // Pega o userId do localStorage se existir (usuário logado)
     const userData = localStorage.getItem('meteor_user_data');
     const userId = userData ? JSON.parse(userData)?.email : null;
     
-    const response = await fetch('/.netlify/functions/savePushSubscription', {
+    await fetch('/.netlify/functions/savePushSubscription', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
@@ -272,13 +282,8 @@ const saveSubscriptionToServer = async (subscription: PushSubscription | any): P
         userId 
       })
     });
-    
-    if (!response.ok) {
-      console.warn('[Meteor] Falha ao salvar subscription no servidor:', response.status);
-    }
   } catch (error) {
-    // Silently fail - o push ainda funciona localmente
-    console.warn('[Meteor] Erro ao salvar subscription:', error);
+    // Silently fail
   }
 };
 
@@ -302,7 +307,7 @@ export const sendTestNotification = async (): Promise<void> => {
   }
 
   await registration.showNotification('Meteor - Teste', {
-    body: 'Notificações estão funcionando corretamente!',
+    body: 'Notificações estão funcionando!',
     icon: '/favicon.svg',
     badge: '/favicon.svg',
     tag: 'test',
@@ -313,3 +318,6 @@ export const sendTestNotification = async (): Promise<void> => {
     ]
   });
 };
+
+// Auto-limpeza
+cleanupCorruptedPushData();
