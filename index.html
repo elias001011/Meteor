@@ -103,6 +103,57 @@
 }
 </script>
 <meta name="app-platform" content="twa-android" />
+    
+    <!-- Firebase SDK para notificações push nativas no APK -->
+    <script type="module">
+      // Só carrega Firebase se estiver no TWA (APK Android)
+      const isTWA = window.matchMedia('(display-mode: standalone)').matches && 
+                    /Android/.test(navigator.userAgent);
+      
+      if (isTWA) {
+        console.log('[Meteor] TWA detectado, carregando Firebase...');
+        
+        try {
+          const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js');
+          const { getMessaging, getToken, onMessage } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging.js');
+          
+          const firebaseConfig = {
+            apiKey: "AIzaSyBsvIYTFYii5rxVOSVU58AJjPafjaMv4mI",
+            authDomain: "meteor-weather-13033.firebaseapp.com",
+            projectId: "meteor-weather-13033",
+            storageBucket: "meteor-weather-13033.firebasestorage.app",
+            messagingSenderId: "919442203209",
+            appId: "1:919442203209:android:e1a3dc2b50639982701598"
+          };
+          
+          const app = initializeApp(firebaseConfig);
+          const messaging = getMessaging(app);
+          
+          // Disponibilizar globalmente
+          window.firebaseApp = app;
+          window.firebaseMessaging = messaging;
+          window.firebaseGetToken = () => getToken(messaging);
+          window.firebaseOnMessage = (callback) => onMessage(messaging, callback);
+          
+          console.log('[Meteor] Firebase inicializado com sucesso');
+          
+          // Listener para mensagens em foreground
+          onMessage(messaging, (payload) => {
+            console.log('[Meteor] FCM mensagem recebida:', payload);
+            new Notification(payload.notification?.title || 'Meteor', {
+              body: payload.notification?.body || 'Nova notificação',
+              icon: '/favicon.svg',
+              badge: '/favicon.svg'
+            });
+          });
+          
+        } catch (error) {
+          console.error('[Meteor] Erro ao inicializar Firebase:', error);
+        }
+      } else {
+        console.log('[Meteor] Não é TWA, usando Web Push padrão');
+      }
+    </script>
 </head>
   <body class="h-full text-slate-100 selection:bg-cyan-500/30" style="background-color: #111827;">
     <div id="root" class="h-full"></div>
