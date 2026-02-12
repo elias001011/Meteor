@@ -68,23 +68,26 @@ export const subscribeToPush = async (): Promise<PushSubscription | null> => {
       throw new Error('Para receber notificações no iOS, instale o app na tela inicial');
     }
 
+    // Solicita permissão ANTES de qualquer coisa
+    const permission = await requestNotificationPermission();
+    if (permission !== 'granted') {
+      throw new Error('Permissão para notificações negada. Clique no ícone de cadeado na barra de endereço para permitir.');
+    }
+
     const registration = await registerServiceWorker();
     if (!registration) {
       throw new Error('Não foi possível registrar o Service Worker');
     }
 
-    const permission = await requestNotificationPermission();
-    if (permission !== 'granted') {
-      throw new Error('Permissão para notificações negada');
-    }
-
     const existingSubscription = await registration.pushManager.getSubscription();
     if (existingSubscription) {
+      await saveSubscriptionToServer(existingSubscription);
+      localStorage.setItem('meteor_push_subscription', JSON.stringify(existingSubscription));
       return existingSubscription;
     }
 
     if (!PUBLIC_VAPID_KEY) {
-      throw new Error('Chave VAPID não configurada');
+      throw new Error('Chave VAPID não configurada no servidor');
     }
 
     const subscription = await registration.pushManager.subscribe({

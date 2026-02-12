@@ -197,18 +197,12 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
         setIsInstalled(isPWAInstalled());
         
         const checkSubscription = async () => {
-            // Se estiver logado e tiver subscription salva, usa ela
-            if (isLoggedIn && userData?.preferences?.pushSubscription) {
-                setPushSubscribed(true);
-                return;
-            }
-            
-            // Senão, verifica no navegador
+            // Verifica no navegador primeiro
             const { isSubscribed } = await getPushSubscriptionStatus();
             setPushSubscribed(isSubscribed);
         };
         checkSubscription();
-    }, [isLoggedIn, userData?.preferences?.pushSubscription]);
+    }, []);
 
     const togglePushNotifications = async () => {
         setPushError(null);
