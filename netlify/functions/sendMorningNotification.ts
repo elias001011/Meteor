@@ -19,7 +19,7 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
-// Geocoding simples - cidades comuns
+// Cidades com coordenadas
 const cityCoordinates: Record<string, { lat: number; lon: number }> = {
   'porto alegre': { lat: -30.0346, lon: -51.2177 },
   'são paulo': { lat: -23.5505, lon: -46.6333 },
@@ -37,25 +37,64 @@ const cityCoordinates: Record<string, { lat: number; lon: number }> = {
   'belem': { lat: -1.4558, lon: -48.4902 },
   'goiânia': { lat: -16.6864, lon: -49.2643 },
   'goiania': { lat: -16.6864, lon: -49.2643 },
-  'guarulhos': { lat: -23.4628, lon: -46.5323 },
-  'campinas': { lat: -22.9053, lon: -47.0659 },
-  'são luís': { lat: -2.5297, lon: -44.3028 },
-  'sao luis': { lat: -2.5297, lon: -44.3028 },
-  'maceió': { lat: -9.6659, lon: -35.7350 },
-  'maceio': { lat: -9.6659, lon: -35.7350 },
-  'campo grande': { lat: -20.4697, lon: -54.6201 },
-  'natal': { lat: -5.7945, lon: -35.2110 },
-  'teresina': { lat: -5.0892, lon: -42.8019 },
-  'joão pessoa': { lat: -7.1153, lon: -34.8610 },
-  'joao pessoa': { lat: -7.1153, lon: -34.8610 },
   'florianópolis': { lat: -27.5954, lon: -48.5480 },
   'florianopolis': { lat: -27.5954, lon: -48.5480 },
-  'vila velha': { lat: -20.3297, lon: -40.2925 },
 };
 
-const getCoordinates = (city: string): { lat: number; lon: number } => {
+const getCoordinates = (city: string) => {
   const normalized = city.toLowerCase().trim();
-  return cityCoordinates[normalized] || { lat: -30.0346, lon: -51.2177 }; // Porto Alegre padrão
+  return cityCoordinates[normalized] || { lat: -30.0346, lon: -51.2177 };
+};
+
+// Envia notificação FCM
+const sendFCM = async (token: string, payload: any) => {
+  const serverKey = process.env.FIREBASE_SERVER_KEY;
+  if (!serverKey) {
+    console.error('[FCM] FIREBASE_SERVER_KEY não configurada');
+    return false;
+  }
+
+  try {
+    const response = await fetch('https://fcm.googleapis.com/fcm/send', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `key=${serverKey}`
+      },
+      body: JSON.stringify({
+        to: token,
+        priority: 'high',
+        notification: {
+          title: payload.title,
+          body: payload.body,
+          icon: 'ic_notification',
+          sound: 'default',
+          badge: '1',
+          tag: payload.tag || 'default'
+        },
+        data: {
+          ...payload.data,
+          title: payload.title,
+          body: payload.body
+        }
+      })
+    });
+
+    const result = await response.json();
+    
+    if (result.failure > 0) {
+      console.error('[FCM] Falha:', result);
+      if (result.results?.[0]?.error === 'NotRegistered') {
+        return 'expired'; // Token expirado
+      }
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('[FCM] Erro ao enviar:', error);
+    return false;
+  }
 };
 
 export const handler: Handler = async (event) => {
@@ -99,137 +138,155 @@ export const handler: Handler = async (event) => {
   }
 
   const isTest = event.queryStringParameters?.test === 'true';
-  const store = createStore('pushSubscriptions');
+  const webStore = createStore('pushSubscriptions');
+  const fcmStore = createStore('fcmTokens');
 
   try {
-    const list = await store.list();
-    const subscriptions = list.blobs || [];
+    // Processa Web Push subscriptions
+    const webList = await webStore.list();
+    const fcmList = await fcmStore.list();
     
-    let sentCount = 0;
-    let failedCount = 0;
+    let webSent = 0, webFailed = 0;
+    let fcmSent = 0, fcmFailed = 0, fcmExpired = 0;
     let alertsCount = 0;
 
-    console.log(`[Cron] Processando ${subscriptions.length} subscriptions`);
+    console.log(`[Cron] Processando: ${webList.blobs?.length || 0} Web Push, ${fcmList.blobs?.length || 0} FCM`);
 
-    for (const blob of subscriptions) {
+    // Função para buscar clima e montar payload
+    const getWeatherPayload = async (city: string) => {
+      const coords = getCoordinates(city);
+      const url = `https://api.openweathermap.org/data/3.0/onecall?lat=${coords.lat}&lon=${coords.lon}&units=metric&lang=pt_br&exclude=minutely,hourly&appid=${apiKey}`;
+      
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      
+      const data = await res.json();
+      const current = data.current;
+      const today = data.daily?.[0];
+      
+      if (!current || !today) return null;
+
+      const temp = Math.round(current.temp);
+      const max = Math.round(today.temp.max);
+      const min = Math.round(today.temp.min);
+      const desc = current.weather?.[0]?.description || 'clima estável';
+      const pop = today.pop || 0;
+
+      let body = `${city}: ${temp}°C, ${desc}. Máx ${max}°C, mín ${min}°C.`;
+      if (pop > 0.2) body += ` ${Math.round(pop * 100)}% chance de chuva.`;
+
+      return {
+        body,
+        alerts: data.alerts || []
+      };
+    };
+
+    // Processa Web Push
+    for (const blob of webList.blobs || []) {
       try {
-        const data = await store.get(blob.key, { type: 'json' });
-        
-        if (!data || !data.enabled || !data.subscription) {
-          continue;
-        }
+        const data = await webStore.get(blob.key, { type: 'json' });
+        if (!data?.enabled || !data?.subscription) continue;
 
-        const city = data.city || 'Porto Alegre';
-        const coords = getCoordinates(city);
-        
-        // Busca dados do clima
-        const weatherUrl = `https://api.openweathermap.org/data/3.0/onecall?lat=${coords.lat}&lon=${coords.lon}&units=metric&lang=pt_br&exclude=minutely,hourly&appid=${apiKey}`;
-        
-        const weatherRes = await fetch(weatherUrl);
-        if (!weatherRes.ok) {
-          console.warn(`[Cron] Falha ao buscar clima para ${city}`);
-          continue;
-        }
+        const weather = await getWeatherPayload(data.city || 'Porto Alegre');
+        if (!weather) continue;
 
-        const weather = await weatherRes.json();
-        const current = weather.current;
-        const today = weather.daily?.[0];
-        
-        if (!current || !today) continue;
-
-        const temp = Math.round(current.temp);
-        const max = Math.round(today.temp.max);
-        const min = Math.round(today.temp.min);
-        const description = current.weather?.[0]?.description || 'clima estável';
-        const pop = today.pop || 0;
-
-        // Monta mensagem do resumo
-        let body = `${city}: ${temp}°C, ${description}. Máx ${max}°C, mín ${min}°C.`;
-        if (pop > 0.2) {
-          body += ` ${Math.round(pop * 100)}% chance de chuva.`;
-        }
-
-        // Envia notificação de resumo
+        // Envia resumo
         try {
           await webpush.sendNotification(
             data.subscription,
             JSON.stringify({
-              title: `🌤️ Bom dia! Resumo do clima`,
-              body: body,
+              title: '🌤️ Bom dia! Resumo do clima',
+              body: weather.body,
               icon: '/favicon.svg',
               badge: '/favicon.svg',
               tag: 'morning-summary',
-              requireInteraction: false,
-              data: {
-                url: '/',
-                type: 'morning-summary',
-                city: city
-              }
+              data: { url: '/', type: 'morning-summary' }
             })
           );
-          sentCount++;
-          console.log(`[Cron] Resumo enviado para ${city}`);
-        } catch (pushError: any) {
-          console.error(`[Cron] Erro ao enviar resumo:`, pushError.message);
-          failedCount++;
-          
-          // Se subscription expirou, remove
-          if (pushError.statusCode === 404 || pushError.statusCode === 410) {
-            await store.delete(blob.key);
-            console.log(`[Cron] Subscription expirada removida: ${blob.key}`);
+          webSent++;
+        } catch (e: any) {
+          webFailed++;
+          if (e.statusCode === 404 || e.statusCode === 410) {
+            await webStore.delete(blob.key);
           }
         }
 
-        // Envia alertas governamentais separadamente
-        if (weather.alerts && weather.alerts.length > 0) {
-          for (const alert of weather.alerts.slice(0, 2)) { // Max 2 alertas
-            try {
-              await webpush.sendNotification(
-                data.subscription,
-                JSON.stringify({
-                  title: `⚠️ ${alert.event}`,
-                  body: alert.description?.substring(0, 100) + '...' || 'Alerta meteorológico',
-                  icon: '/favicon.svg',
-                  badge: '/favicon.svg',
-                  tag: `alert-${alert.event}`,
-                  requireInteraction: true,
-                  data: {
-                    url: '/',
-                    type: 'weather-alert',
-                    city: city
-                  }
-                })
-              );
-              alertsCount++;
-              console.log(`[Cron] Alerta enviado: ${alert.event}`);
-            } catch (alertError: any) {
-              console.error(`[Cron] Erro ao enviar alerta:`, alertError.message);
-            }
-          }
+        // Envia alertas
+        for (const alert of weather.alerts.slice(0, 2)) {
+          try {
+            await webpush.sendNotification(
+              data.subscription,
+              JSON.stringify({
+                title: `⚠️ ${alert.event}`,
+                body: alert.description?.substring(0, 100) + '...',
+                icon: '/favicon.svg',
+                badge: '/favicon.svg',
+                tag: `alert-${alert.event}`,
+                requireInteraction: true,
+                data: { url: '/', type: 'weather-alert' }
+              })
+            );
+            alertsCount++;
+          } catch (e) {}
         }
-
-      } catch (userError: any) {
-        console.error(`[Cron] Erro ao processar usuário:`, userError.message);
+      } catch (e) {
+        console.error('[Cron] Erro Web Push:', e);
       }
     }
 
-    const result = {
-      success: true,
-      isTest,
-      stats: {
-        total: subscriptions.length,
-        sent: sentCount,
-        failed: failedCount,
-        alerts: alertsCount
-      }
-    };
+    // Processa FCM
+    for (const blob of fcmList.blobs || []) {
+      try {
+        const data = await fcmStore.get(blob.key, { type: 'json' });
+        if (!data?.enabled || !data?.token) continue;
 
-    console.log('[Cron] Resultado:', result);
+        const weather = await getWeatherPayload(data.city || 'Porto Alegre');
+        if (!weather) continue;
+
+        // Envia resumo
+        const result = await sendFCM(data.token, {
+          title: '🌤️ Bom dia! Resumo do clima',
+          body: weather.body,
+          tag: 'morning-summary',
+          data: { url: '/', type: 'morning-summary' }
+        });
+
+        if (result === true) {
+          fcmSent++;
+        } else if (result === 'expired') {
+          fcmExpired++;
+          await fcmStore.delete(blob.key);
+        } else {
+          fcmFailed++;
+        }
+
+        // Envia alertas
+        for (const alert of weather.alerts.slice(0, 2)) {
+          await sendFCM(data.token, {
+            title: `⚠️ ${alert.event}`,
+            body: alert.description?.substring(0, 100) + '...',
+            tag: `alert-${alert.event}`,
+            data: { url: '/', type: 'weather-alert' }
+          });
+          alertsCount++;
+        }
+      } catch (e) {
+        console.error('[Cron] Erro FCM:', e);
+      }
+    }
 
     return {
       statusCode: 200,
       headers: corsHeaders,
-      body: JSON.stringify(result),
+      body: JSON.stringify({
+        success: true,
+        isTest,
+        stats: {
+          web: { sent: webSent, failed: webFailed },
+          fcm: { sent: fcmSent, failed: fcmFailed, expired: fcmExpired },
+          alerts: alertsCount
+        }
+      }),
     };
 
   } catch (error: any) {

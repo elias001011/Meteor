@@ -1,9 +1,10 @@
 /**
  * Serviço de Push Notifications - Meteor v6.0
  * Simplificado e robusto, usando Web Push API
+ * Com suporte a FCM quando em TWA (Android)
  */
 
-// Pega a chave VAPID do window.ENV (injetada pelo Netlify)
+// Pega a chave VAPID do window.ENV
 const getVapidPublicKey = (): string => {
   if (typeof window !== 'undefined') {
     const fromWindow = (window as any).ENV?.VAPID_PUBLIC_KEY;
@@ -12,6 +13,13 @@ const getVapidPublicKey = (): string => {
     }
   }
   return '';
+};
+
+// Detecta se está no TWA (APK Android)
+const isTWA = (): boolean => {
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+  const isAndroid = /Android/.test(navigator.userAgent);
+  return isStandalone && isAndroid;
 };
 
 // Aguarda configuração carregar
@@ -40,7 +48,7 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 export const isPushSupported = (): boolean => {
   try {
     const supported = 'serviceWorker' in navigator && 'PushManager' in window;
-    console.log('[Push] Suporte detectado:', supported);
+    console.log('[Push] Suporte detectado:', supported, isTWA() ? '(TWA)' : '');
     return supported;
   } catch (e) {
     console.error('[Push] Erro ao verificar suporte:', e);
@@ -63,7 +71,6 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
     const existing = await navigator.serviceWorker.getRegistration('/sw.js');
     if (existing) {
       console.log('[Push] SW existente encontrado');
-      // Força update do SW
       await existing.update();
       return existing;
     }
@@ -89,197 +96,240 @@ export const requestNotificationPermission = async (): Promise<NotificationPermi
   return permission;
 };
 
-export interface PushSubscriptionData {
-  subscription: PushSubscription;
-  city: string;
-  enabled: boolean;
-  createdAt: string;
-}
+// ============================================
+// FCM SUPPORT (Android TWA only)
+// ============================================
 
-export const subscribeToPush = async (city: string): Promise<PushSubscription | null> => {
-  console.log('[Push] Iniciando inscrição para cidade:', city);
+const firebaseConfig = {
+  apiKey: "AIzaSyBsvIYTFYii5rxVOSVU58AJjPafjaMv4mI",
+  authDomain: "meteor-weather-13033.firebaseapp.com",
+  projectId: "meteor-weather-13033",
+  storageBucket: "meteor-weather-13033.firebasestorage.app",
+  messagingSenderId: "919442203209",
+  appId: "1:919442203209:android:e1a3dc2b50639982701598"
+};
+
+let fcmMessaging: any = null;
+
+const initFCM = async () => {
+  if (!isTWA()) return null;
+  if (fcmMessaging) return fcmMessaging;
   
   try {
+    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js');
+    const { getMessaging, onMessage } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging.js');
+    
+    const app = initializeApp(firebaseConfig);
+    fcmMessaging = getMessaging(app);
+    
+    onMessage(fcmMessaging, (payload: any) => {
+      console.log('[FCM] Foreground message:', payload);
+      // Mostra notificação local
+      if (Notification.permission === 'granted') {
+        new Notification(payload.notification?.title || 'Meteor', {
+          body: payload.notification?.body,
+          icon: '/favicon.svg',
+          data: payload.data
+        });
+      }
+    });
+    
+    console.log('[FCM] Inicializado');
+    return fcmMessaging;
+  } catch (error) {
+    console.error('[FCM] Erro:', error);
+    return null;
+  }
+};
+
+const getFCMToken = async (): Promise<string | null> => {
+  const messaging = await initFCM();
+  if (!messaging) return null;
+  
+  try {
+    const { getToken } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging.js');
+    const token = await getToken(messaging, {
+      vapidKey: 'BCO0C6hZ4122lxqL0iG_lzfbjXybgjB6e-GOFA9yNj1RZfK9f5Qs1i9PQYZF1bTt2yH9LPwVd1N5j5qk5GjJ5E'
+    });
+    return token || null;
+  } catch (error) {
+    console.error('[FCM] Erro ao obter token:', error);
+    return null;
+  }
+};
+
+const saveFCMToken = async (token: string, city: string) => {
+  await fetch('/.netlify/functions/saveFCMToken', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, city, enabled: true })
+  });
+};
+
+// ============================================
+// PUBLIC API
+// ============================================
+
+export const subscribeToPush = async (city: string) => {
+  console.log('[Push] Iniciando订阅 para:', city, isTWA() ? '(TWA)' : '');
+  
+  // Se está no TWA, tenta FCM primeiro
+  if (isTWA()) {
+    console.log('[Push] Tentando FCM...');
+    const fcmToken = await getFCMToken();
+    if (fcmToken) {
+      console.log('[Push] FCM token obtido');
+      await saveFCMToken(fcmToken, city);
+      localStorage.setItem('meteor_push_type', 'fcm');
+      localStorage.setItem('meteor_push_city', city);
+      localStorage.setItem('meteor_push_enabled', 'true');
+      return { type: 'fcm', token: fcmToken };
+    }
+    console.log('[Push] FCM falhou, usando Web Push');
+  }
+  
+  // Web Push padrão
+  return await subscribeWebPush(city);
+};
+
+const subscribeWebPush = async (city: string): Promise<PushSubscription | null> => {
+  try {
     if (!isPushSupported()) {
-      throw new Error('Push não suportado neste navegador');
+      throw new Error('Push não suportado');
     }
 
     const permission = await requestNotificationPermission();
     if (permission !== 'granted') {
-      throw new Error('Permissão de notificação negada pelo usuário');
+      throw new Error('Permissão negada');
     }
 
     const registration = await registerServiceWorker();
     if (!registration) {
-      throw new Error('Falha ao registrar Service Worker');
+      throw new Error('Falha ao registrar SW');
     }
 
-    // Verifica se já existe subscription
-    let existing = await registration.pushManager.getSubscription();
-    
-    // Se existe, remove primeiro (limpa subscription antiga)
+    // Remove subscription antiga
+    const existing = await registration.pushManager.getSubscription();
     if (existing) {
-      console.log('[Push] Removendo subscription antiga...');
       await existing.unsubscribe();
-      console.log('[Push] Subscription antiga removida');
     }
 
-    // Aguarda configuração carregar
-    console.log('[Push] Aguardando configuração VAPID...');
     const configLoaded = await waitForConfig();
-    
     const VAPID_PUBLIC_KEY = getVapidPublicKey();
-    console.log('[Push] VAPID Key disponível:', VAPID_PUBLIC_KEY ? 'Sim' : 'Não');
     
     if (!VAPID_PUBLIC_KEY) {
-      throw new Error('Chave VAPID não configurada. Recarregue a página e tente novamente.');
+      throw new Error('VAPID não configurado');
     }
 
-    console.log('[Push] Criando nova subscription...');
-    
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
     });
     
-    console.log('[Push] Subscription criada:', subscription.endpoint.substring(0, 50) + '...');
-    
     // Salva no servidor
-    await saveSubscription(subscription, city);
-    
-    // Salva localmente
-    localStorage.setItem('meteor_push_city', city);
-    localStorage.setItem('meteor_push_enabled', 'true');
-    
-    return subscription;
-    
-  } catch (error: any) {
-    console.error('[Push] ERRO:', error.message);
-    throw error;
-  }
-};
-
-export const unsubscribeFromPush = async (): Promise<boolean> => {
-  console.log('[Push] Desativando notificações...');
-  
-  try {
-    const registration = await navigator.serviceWorker.ready;
-    const subscription = await registration.pushManager.getSubscription();
-    
-    if (subscription) {
-      console.log('[Push] Unsubscribing...');
-      await subscription.unsubscribe();
-      
-      // Remove do servidor
-      try {
-        await fetch('/.netlify/functions/deleteSubscription', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ endpoint: subscription.endpoint })
-        });
-      } catch (e) {
-        console.warn('[Push] Erro ao remover do servidor:', e);
-      }
-      
-      console.log('[Push] Desinscrito com sucesso');
-    }
-    
-    // Limpa localStorage
-    localStorage.removeItem('meteor_push_city');
-    localStorage.removeItem('meteor_push_enabled');
-    
-    return true;
-  } catch (error: any) {
-    console.error('[Push] Erro ao desinscrever:', error.message);
-    localStorage.removeItem('meteor_push_city');
-    localStorage.removeItem('meteor_push_enabled');
-    return false;
-  }
-};
-
-const saveSubscription = async (subscription: PushSubscription, city: string): Promise<void> => {
-  console.log('[Push] Salvando subscription no servidor...');
-  
-  try {
-    const response = await fetch('/.netlify/functions/saveSubscription', {
+    await fetch('/.netlify/functions/saveSubscription', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         subscription: subscription.toJSON(),
-        city: city,
+        city,
         enabled: true
       })
     });
     
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Falha ao salvar: ${errorText}`);
-    }
+    localStorage.setItem('meteor_push_type', 'web');
+    localStorage.setItem('meteor_push_city', city);
+    localStorage.setItem('meteor_push_enabled', 'true');
     
-    console.log('[Push] Subscription salva no servidor');
+    return subscription;
   } catch (error: any) {
-    console.error('[Push] Erro ao salvar:', error.message);
+    console.error('[Push] Erro:', error.message);
     throw error;
   }
 };
 
-export const getPushStatus = async (): Promise<{ isSubscribed: boolean; city: string | null }> => {
-  try {
-    // Verifica localStorage primeiro (mais rápido)
-    const localEnabled = localStorage.getItem('meteor_push_enabled');
-    const localCity = localStorage.getItem('meteor_push_city');
-    
-    // Se não tem no localStorage, considera desativado
-    if (localEnabled !== 'true') {
-      console.log('[Push] Status: desativado (localStorage)');
-      return { isSubscribed: false, city: localCity };
-    }
-    
-    // Verifica se a subscription ainda existe no navegador
-    const registration = await navigator.serviceWorker.ready;
-    const subscription = await registration.pushManager.getSubscription();
-    
-    if (!subscription) {
-      // Limpa localStorage se não tem subscription
-      localStorage.removeItem('meteor_push_enabled');
-      console.log('[Push] Status: desativado (sem subscription)');
-      return { isSubscribed: false, city: localCity };
-    }
-    
-    console.log('[Push] Status: ativo');
-    return { isSubscribed: true, city: localCity };
-  } catch (error) {
-    console.error('[Push] Erro ao verificar status:', error);
-    return { isSubscribed: false, city: null };
-  }
-};
-
-export const sendTestNotification = async (): Promise<void> => {
-  console.log('[Push] Enviando notificação de teste...');
+export const unsubscribeFromPush = async () => {
+  const pushType = localStorage.getItem('meteor_push_type');
   
-  try {
-    // Pega o endpoint atual
-    const registration = await navigator.serviceWorker.ready;
-    const subscription = await registration.pushManager.getSubscription();
-    
-    if (!subscription) {
-      throw new Error('Você precisa ativar as notificações primeiro');
-    }
-    
-    const response = await fetch('/.netlify/functions/sendTestNotification', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ endpoint: subscription.endpoint })
-    });
-    
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Falha ao enviar teste');
-    }
-    
-    console.log('[Push] Notificação de teste enviada');
-  } catch (error: any) {
-    console.error('[Push] Erro no teste:', error.message);
-    throw error;
+  if (pushType === 'fcm' && fcmMessaging) {
+    try {
+      const { deleteToken } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging.js');
+      await deleteToken(fcmMessaging);
+    } catch (e) {}
   }
+  
+  // Web Push
+  try {
+    const registration = await navigator.serviceWorker?.ready;
+    const subscription = await registration?.pushManager?.getSubscription();
+    if (subscription) {
+      await subscription.unsubscribe();
+      await fetch('/.netlify/functions/deleteSubscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endpoint: subscription.endpoint })
+      });
+    }
+  } catch (e) {}
+  
+  localStorage.removeItem('meteor_push_city');
+  localStorage.removeItem('meteor_push_enabled');
+  localStorage.removeItem('meteor_push_type');
+};
+
+export const getPushStatus = async () => {
+  const localEnabled = localStorage.getItem('meteor_push_enabled');
+  const localCity = localStorage.getItem('meteor_push_city');
+  const pushType = localStorage.getItem('meteor_push_type');
+  
+  if (localEnabled === 'true') {
+    if (pushType === 'fcm') {
+      return { isSubscribed: true, city: localCity, type: 'fcm' };
+    }
+    
+    // Verifica Web Push
+    try {
+      const registration = await navigator.serviceWorker?.ready;
+      const subscription = await registration?.pushManager?.getSubscription();
+      if (subscription) {
+        return { isSubscribed: true, city: localCity, type: 'web' };
+      }
+    } catch (e) {}
+    
+    // Limpa se não encontrou
+    localStorage.removeItem('meteor_push_enabled');
+  }
+  
+  return { isSubscribed: false, city: localCity, type: null };
+};
+
+export const sendTestNotification = async () => {
+  const pushType = localStorage.getItem('meteor_push_type');
+  
+  // Busca subscription/token atual
+  if (pushType === 'fcm') {
+    const token = await getFCMToken();
+    if (token) {
+      // Envia teste via função genérica
+      await fetch('/.netlify/functions/sendTestNotification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fcmToken: token })
+      });
+      return;
+    }
+  }
+  
+  // Web Push
+  const registration = await navigator.serviceWorker?.ready;
+  const subscription = await registration?.pushManager?.getSubscription();
+  if (!subscription) {
+    throw new Error('Ative as notificações primeiro');
+  }
+  
+  await fetch('/.netlify/functions/sendTestNotification', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ endpoint: subscription.endpoint })
+  });
 };

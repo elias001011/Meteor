@@ -32,11 +32,13 @@ export const handler: Handler = async (event) => {
     };
   }
 
-  // Pega o endpoint da requisição (opcional - se não tiver, busca do usuário logado)
+  // Pega o endpoint ou FCM token da requisição
   let targetEndpoint: string | null = null;
+  let fcmToken: string | null = null;
   try {
     const body = JSON.parse(event.body || '{}');
     targetEndpoint = body.endpoint || null;
+    fcmToken = body.fcmToken || null;
   } catch (e) {}
 
   // Configura VAPID
@@ -69,11 +71,60 @@ export const handler: Handler = async (event) => {
   }
 
   const store = createStore('pushSubscriptions');
+  const fcmStore = createStore('fcmTokens');
 
   try {
     console.log('[Test] Iniciando envio de teste...');
     
-    // Se tem endpoint específico, usa ele
+    // Se tem FCM token, envia via FCM
+    if (fcmToken) {
+      console.log('[Test] Enviando via FCM...');
+      const serverKey = process.env.FIREBASE_SERVER_KEY;
+      
+      if (!serverKey) {
+        return {
+          statusCode: 503,
+          headers: corsHeaders,
+          body: JSON.stringify({ error: 'FCM não configurado' }),
+        };
+      }
+      
+      const response = await fetch('https://fcm.googleapis.com/fcm/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `key=${serverKey}`
+        },
+        body: JSON.stringify({
+          to: fcmToken,
+          priority: 'high',
+          notification: {
+            title: '🧪 Teste FCM',
+            body: 'Notificações FCM funcionando! 🎉',
+            icon: 'ic_notification',
+            sound: 'default'
+          },
+          data: { url: '/', type: 'test-fcm' }
+        })
+      });
+      
+      const result = await response.json();
+      if (result.failure > 0) {
+        return {
+          statusCode: 500,
+          headers: corsHeaders,
+          body: JSON.stringify({ error: 'FCM falhou', details: result }),
+        };
+      }
+      
+      return {
+        statusCode: 200,
+        headers: corsHeaders,
+        body: JSON.stringify({ success: true, type: 'fcm' }),
+      };
+    }
+    
+    // Se tem endpoint específico, usa ele (Web Push)
     if (targetEndpoint) {
       console.log('[Test] Buscando subscription específica...');
       const id = targetEndpoint.slice(-32);
