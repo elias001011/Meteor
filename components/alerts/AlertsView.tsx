@@ -206,10 +206,12 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
         setPushError(null);
         
         if (pushSubscribed) {
+            // Desliga imediatamente na UI (responsividade)
+            setPushSubscribed(false);
             setIsSubscribing(true);
-            const success = await unsubscribeFromPush();
-            if (success) {
-                setPushSubscribed(false);
+            
+            try {
+                await unsubscribeFromPush();
                 if (isLoggedIn) {
                     await updateUserData({
                         preferences: {
@@ -219,8 +221,11 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                         }
                     });
                 }
+            } catch (e) {
+                // Mesmo se falhar no navegador, mantém desligado na UI
+            } finally {
+                setIsSubscribing(false);
             }
-            setIsSubscribing(false);
         } else {
             setIsSubscribing(true);
             try {
@@ -236,6 +241,7 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, 
                     });
                 }
             } catch (error: any) {
+                setPushSubscribed(false);
                 setPushError(error.message || 'Erro ao ativar notificações');
             } finally {
                 setIsSubscribing(false);
