@@ -28,7 +28,7 @@ const ChangelogModal: React.FC<any> = ({ isOpen, onClose }) => {
 
     const versions = [
         {
-            version: "5.6.0",
+            version: "5.5.0",
             title: "Notificações Push Simplificadas & PWA",
             changes: [
                 "Integração Push + Resumo Matinal: Toggle unificado para notificações.",
