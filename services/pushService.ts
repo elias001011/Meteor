@@ -3,7 +3,7 @@
  * Simplificado e robusto, usando Web Push API
  */
 
-// Pega a chave VAPID do window.ENV (injetada pelo Netlify) ou usa variável de ambiente
+// Pega a chave VAPID do window.ENV (injetada pelo Netlify)
 const getVapidPublicKey = (): string => {
   if (typeof window !== 'undefined') {
     const fromWindow = (window as any).ENV?.VAPID_PUBLIC_KEY;
@@ -11,8 +11,18 @@ const getVapidPublicKey = (): string => {
       return fromWindow;
     }
   }
-  // Fallback para desenvolvimento
   return '';
+};
+
+// Aguarda configuração carregar
+const waitForConfig = async (maxAttempts = 20): Promise<boolean> => {
+  for (let i = 0; i < maxAttempts; i++) {
+    if (getVapidPublicKey()) {
+      return true;
+    }
+    await new Promise(r => setTimeout(r, 100));
+  }
+  return false;
 };
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
@@ -114,11 +124,15 @@ export const subscribeToPush = async (city: string): Promise<PushSubscription | 
       console.log('[Push] Subscription antiga removida');
     }
 
+    // Aguarda configuração carregar
+    console.log('[Push] Aguardando configuração VAPID...');
+    const configLoaded = await waitForConfig();
+    
     const VAPID_PUBLIC_KEY = getVapidPublicKey();
     console.log('[Push] VAPID Key disponível:', VAPID_PUBLIC_KEY ? 'Sim' : 'Não');
     
     if (!VAPID_PUBLIC_KEY) {
-      throw new Error('Chave VAPID não configurada no frontend. Verifique as variáveis de ambiente.');
+      throw new Error('Chave VAPID não configurada. Recarregue a página e tente novamente.');
     }
 
     console.log('[Push] Criando nova subscription...');
