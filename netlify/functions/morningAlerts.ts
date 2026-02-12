@@ -4,13 +4,6 @@ import webpush from 'web-push';
 
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type' };
 
-// Formato VAPID válido (base64url):
-// Public: ~87 caracteres (A-Z, a-z, 0-9, -, _)
-// Private: ~43 caracteres (A-Z, a-z, 0-9, -, _)
-// Exemplo de chaves válidas (substitua pelas suas):
-// VAPID_PUBLIC_KEY=BDtR7WyBJuN8z2L8qw5p7CQQzV7w_ytZ8v9Pq8R8t6E...
-// VAPID_PRIVATE_KEY=BDtR7WyBJuN8z2L8qw5p7CQQzV7w_ytZ8v9Pq8R8t6E
-
 export const handler: Handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: cors, body: '' };
   
@@ -31,7 +24,6 @@ export const handler: Handler = async (event) => {
       body: JSON.stringify({ 
         error: 'VAPID_PUBLIC_KEY inválido', 
         details: 'Deve estar no formato base64url (usar web-push generate-vapid-keys)',
-        format: 'Comum erro: chave em formato PEM ou com headers. Use: npx web-push generate-vapid-keys'
       }) 
     };
   }
@@ -43,7 +35,6 @@ export const handler: Handler = async (event) => {
       body: JSON.stringify({ 
         error: 'VAPID_PRIVATE_KEY inválido', 
         details: 'Deve estar no formato base64url (~43 caracteres)',
-        format: 'Comum erro: chave em formato PEM. Use: npx web-push generate-vapid-keys'
       }) 
     };
   }
@@ -57,7 +48,6 @@ export const handler: Handler = async (event) => {
       body: JSON.stringify({ 
         error: 'Erro ao configurar VAPID', 
         message: err.message,
-        tip: 'Gere novas chaves com: npx web-push generate-vapid-keys'
       }) 
     };
   }
@@ -74,9 +64,27 @@ export const handler: Handler = async (event) => {
   const isTest = event.queryStringParameters?.test === 'true';
   const targetTime = isTest ? null : currentTime;
   
+  // Tenta usar Netlify Blobs
+  let userStore: any;
+  let pushStore: any;
   try {
-    const userStore = getStore('userData');
-    const pushStore = getStore('pushSubscriptions');
+    userStore = getStore('userData');
+    pushStore = getStore('pushSubscriptions');
+  } catch (blobsError: any) {
+    if (blobsError.message?.includes('environment has not been configured')) {
+      return { 
+        statusCode: 503, 
+        headers: cors, 
+        body: JSON.stringify({ 
+          error: 'Netlify Blobs não configurado',
+          message: 'O recurso de Blobs precisa ser habilitado para este site no Netlify'
+        }) 
+      };
+    }
+    throw blobsError;
+  }
+  
+  try {
     const list = await userStore.list();
     
     let sent = 0;
