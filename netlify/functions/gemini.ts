@@ -187,7 +187,7 @@ const handler: Handler = async (event: HandlerEvent) => {
 
         // TENTAR GOOGLE GEMINI PRIMEIRO
         if (geminiKey) {
-            const modelsToTry = ['gemini-2.5-flash-lite', 'gemini-2.0-flash-lite']; 
+            const modelsToTry = ['gemini-3.1-flash-lite-preview', 'gemini-2.5-flash-lite']; 
             const ai = new GoogleGenAI({ apiKey: geminiKey });
             
             for (const model of modelsToTry) {
