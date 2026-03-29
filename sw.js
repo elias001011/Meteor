@@ -1,9 +1,16 @@
-const CACHE_NAME = 'meteor-cache-v3';
+const CACHE_NAME = 'meteor-cache-v4';
 const APP_SHELL_URLS = [
   '/',
   '/index.html',
   '/favicon.svg',
 ];
+
+const urlBase64ToUint8Array = base64String => {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
+};
 
 self.addEventListener('install', event => {
   console.log('[SW] Instalando v6.0...');
@@ -106,22 +113,26 @@ self.addEventListener('push', event => {
 });
 
 self.addEventListener('notificationclick', event => {
-  console.log('[SW] Clique na notificação:', event);
-  
-  event.notification.close();
-  
+  console.log('[SW] Clique na notificação:', event.action || 'default');
+
   const url = event.notification.data?.url || '/';
-  
+  event.notification.close();
+
+  if (event.action === 'dismiss') {
+    return;
+  }
+
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then(clientList => {
-        // Procura cliente existente
-        for (const client of clientList) {
-          if (client.url === url && 'focus' in client) {
-            return client.focus();
+        if (event.action === 'open' || event.action === 'default') {
+          for (const client of clientList) {
+            if (client.url === url && 'focus' in client) {
+              return client.focus();
+            }
           }
         }
-        // Abre novo se não encontrar
+
         if (clients.openWindow) {
           return clients.openWindow(url);
         }
@@ -129,16 +140,32 @@ self.addEventListener('notificationclick', event => {
   );
 });
 
-// Lida com ações dos botões
-self.addEventListener('notificationclick', event => {
-  if (event.action === 'dismiss') {
-    event.notification.close();
-    return;
-  }
-  
-  if (event.action === 'open') {
-    event.notification.close();
-    const url = event.notification.data?.url || '/';
-    event.waitUntil(clients.openWindow(url));
-  }
+self.addEventListener('pushsubscriptionchange', event => {
+  console.log('[SW] pushsubscriptionchange disparado');
+  event.waitUntil((async () => {
+    try {
+      const configResponse = await fetch('/.netlify/functions/getConfig');
+      const config = await configResponse.json();
+      const vapidPublicKey = config?.VAPID_PUBLIC_KEY;
+
+      if (!vapidPublicKey) return;
+
+      const subscription = await self.registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
+      });
+
+      await fetch('/.netlify/functions/saveSubscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subscription: subscription.toJSON(),
+          city: 'Porto Alegre',
+          enabled: true
+        })
+      });
+    } catch (error) {
+      console.error('[SW] Falha ao renovar subscription:', error);
+    }
+  })());
 });

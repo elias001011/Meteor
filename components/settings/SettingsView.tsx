@@ -1,7 +1,7 @@
 
 
 import React, { useState, useEffect } from 'react';
-import type { AppSettings, View, DataSource, AppTheme, TransparencyMode, ClockDisplayMode, BackgroundMode, MapTheme, BorderEffectMode, LayoutDensity, DesktopLayout, UnitSystem, ForecastComplexity, ForecastDetailView, ZenModeStyle, ZenModeBackground, ZenModeSound } from '../../types';
+import type { AppSettings, View, DataSource, AppTheme, TransparencyMode, ClockDisplayMode, BackgroundMode, MapTheme, BorderEffectMode, LayoutDensity, DesktopLayout, UnitSystem, ForecastComplexity, ForecastDetailView, ZenModeStyle, ZenModeBackground, ZenModeSound, AiProvider } from '../../types';
 import { getSettings, resetSettings, resetCache, resetAllData, exportAppData } from '../../services/settingsService';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -136,6 +136,19 @@ const SettingsView: React.FC<SettingsViewProps> = ({
         { id: '25-75', label: 'Lateral (25/75)' },
         { id: '40-60', label: 'Balanceado (40/60)' },
         { id: '50-50', label: 'Dividido (50/50)' }
+    ];
+
+    const aiProviderOptions: { id: AiProvider, label: string, description: string }[] = [
+        {
+            id: 'gemini',
+            label: 'Gemini',
+            description: 'Mantém o fluxo atual, com grounding nativo do Gemini para pesquisa web.'
+        },
+        {
+            id: 'gpt',
+            label: 'GPT-OSS (Groq)',
+            description: 'Usa o openai/gpt-oss-20b com browser search e tool use nativos.'
+        }
     ];
     
     // Zen Mode Options
@@ -599,6 +612,26 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                     <div className="flex flex-col gap-2">
                          <label className={`${density.text} text-sm font-medium text-gray-300`}>Como devo te chamar?</label>
                          <input type="text" value={settings.userName || ''} onChange={(e) => handleSave({ userName: e.target.value })} placeholder="Seu nome ou apelido" className={inputStyle} maxLength={30} />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                         <label className={`${density.text} text-sm font-medium text-gray-300`}>Modelo principal</label>
+                         <select
+                             value={settings.aiProvider || 'gemini'}
+                             onChange={(e) => handleSave({ aiProvider: e.target.value as AiProvider })}
+                             className={selectStyle}
+                         >
+                             {aiProviderOptions.map((opt) => (
+                                 <option key={opt.id} value={opt.id} className={optionClass}>
+                                     {opt.label}
+                                 </option>
+                             ))}
+                         </select>
+                         <p className="text-xs text-gray-500">
+                             {aiProviderOptions.find((opt) => opt.id === (settings.aiProvider || 'gemini'))?.description}
+                         </p>
+                         <p className="text-xs text-gray-500">
+                             O fallback sempre usa o outro provider quando o principal falha.
+                         </p>
                     </div>
                     <div className="flex flex-col gap-2">
                          <label className={`${density.text} text-sm font-medium text-gray-300`}>Instruções de Personalidade</label>

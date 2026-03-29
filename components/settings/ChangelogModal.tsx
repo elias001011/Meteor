@@ -56,7 +56,7 @@ const ChangelogModal: React.FC<any> = ({ isOpen, onClose }) => {
                 "Nova Aba Notícias: Integração completa com GNews API para notícias em tempo real.",
                 "Categorias de Notícias: Geral, Mundo, Brasil, Negócios, Tecnologia, Ciência, Saúde, Esportes e Entretenimento.",
                 "Resumo com IA: Botão em cada notícia para analisar e discutir o conteúdo com a Meteor AI.",
-                "Fallback Open Router: Sistema de IA híbrido - se o Google falhar, usa Open Router (gratuito).",
+                "Fallback híbrido: a IA alterna entre Gemini e Groq/GPT-OSS quando o provider principal falha.",
                 "Limite Inteligente: 5 conversas diárias por usuário, independente do provedor utilizado.",
                 "Tradução de Summaries: Summaries dos cards diários agora em português BR.",
                 "Correções UI: Animação da barra de pesquisa otimizada para não cortar na interface."

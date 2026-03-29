@@ -155,6 +155,7 @@ export type DesktopLayout = '25-75' | '40-60' | '50-50';
 export type UnitSystem = 'metric' | 'imperial';
 export type ForecastComplexity = 'basic' | 'advanced';
 export type ForecastDetailView = 'both' | 'forecast_only' | 'daily_only';
+export type AiProvider = 'gemini' | 'gpt';
 
 // V4.3 Zen Mode Types
 export type ZenModeStyle = 'cinematic' | 'minimal' | 'focus';
@@ -204,6 +205,7 @@ export interface AppSettings {
     desktopLayout: DesktopLayout;
     showScrollbars: boolean;
     performanceMode: boolean;
+    aiProvider: AiProvider;
     reducedMotion: boolean;
     rainAnimation: {
         enabled: boolean;

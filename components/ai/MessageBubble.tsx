@@ -133,7 +133,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, onRegene
                 <div className="grid grid-cols-1 gap-2">
                     <div className="flex justify-between border-b border-white/5 pb-2">
                         <span>Modelo:</span> 
-                        <span className="text-white font-mono">{message.modelUsed || 'Gemini 2.5 Flash Lite'}</span>
+                        <span className="text-white font-mono">{message.modelUsed || 'IA selecionada'}</span>
                     </div>
                     <div className="flex justify-between border-b border-white/5 pb-2">
                         <span>Tempo de Processamento:</span> 

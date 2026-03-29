@@ -66,6 +66,7 @@ const DEFAULT_SETTINGS: AppSettings = {
         showPulse: true
     },
     performanceMode: false,
+    aiProvider: 'gemini',
     // V4.0 Defaults (Enabled by default as requested)
     unitSystem: 'metric',
     forecastComplexity: 'advanced', // Default to Advanced/Complex modal

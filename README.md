@@ -36,9 +36,9 @@ O projeto utiliza uma arquitetura **BFF (Backend-for-Frontend)** via Netlify Fun
     *   Qualidade do Ar (AQI) e componentes poluentes.
 
 *   **🤖 Meteor AI (Assistente Inteligente):**
-    *   Baseada no **Google Gemini 2.5 Flash Lite**.
+    *   Baseada em **Gemini** com fallback para **Groq / openai/gpt-oss-20b**.
     *   Contexto completo: A IA "vê" o clima da sua tela, hora local e histórico de conversa.
-    *   **Ferramentas (Stealth Tools):** A IA pode decidir autonomamente buscar dados na Web (Google Search) ou consultar o clima de outras cidades globais.
+    *   **Ferramentas (Stealth Tools):** A IA pode decidir autonomamente buscar dados na Web com grounding nativo ou consultar o clima de outras cidades globais.
     *   **Segurança Reforçada:** Diretrizes estritas contra injeção de prompt.
 
 *   **🎨 Experiência Visual Imersiva:**
@@ -54,7 +54,7 @@ O projeto utiliza uma arquitetura **BFF (Backend-for-Frontend)** via Netlify Fun
 *   **Estilização:** Tailwind CSS.
 *   **Mapas:** Leaflet + OpenStreetMap + Camadas OpenWeather.
 *   **Backend (Serverless):** Netlify Functions (Node.js).
-*   **IA:** Google GenAI SDK (`@google/genai`).
+*   **IA:** Google GenAI SDK (`@google/genai`) + Groq (OpenAI-compatible).
 *   **Gerenciamento de Estado:** React Context API + LocalStorage.
 
 ---
@@ -88,15 +88,11 @@ Crie um arquivo `.env` na raiz do projeto com as chaves de API necessárias:
 # Google Gemini API (https://aistudio.google.com/)
 GEMINI_API="sua_chave_aqui"
 
-# Open Router API (Fallback gratuito - https://openrouter.ai/)
-OPENROUTER_API="sua_chave_aqui"
+# Groq API (Fallback GPT-OSS - https://console.groq.com/)
+GROQ_API_KEY="sua_chave_aqui"
 
 # OpenWeatherMap API (https://openweathermap.org/)
 CLIMA_API="sua_chave_aqui"
-
-# Google Custom Search API (Para capacidade de busca da IA)
-SEARCH_API="sua_chave_google_search"
-SEARCH_ID="seu_search_engine_id"
 
 # GNews API (Para notícias - https://gnews.io/)
 GNEWS_API="sua_chave_aqui"
@@ -124,8 +120,8 @@ O app estará disponível em `http://localhost:8888`.
     *   `/context`: Gestão de estado global (ThemeContext).
 *   `/netlify/functions`: **Backend Serverless**.
     *   `weather.ts`: Proxy e lógica de cache/fallback para APIs de clima.
-    *   `gemini.ts`: Orquestrador da IA, injeção de prompt de sistema e ferramentas.
-    *   `search.ts`: Proxy para Google Custom Search.
+    *   `gemini.ts`: Orquestrador da IA, fallback entre Gemini e Groq, com tool use nativo.
+    *   `search.ts`: Busca nativa via grounding do Gemini.
 
 ---
 

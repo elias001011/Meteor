@@ -3,26 +3,39 @@
  * Simplificado e robusto, usando Web Push API
  */
 
-// Pega a chave VAPID do window.ENV (injetada pelo Netlify)
+let vapidKeyPromise: Promise<string> | null = null;
+
 const getVapidPublicKey = (): string => {
-  if (typeof window !== 'undefined') {
-    const fromWindow = (window as any).ENV?.VAPID_PUBLIC_KEY;
-    if (fromWindow && fromWindow !== 'undefined' && fromWindow !== '') {
-      return fromWindow;
-    }
+  if (typeof window === 'undefined') return '';
+
+  const fromWindow = (window as any).ENV?.VAPID_PUBLIC_KEY;
+  if (fromWindow && fromWindow !== 'undefined' && fromWindow !== '') {
+    return fromWindow;
   }
+
   return '';
 };
 
-// Aguarda configuração carregar
-const waitForConfig = async (maxAttempts = 20): Promise<boolean> => {
-  for (let i = 0; i < maxAttempts; i++) {
-    if (getVapidPublicKey()) {
-      return true;
-    }
-    await new Promise(r => setTimeout(r, 100));
+const resolveVapidPublicKey = async (): Promise<string> => {
+  const fromWindow = getVapidPublicKey();
+  if (fromWindow) {
+    return fromWindow;
   }
-  return false;
+
+  if (!vapidKeyPromise) {
+    vapidKeyPromise = fetch('/.netlify/functions/getConfig')
+      .then(async (response) => {
+        if (!response.ok) return '';
+        const config = await response.json().catch(() => ({}));
+        return config?.VAPID_PUBLIC_KEY || '';
+      })
+      .catch(() => '')
+      .finally(() => {
+        vapidKeyPromise = null;
+      });
+  }
+
+  return vapidKeyPromise;
 };
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
@@ -60,14 +73,25 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
   }
 
   try {
-    const existing = await navigator.serviceWorker.getRegistration('/sw.js');
+    const readyPromise = navigator.serviceWorker.ready.then((registration) => registration).catch(() => null);
+    const timeoutPromise = new Promise<ServiceWorkerRegistration | null>((resolve) => {
+      setTimeout(() => resolve(null), 2500);
+    });
+
+    const readyRegistration = await Promise.race([readyPromise, timeoutPromise]);
+    if (readyRegistration) {
+      console.log('[Push] SW pronto encontrado');
+      await readyRegistration.update();
+      return readyRegistration;
+    }
+
+    const existing = await navigator.serviceWorker.getRegistration();
     if (existing) {
       console.log('[Push] SW existente encontrado');
-      // Força update do SW
       await existing.update();
       return existing;
     }
-    
+
     console.log('[Push] Registrando novo SW...');
     const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
     console.log('[Push] SW registrado com sucesso');
@@ -124,11 +148,7 @@ export const subscribeToPush = async (city: string): Promise<PushSubscription | 
       console.log('[Push] Subscription antiga removida');
     }
 
-    // Aguarda configuração carregar
-    console.log('[Push] Aguardando configuração VAPID...');
-    const configLoaded = await waitForConfig();
-    
-    const VAPID_PUBLIC_KEY = getVapidPublicKey();
+    const VAPID_PUBLIC_KEY = await resolveVapidPublicKey();
     console.log('[Push] VAPID Key disponível:', VAPID_PUBLIC_KEY ? 'Sim' : 'Não');
     
     if (!VAPID_PUBLIC_KEY) {
