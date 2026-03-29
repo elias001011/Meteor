@@ -26,6 +26,14 @@ export default defineConfig(({ mode }) => {
             } catch (err) {
               console.error('❌ Erro ao copiar sw.js:', err);
             }
+
+            // Mantém favicon.svg acessível na raiz para notificações e precache do SW
+            try {
+              copyFileSync('favicon.svg', 'dist/favicon.svg');
+              console.log('✅ favicon.svg copiado para dist/');
+            } catch (err) {
+              console.error('❌ Erro ao copiar favicon.svg:', err);
+            }
             
             // Substitui variáveis de ambiente no index.html
             try {

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'meteor-cache-v4';
+const CACHE_NAME = 'meteor-cache-v5';
 const APP_SHELL_URLS = [
   '/',
   '/index.html',
@@ -13,10 +13,24 @@ const urlBase64ToUint8Array = base64String => {
 };
 
 self.addEventListener('install', event => {
-  console.log('[SW] Instalando v6.1...');
+  console.log('[SW] Instalando v6.0.1...');
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(APP_SHELL_URLS))
+      .then(async cache => {
+        await Promise.all(APP_SHELL_URLS.map(async url => {
+          try {
+            const response = await fetch(url, { cache: 'no-cache' });
+            if (!response.ok) {
+              console.warn('[SW] Asset ignorado no precache:', url, response.status);
+              return;
+            }
+
+            await cache.put(url, response.clone());
+          } catch (error) {
+            console.warn('[SW] Falha ao precachear asset:', url, error);
+          }
+        }));
+      })
       .then(() => {
         console.log('[SW] Instalado, skipWaiting...');
         return self.skipWaiting();
@@ -69,7 +83,7 @@ self.addEventListener('fetch', event => {
 // NOTIFICAÇÕES PUSH - Meteor v6.1
 // ============================================
 
-console.log('[SW] Service Worker v6.1 ativo');
+console.log('[SW] Service Worker v6.0.1 ativo');
 
 self.addEventListener('push', event => {
   let rawText = '';
