@@ -1,4 +1,4 @@
-# ⏰ Configuração do Cron Job - Meteor v6.0
+# ⏰ Configuração do Cron Job - Meteor v6.1
 
 Este guia explica como configurar o cron job para enviar notificações push diárias às 9h da manhã.
 

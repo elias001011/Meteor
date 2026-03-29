@@ -1,5 +1,5 @@
 /**
- * Serviço de Push Notifications - Meteor v6.0
+ * Serviço de Push Notifications - Meteor v6.1
  * Simplificado e robusto, usando Web Push API
  */
 

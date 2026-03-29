@@ -1,4 +1,4 @@
-# 🔔 Sistema de Push Notifications v6.0 - Meteor
+# 🔔 Sistema de Push Notifications v6.1 - Meteor
 
 ## Visão Geral
 
@@ -170,5 +170,5 @@ const isTWA = () => {
 
 ---
 
-**Versão:** 6.0.0  
+**Versão:** 6.1.0  
 **Atualizado:** 2026-02-12

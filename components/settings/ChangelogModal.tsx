@@ -28,7 +28,7 @@ const ChangelogModal: React.FC<any> = ({ isOpen, onClose }) => {
 
     const versions = [
         {
-            version: "6.0.0",
+            version: "6.1.0",
             title: "Novo Sistema de Notificações Push",
             changes: [
                 "Sistema de push reescrito do zero, mais simples e robusto.",
