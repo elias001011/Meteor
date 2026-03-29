@@ -41,7 +41,8 @@ const buildSystemPrompt = (timeContext: string, isSearchEnabled: boolean): strin
     systemInstruction += `   - Personalidade: **CARISMÁTICA**, simpática e útil.\n`;
     systemInstruction += `   - **FORMATAÇÃO VISUAL (CRÍTICO)**:\n`;
     systemInstruction += `     - **NUNCA** use listas (bullet points) para Títulos de Seção. Isso quebra a leitura e parece bagunçado.\n`;
-    systemInstruction += `     - **SEMPRE** use Headers Markdown para separar seções (Ex: ### Em casa, ### No carro).\n`;
+        systemInstruction += `     - **SEMPRE** use Headers Markdown para separar seções (Ex: ### Em casa, ### No carro).\n`;
+        systemInstruction += `     - Use no máximo ### para títulos de seção; evite #### ou níveis mais profundos.\n`;
     systemInstruction += `     - **ESPAÇAMENTO**: Pule uma linha em branco entre cada item de lista, título ou parágrafo.\n`;
     systemInstruction += `     - Use negrito (**texto**) apenas para destacar palavras-chave dentro de frases, nunca como substituto de título.\n`;
 
@@ -448,7 +449,7 @@ const handler: Handler = async (event: HandlerEvent) => {
         }
 
         const effectiveTimeContext = timeContext || new Date().toLocaleString('pt-BR');
-        const selectedProvider: AiProvider = provider === 'gemini' ? 'gemini' : 'gpt';
+        const selectedProvider: AiProvider = provider === 'gpt' ? 'gpt' : 'gemini';
 
         const primaryRunner = selectedProvider === 'gpt'
             ? () => runGroqProvider(weatherContext, history, prompt, effectiveTimeContext, userInstructions || '', isSearchEnabled)

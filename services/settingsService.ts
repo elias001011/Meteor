@@ -5,7 +5,7 @@ import type { AppSettings, ExportData } from '../types';
 const SETTINGS_KEY = 'meteor_settings';
 const WEATHER_CACHE_PREFIX = 'weather_data_';
 const AI_USAGE_KEY = 'meteor_ai_usage'; // Key used in geminiService.ts
-const CURRENT_SETTINGS_VERSION = 2;
+const CURRENT_SETTINGS_VERSION = 3;
 
 // Helper to detect if user is on mobile
 const isMobileDevice = (): boolean => {
@@ -68,7 +68,7 @@ const DEFAULT_SETTINGS: AppSettings = {
         showPulse: true
     },
     performanceMode: false,
-    aiProvider: 'gpt',
+    aiProvider: 'gemini',
     // V4.0 Defaults (Enabled by default as requested)
     unitSystem: 'metric',
     forecastComplexity: 'advanced', // Default to Advanced/Complex modal
@@ -90,14 +90,14 @@ const normalizeAiProvider = (settings: any): any => {
     const storedVersion = typeof normalized.settingsVersion === 'number' ? normalized.settingsVersion : 0;
 
     if (storedVersion < CURRENT_SETTINGS_VERSION) {
-        if (normalized.aiProvider === 'gemini' || typeof normalized.aiProvider === 'undefined') {
-            normalized.aiProvider = 'gpt';
+        if (normalized.aiProvider === 'gpt' || typeof normalized.aiProvider === 'undefined') {
+            normalized.aiProvider = 'gemini';
         }
         normalized.settingsVersion = CURRENT_SETTINGS_VERSION;
     }
 
     if (normalized.aiProvider !== 'gpt' && normalized.aiProvider !== 'gemini') {
-        normalized.aiProvider = 'gpt';
+        normalized.aiProvider = 'gemini';
     }
 
     return normalized;
