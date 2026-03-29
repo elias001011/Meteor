@@ -28,6 +28,15 @@ const ChangelogModal: React.FC<any> = ({ isOpen, onClose }) => {
 
     const versions = [
         {
+            version: "6.0.3",
+            title: "Android força FCM e para de cair no Web Push",
+            changes: [
+                "O runtime Android da branch dedicada agora usa FCM como caminho único de push, sem fallback para Web Push.",
+                "A detecção do app Android ficou menos frágil e não depende mais apenas do display-mode.",
+                "O fallback interno de configuração do Firebase agora usa o App ID web correto."
+            ]
+        },
+        {
             version: "6.0.2",
             title: "TWA validado com assinatura real",
             changes: [

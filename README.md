@@ -1,7 +1,7 @@
 
 # Meteor  ☄️
 
-![Version](https://img.shields.io/badge/version-6.0.2-purple.svg)
+![Version](https://img.shields.io/badge/version-6.0.3-purple.svg)
 ![React](https://img.shields.io/badge/React-19-61dafb.svg)
 ![Vite](https://img.shields.io/badge/Vite-7-646cff.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6.svg)
@@ -17,7 +17,7 @@ O projeto utiliza uma arquitetura **BFF (Backend-for-Frontend)** via Netlify Fun
 
 ---
 
-## ✨ Funcionalidades Principais (v6.0.2)
+## ✨ Funcionalidades Principais (v6.0.3)
 
 *   **🧘 Modo Zen 2.0 (Novo):**
     *   **Estilos Visual:** Escolha entre o estilo "Cinemático" clássico ou o novo estilo "Minimalista" centralizado.

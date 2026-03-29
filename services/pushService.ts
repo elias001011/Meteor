@@ -19,9 +19,9 @@ const DEFAULT_FIREBASE_CONFIG = {
   apiKey: 'AIzaSyBsvIYTFYii5rxVOSVU58AJjPafjaMv4mI',
   authDomain: 'meteor-weather-13033.firebaseapp.com',
   projectId: 'meteor-weather-13033',
-  storageBucket: 'meteor-weather-13033.firebasestorage.app',
+  storageBucket: 'meteor-weather-13033.appspot.com',
   messagingSenderId: '919442203209',
-  appId: '1:919442203209:android:e1a3dc2b50639982701598'
+  appId: '1:919442203209:web:e1a3dc2b50639982701598'
 };
 
 const KNOWN_ANDROID_TWA_HOSTS = new Set([
@@ -116,15 +116,15 @@ const canUseFCMInTWA = async (): Promise<boolean> => {
   return ready;
 };
 
-// Detecta se está no TWA (APK Android) desta branch, evitando tratar qualquer PWA Android como TWA.
-const isTWA = (): boolean => {
+// Detecta o runtime Android do app dedicado, sem depender apenas do display-mode.
+const isAndroidAppRuntime = (): boolean => {
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
   const isAndroid = /Android/i.test(navigator.userAgent);
   const hasAndroidAppReferrer = typeof document !== 'undefined' && document.referrer.startsWith('android-app://');
   const isKnownAndroidHost = KNOWN_ANDROID_TWA_HOSTS.has(window.location.hostname);
-  const result = isStandalone && isAndroid && (hasAndroidAppReferrer || isKnownAndroidHost);
+  const result = isAndroid && (hasAndroidAppReferrer || isKnownAndroidHost);
 
-  console.log('[Push] TWA check:', {
+  console.log('[Push] Android app runtime check:', {
     isStandalone,
     isAndroid,
     hasAndroidAppReferrer,
@@ -337,8 +337,8 @@ let firebaseApp: any = null;
 
 const initFCM = async () => {
   if (fcmInitialized) return fcmMessaging;
-  if (!isTWA()) {
-    console.log('[FCM] Não está no TWA');
+  if (!isAndroidAppRuntime()) {
+    console.log('[FCM] Não está no runtime Android do app');
     return null;
   }
   
@@ -456,30 +456,30 @@ const saveFCMToken = async (token: string, city: string) => {
 export const subscribeToPush = async (city: string) => {
   console.log('[Push] Iniciando para:', city);
   
-  // TWA: tenta FCM primeiro
-  if (isTWA()) {
-    console.log('[Push] Modo TWA detectado');
-    if (await canUseFCMInTWA()) {
-      try {
-        const fcmToken = await getFCMToken();
-        if (fcmToken) {
-          console.log('[Push] Usando FCM');
-          await saveFCMToken(fcmToken, city);
-          localStorage.setItem('meteor_push_type', 'fcm');
-          localStorage.setItem('meteor_push_city', city);
-          localStorage.setItem('meteor_push_enabled', 'true');
-          return { type: 'fcm', token: fcmToken };
-        }
-      } catch (e) {
-        console.warn('[Push] FCM falhou:', e);
-      }
+  // Android app: usa somente FCM para evitar cair no fluxo quebrado de Web Push.
+  if (isAndroidAppRuntime()) {
+    console.log('[Push] Runtime Android detectado, usando FCM');
 
-      console.warn('[Push] FCM indisponível no TWA, tentando Web Push como fallback');
-    } else {
-      console.warn('[Push] Config web do Firebase ausente/inválida no TWA, usando Web Push');
+    if (!(await canUseFCMInTWA())) {
+      throw new Error('FCM não configurado corretamente no deploy Android.');
     }
 
-    return await subscribeWebPush(city);
+    try {
+      const fcmToken = await getFCMToken();
+      if (!fcmToken) {
+        throw new Error('Não foi possível obter o token FCM no Android.');
+      }
+
+      console.log('[Push] Usando FCM');
+      await saveFCMToken(fcmToken, city);
+      localStorage.setItem('meteor_push_type', 'fcm');
+      localStorage.setItem('meteor_push_city', city);
+      localStorage.setItem('meteor_push_enabled', 'true');
+      return { type: 'fcm', token: fcmToken };
+    } catch (e: any) {
+      console.warn('[Push] FCM falhou no Android:', e);
+      throw new Error(e?.message || 'Falha ao iniciar o FCM no Android.');
+    }
   }
   
   // Web Push
@@ -597,6 +597,16 @@ export const getPushStatus = async () => {
   console.log('[Push] Status check:', { localEnabled, pushType });
   
   if (localEnabled === 'true') {
+    if (isAndroidAppRuntime()) {
+      if (pushType === 'fcm') {
+        return { isSubscribed: true, city: localCity, type: 'fcm' };
+      }
+
+      localStorage.removeItem('meteor_push_enabled');
+      localStorage.removeItem('meteor_push_type');
+      return { isSubscribed: false, city: localCity, type: null };
+    }
+
     if (pushType === 'fcm') {
       return { isSubscribed: true, city: localCity, type: 'fcm' };
     }
@@ -620,7 +630,7 @@ export const sendTestNotification = async () => {
   console.log('[Push] Teste solicitado');
   const pushType = localStorage.getItem('meteor_push_type');
   
-  if (pushType === 'fcm') {
+  if (isAndroidAppRuntime() || pushType === 'fcm') {
     const token = await getFCMToken();
     if (token) {
       console.log('[Push] Enviando teste FCM');
