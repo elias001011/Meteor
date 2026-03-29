@@ -28,6 +28,17 @@ const ChangelogModal: React.FC<any> = ({ isOpen, onClose }) => {
 
     const versions = [
         {
+            version: "6.1.0",
+            title: "IA Nova Geração & Push mais estável",
+            changes: [
+                "Gemini voltou a ser o modelo principal, com Groq / GPT-OSS como fallback.",
+                "Busca web passou a usar grounding nativo do Gemini em vez do fluxo antigo.",
+                "Respostas da IA ganharam formatação melhor e links externos mais seguros.",
+                "Push/Web Worker receberam limpeza de cache, listener único de clique e renovação de subscription.",
+                "Android ficou priorizado para FCM no TWA, sem cair no fallback de Web Push."
+            ]
+        },
+        {
             version: "6.0.0",
             title: "Novo Sistema de Notificações Push",
             changes: [
@@ -56,7 +67,7 @@ const ChangelogModal: React.FC<any> = ({ isOpen, onClose }) => {
                 "Nova Aba Notícias: Integração completa com GNews API para notícias em tempo real.",
                 "Categorias de Notícias: Geral, Mundo, Brasil, Negócios, Tecnologia, Ciência, Saúde, Esportes e Entretenimento.",
                 "Resumo com IA: Botão em cada notícia para analisar e discutir o conteúdo com a Meteor AI.",
-                "Fallback Open Router: Sistema de IA híbrido - se o Google falhar, usa Open Router (gratuito).",
+                "Fallback híbrido: Sistema de IA com Gemini como principal e Groq como fallback.",
                 "Limite Inteligente: 5 conversas diárias por usuário, independente do provedor utilizado.",
                 "Tradução de Summaries: Summaries dos cards diários agora em português BR.",
                 "Correções UI: Animação da barra de pesquisa otimizada para não cortar na interface."

@@ -1,8 +1,10 @@
 /**
- * Serviço de Push Notifications - Meteor v6.0
+ * Serviço de Push Notifications - Meteor v6.1
  * Simplificado e robusto, usando Web Push API
  * Com suporte a FCM quando em TWA (Android)
  */
+
+let vapidKeyPromise: Promise<string> | null = null;
 
 // Pega a chave VAPID do window.ENV
 const getVapidPublicKey = (): string => {
@@ -13,6 +15,28 @@ const getVapidPublicKey = (): string => {
     }
   }
   return '';
+};
+
+const resolveVapidPublicKey = async (): Promise<string> => {
+  const fromWindow = getVapidPublicKey();
+  if (fromWindow) {
+    return fromWindow;
+  }
+
+  if (!vapidKeyPromise) {
+    vapidKeyPromise = fetch('/.netlify/functions/getConfig')
+      .then(async (response) => {
+        if (!response.ok) return '';
+        const config = await response.json().catch(() => ({}));
+        return config?.VAPID_PUBLIC_KEY || '';
+      })
+      .catch(() => '')
+      .finally(() => {
+        vapidKeyPromise = null;
+      });
+  }
+
+  return vapidKeyPromise;
 };
 
 // Detecta se está no TWA (APK Android)
@@ -84,27 +108,28 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
   }
 
   try {
-    console.log('[Push] Verificando SW existente...');
-    let registration = await navigator.serviceWorker.getRegistration('/sw.js');
-    
-    if (registration) {
-      console.log('[Push] SW existente, atualizando...');
-      await registration.update();
-    } else {
-      console.log('[Push] Registrando novo SW...');
-      registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    const readyPromise = navigator.serviceWorker.ready.then((registration) => registration).catch(() => null);
+    const timeoutPromise = new Promise<ServiceWorkerRegistration | null>((resolve) => {
+      setTimeout(() => resolve(null), 2500);
+    });
+
+    const readyRegistration = await Promise.race([readyPromise, timeoutPromise]);
+    if (readyRegistration) {
+      console.log('[Push] SW pronto encontrado');
+      await readyRegistration.update();
+      return readyRegistration;
     }
-    
-    // Aguarda o SW estar ativo
-    if (!registration.active) {
-      console.log('[Push] Aguardando SW ativar...');
-      registration = await waitForServiceWorker(50);
-      if (!registration) {
-        throw new Error('SW não ativou a tempo');
-      }
+
+    const existing = await navigator.serviceWorker.getRegistration();
+    if (existing) {
+      console.log('[Push] SW existente encontrado');
+      await existing.update();
+      return existing;
     }
-    
-    console.log('[Push] SW pronto!');
+
+    console.log('[Push] Registrando novo SW...');
+    const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    console.log('[Push] SW registrado com sucesso');
     return registration;
   } catch (error: any) {
     console.error('[Push] Erro ao registrar SW:', error.message);
@@ -234,7 +259,7 @@ export const subscribeToPush = async (city: string) => {
     } catch (e) {
       console.warn('[Push] FCM falhou:', e);
     }
-    console.log('[Push] Fallback para Web Push...');
+    throw new Error('Falha ao inicializar FCM no Android. Tente novamente ou verifique a configuração do app.');
   }
   
   // Web Push
@@ -270,8 +295,7 @@ const subscribeWebPush = async (city: string): Promise<PushSubscription | null> 
     }
 
     // Aguarda config
-    const configLoaded = await waitForConfig();
-    const VAPID_PUBLIC_KEY = getVapidPublicKey();
+    const VAPID_PUBLIC_KEY = await resolveVapidPublicKey();
     
     if (!VAPID_PUBLIC_KEY) {
       throw new Error('VAPID não configurado');
@@ -355,10 +379,14 @@ export const getPushStatus = async () => {
     if (pushType === 'fcm') {
       return { isSubscribed: true, city: localCity, type: 'fcm' };
     }
-    
+
+    if (isTWA()) {
+      return { isSubscribed: false, city: localCity, type: null };
+    }
+
     // Verifica Web Push
     try {
-      const registration = await navigator.serviceWorker?.ready;
+      const registration = await registerServiceWorker();
       const subscription = await registration?.pushManager?.getSubscription();
       if (subscription) {
         return { isSubscribed: true, city: localCity, type: 'web' };
@@ -374,8 +402,9 @@ export const getPushStatus = async () => {
 export const sendTestNotification = async () => {
   console.log('[Push] Teste solicitado');
   const pushType = localStorage.getItem('meteor_push_type');
+  const isAndroidTwa = isTWA();
   
-  if (pushType === 'fcm') {
+  if (pushType === 'fcm' || isAndroidTwa) {
     const token = await getFCMToken();
     if (token) {
       console.log('[Push] Enviando teste FCM');
@@ -391,10 +420,13 @@ export const sendTestNotification = async () => {
       }
       return;
     }
+    if (isAndroidTwa) {
+      throw new Error('Não foi possível obter o token FCM no Android.');
+    }
   }
   
   // Web Push
-  const registration = await navigator.serviceWorker?.ready;
+  const registration = await registerServiceWorker();
   const subscription = await registration?.pushManager?.getSubscription();
   if (!subscription) {
     throw new Error('Ative as notificações primeiro');

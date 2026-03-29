@@ -1,6 +1,6 @@
 /**
- * Firebase Cloud Messaging + Web Push Fallback - Meteor Android
- * Detecta se está no TWA e usa FCM, senão usa Web Push padrão
+ * Firebase Cloud Messaging - Meteor Android
+ * Detecta se está no TWA e usa FCM; fora do TWA, usa Web Push padrão
  */
 
 // Configuração Firebase (sem dados sensíveis)
@@ -135,7 +135,7 @@ export const subscribePush = async (city) => {
       localStorage.setItem('meteor_push_enabled', 'true');
       return fcmResult;
     }
-    console.log('[Push] FCM falhou, fallback para Web Push...');
+    throw new Error('Falha ao inicializar FCM no Android.');
   }
   
   // Fallback para Web Push padrão

@@ -1,4 +1,4 @@
-# 🔔 Sistema de Push Notifications v6.0 - Meteor
+# 🔔 Sistema de Push Notifications v6.1 - Meteor
 
 ## Visão Geral
 
@@ -28,7 +28,7 @@ Sistema dual: **Web Push** (padrão) + **FCM** (Android APK), com detecção aut
 ### Funcionamento
 1. Detecta se está no TWA (APK instalado)
 2. Se sim: tenta usar **FCM** (Firebase Cloud Messaging)
-3. Se FCM falhar ou não estiver no TWA: usa **Web Push**
+3. Se FCM falhar no TWA, o fluxo não cai mais automaticamente para Web Push
 
 ### Vantagens do FCM
 - ✅ Mais confiável no Android
@@ -38,7 +38,7 @@ Sistema dual: **Web Push** (padrão) + **FCM** (Android APK), com detecção aut
 
 ### Arquivos Adicionais
 - `android/fcm-push.js` - Configuração FCM
-- `services/pushService.ts` - Mesmo arquivo da dev, com lógica FCM integrada
+- `services/pushService.ts` - Mesmo arquivo da dev, com lógica FCM integrada e fallback seguro
 
 ---
 

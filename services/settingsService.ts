@@ -5,6 +5,7 @@ import type { AppSettings, ExportData } from '../types';
 const SETTINGS_KEY = 'meteor_settings';
 const WEATHER_CACHE_PREFIX = 'weather_data_';
 const AI_USAGE_KEY = 'meteor_ai_usage'; // Key used in geminiService.ts
+const CURRENT_SETTINGS_VERSION = 3;
 
 // Helper to detect if user is on mobile
 const isMobileDevice = (): boolean => {
@@ -40,6 +41,7 @@ const getPlatformDefaults = (): Partial<AppSettings> => {
 };
 
 const DEFAULT_SETTINGS: AppSettings = {
+    settingsVersion: CURRENT_SETTINGS_VERSION,
     userName: '',
     userAiInstructions: '',
     showClock: true,
@@ -66,6 +68,7 @@ const DEFAULT_SETTINGS: AppSettings = {
         showPulse: true
     },
     performanceMode: false,
+    aiProvider: 'gemini',
     // V4.0 Defaults (Enabled by default as requested)
     unitSystem: 'metric',
     forecastComplexity: 'advanced', // Default to Advanced/Complex modal
@@ -80,6 +83,24 @@ const DEFAULT_SETTINGS: AppSettings = {
         volume: 50
     },
     ...getPlatformDefaults() as any // Merge platform specific defaults
+};
+
+const normalizeAiProvider = (settings: any): any => {
+    const normalized = { ...settings };
+    const storedVersion = typeof normalized.settingsVersion === 'number' ? normalized.settingsVersion : 0;
+
+    if (storedVersion < CURRENT_SETTINGS_VERSION) {
+        if (normalized.aiProvider === 'gpt' || typeof normalized.aiProvider === 'undefined') {
+            normalized.aiProvider = 'gemini';
+        }
+        normalized.settingsVersion = CURRENT_SETTINGS_VERSION;
+    }
+
+    if (normalized.aiProvider !== 'gpt' && normalized.aiProvider !== 'gemini') {
+        normalized.aiProvider = 'gemini';
+    }
+
+    return normalized;
 };
 
 // --- SECURITY HELPERS ---
@@ -155,6 +176,8 @@ export const getSettings = (): AppSettings => {
             delete migratedSettings.enableTopBorder;
         }
         // --- END MIGRATION LOGIC ---
+
+        migratedSettings = normalizeAiProvider(migratedSettings);
 
         return {
             ...DEFAULT_SETTINGS,
@@ -248,24 +271,25 @@ export const importAppData = (
         const data: ExportData & { lastCoords?: any } = JSON.parse(jsonContent);
 
         if (options.importSettings && data.settings) {
+            const normalizedSettings = normalizeAiProvider(data.settings);
             const mergedSettings = { 
                 ...DEFAULT_SETTINGS, 
-                ...data.settings,
+                ...normalizedSettings,
                 glassScope: {
                     ...DEFAULT_SETTINGS.glassScope,
-                    ...(data.settings.glassScope || {})
+                    ...(normalizedSettings.glassScope || {})
                 },
                 rainAnimation: {
                     ...DEFAULT_SETTINGS.rainAnimation,
-                    ...(data.settings.rainAnimation || {})
+                    ...(normalizedSettings.rainAnimation || {})
                 },
                 weatherInsights: {
                     ...DEFAULT_SETTINGS.weatherInsights,
-                    ...(data.settings.weatherInsights || {})
+                    ...(normalizedSettings.weatherInsights || {})
                 },
                 zenMode: {
                     ...DEFAULT_SETTINGS.zenMode,
-                    ...(data.settings.zenMode || {})
+                    ...(normalizedSettings.zenMode || {})
                 }
             };
             saveSettings(mergedSettings);

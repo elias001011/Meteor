@@ -620,7 +620,7 @@ const App: React.FC = () => {
     });
 
     const performChatRequest = async (searchData: SearchResultItem[] | null) => {
-        const stream = streamChatResponse(query, history, weatherInfo, searchData, timeContext, isSearchEnabled);
+        const stream = streamChatResponse(query, history, weatherInfo, searchData, timeContext, isSearchEnabled, settings.aiProvider || 'gemini');
         let fullText = '';
         const allSources: GroundingSource[] = [];
 
@@ -643,7 +643,7 @@ const App: React.FC = () => {
                     const lastMessage = newMessages[newMessages.length - 1];
                     if (lastMessage.role === 'model') {
                         lastMessage.text = fullText;
-                        lastMessage.sources = [...allSources];
+                        lastMessage.sources = chunk.sources && chunk.sources.length > 0 ? [...chunk.sources] : [...allSources];
                         if (chunk.isFinal) {
                             lastMessage.modelUsed = chunk.model;
                             lastMessage.processingTime = chunk.processingTime;
@@ -682,7 +682,7 @@ const App: React.FC = () => {
 
     await performChatRequest(initialSearchResults);
     setIsSending(false);
-  }, [messages, weatherInfo, isSearchEnabled]);
+  }, [messages, weatherInfo, isSearchEnabled, settings.aiProvider]);
   
   const handleSendMessage = useCallback(async (text: string, isContinuation: boolean = false) => {
     if (!text.trim()) return;
@@ -694,7 +694,7 @@ const App: React.FC = () => {
     
     let searchResults: SearchResultItem[] | null = null;
     
-    if (isSearchEnabled) {
+    if (isSearchEnabled && (settings.aiProvider || 'gemini') !== 'gpt') {
       setIsSending(true); 
        try {
         const dateQuery = `${text} ${new Date().toLocaleDateString('pt-BR')}`;
@@ -706,7 +706,7 @@ const App: React.FC = () => {
     }
     
     sendQueryToModel(text, searchResults);
-  }, [isSearchEnabled, sendQueryToModel]);
+  }, [isSearchEnabled, sendQueryToModel, settings.aiProvider]);
 
 
   const handleToggleListening = useCallback(() => {

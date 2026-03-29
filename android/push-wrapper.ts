@@ -1,6 +1,6 @@
 /**
  * Push Wrapper - Meteor Android
- * Detecta TWA e usa FCM, senão usa Web Push padrão
+ * Detecta TWA e usa FCM; fora do TWA, usa Web Push padrão
  * Integração com o sistema existente da dev
  */
 
@@ -49,6 +49,7 @@ export const subscribeToPush = async (city: string) => {
     if (fcm) {
       return await fcm.subscribePush(city);
     }
+    throw new Error('Falha ao inicializar FCM no Android.');
   }
   
   console.log('[PushWrapper] Usando Web Push padrão');
@@ -93,6 +94,7 @@ export const sendTestNotification = async () => {
       // Reusa a função de teste existente
       return await sendWebTest();
     }
+    throw new Error('Falha ao obter FCM no Android.');
   }
   
   // Web Push
