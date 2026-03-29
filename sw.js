@@ -72,8 +72,8 @@ self.addEventListener('fetch', event => {
 console.log('[SW] Service Worker v6.1 ativo');
 
 self.addEventListener('push', event => {
-  console.log('[SW] Push recebido:', event.data ? event.data.text() : 'sem dados');
-
+  let rawText = '';
+  let payload = null;
   let data = {
     title: 'Meteor',
     body: 'Nova notificação',
@@ -86,12 +86,45 @@ self.addEventListener('push', event => {
 
   try {
     if (event.data) {
-      const payload = event.data.json();
-      data = { ...data, ...payload };
+      rawText = event.data.text();
+      payload = rawText ? JSON.parse(rawText) : null;
+
+      const notification = payload?.notification || {};
+      const payloadData = payload?.data || {};
+
+      data = {
+        ...data,
+        ...(payload || {}),
+        title: payload?.title || notification.title || payloadData.title || data.title,
+        body: payload?.body || notification.body || payloadData.body || data.body,
+        icon: payload?.icon || notification.icon || payloadData.icon || data.icon,
+        badge: payload?.badge || notification.badge || payloadData.badge || data.badge,
+        tag: payload?.tag || notification.tag || payloadData.tag || data.tag,
+        requireInteraction: Boolean(
+          payload?.requireInteraction ??
+          notification.requireInteraction ??
+          payloadData.requireInteraction ??
+          data.requireInteraction
+        ),
+        data: {
+          url: payloadData.url || payload?.fcmOptions?.link || data.data.url,
+          ...payloadData,
+          ...(payload?.data || {})
+        }
+      };
     }
   } catch (e) {
     console.error('[SW] Erro ao parsear push:', e);
   }
+
+  console.log('[SW] Push recebido:', {
+    rawText: rawText || 'sem dados',
+    normalized: {
+      title: data.title,
+      tag: data.tag,
+      type: data.data?.type
+    }
+  });
 
   const options = {
     body: data.body,

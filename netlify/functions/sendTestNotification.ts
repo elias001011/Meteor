@@ -41,37 +41,7 @@ export const handler: Handler = async (event) => {
     fcmToken = body.fcmToken || null;
   } catch (e) {}
 
-  // Configura VAPID
-  const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
-  const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
-
-  console.log('[Test] VAPID Public:', vapidPublicKey ? 'OK' : 'FALTANDO');
-  console.log('[Test] VAPID Private:', vapidPrivateKey ? 'OK' : 'FALTANDO');
-
-  if (!vapidPublicKey || !vapidPrivateKey) {
-    return {
-      statusCode: 503,
-      headers: corsHeaders,
-      body: JSON.stringify({ error: 'VAPID não configurado' }),
-    };
-  }
-
-  try {
-    webpush.setVapidDetails(
-      'mailto:alerts@meteor.app',
-      vapidPublicKey,
-      vapidPrivateKey
-    );
-  } catch (err: any) {
-    return {
-      statusCode: 500,
-      headers: corsHeaders,
-      body: JSON.stringify({ error: 'Erro ao configurar VAPID', details: err.message }),
-    };
-  }
-
   const store = createStore('pushSubscriptions');
-  const fcmStore = createStore('fcmTokens');
 
   try {
     console.log('[Test] Iniciando envio de teste...');
@@ -121,6 +91,35 @@ export const handler: Handler = async (event) => {
         statusCode: 200,
         headers: corsHeaders,
         body: JSON.stringify({ success: true, type: 'fcm' }),
+      };
+    }
+
+    // Configura VAPID apenas para Web Push.
+    const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
+    const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
+
+    console.log('[Test] VAPID Public:', vapidPublicKey ? 'OK' : 'FALTANDO');
+    console.log('[Test] VAPID Private:', vapidPrivateKey ? 'OK' : 'FALTANDO');
+
+    if (!vapidPublicKey || !vapidPrivateKey) {
+      return {
+        statusCode: 503,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: 'VAPID não configurado' }),
+      };
+    }
+
+    try {
+      webpush.setVapidDetails(
+        'mailto:alerts@meteor.app',
+        vapidPublicKey,
+        vapidPrivateKey
+      );
+    } catch (err: any) {
+      return {
+        statusCode: 500,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: 'Erro ao configurar VAPID', details: err.message }),
       };
     }
     

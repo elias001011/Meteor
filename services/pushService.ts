@@ -4,67 +4,137 @@
  * Com suporte a FCM quando em TWA (Android)
  */
 
-let vapidKeyPromise: Promise<string> | null = null;
+interface PublicPushConfig {
+  VAPID_PUBLIC_KEY?: string;
+  FCM_VAPID_KEY?: string;
+  FIREBASE_API_KEY?: string;
+  FIREBASE_AUTH_DOMAIN?: string;
+  FIREBASE_PROJECT_ID?: string;
+  FIREBASE_STORAGE_BUCKET?: string;
+  FIREBASE_MESSAGING_SENDER_ID?: string;
+  FIREBASE_APP_ID?: string;
+}
 
-// Pega a chave VAPID do window.ENV
-const getVapidPublicKey = (): string => {
-  if (typeof window !== 'undefined') {
-    const fromWindow = (window as any).ENV?.VAPID_PUBLIC_KEY;
-    if (fromWindow && fromWindow !== 'undefined' && fromWindow !== '') {
-      return fromWindow;
-    }
+const DEFAULT_FIREBASE_CONFIG = {
+  apiKey: 'AIzaSyBsvIYTFYii5rxVOSVU58AJjPafjaMv4mI',
+  authDomain: 'meteor-weather-13033.firebaseapp.com',
+  projectId: 'meteor-weather-13033',
+  storageBucket: 'meteor-weather-13033.firebasestorage.app',
+  messagingSenderId: '919442203209',
+  appId: '1:919442203209:android:e1a3dc2b50639982701598'
+};
+
+const KNOWN_ANDROID_TWA_HOSTS = new Set([
+  'android--meteor-ai.netlify.app',
+  'meteor-android.netlify.app'
+]);
+
+let publicConfigPromise: Promise<PublicPushConfig> | null = null;
+
+const sanitizeConfigValue = (value: unknown): string =>
+  typeof value === 'string' && value !== 'undefined' && value.trim() !== '' ? value.trim() : '';
+
+const getWindowPublicConfig = (): PublicPushConfig => {
+  if (typeof window === 'undefined') return {};
+  return ((window as any).ENV || {}) as PublicPushConfig;
+};
+
+const getPublicConfigValue = (key: keyof PublicPushConfig): string => {
+  const config = getWindowPublicConfig();
+  return sanitizeConfigValue(config[key]);
+};
+
+const resolvePublicPushConfig = async (): Promise<PublicPushConfig> => {
+  const fromWindow = getWindowPublicConfig();
+  const hasWindowConfig = Object.values(fromWindow).some((value) => sanitizeConfigValue(value));
+  if (hasWindowConfig) {
+    return fromWindow;
   }
-  return '';
+
+  if (!publicConfigPromise) {
+    publicConfigPromise = fetch('/.netlify/functions/getConfig')
+      .then(async (response) => {
+        if (!response.ok) return {};
+        return await response.json().catch(() => ({}));
+      })
+      .catch(() => ({}))
+      .finally(() => {
+        publicConfigPromise = null;
+      });
+  }
+
+  return publicConfigPromise;
 };
 
 const resolveVapidPublicKey = async (): Promise<string> => {
-  const fromWindow = getVapidPublicKey();
+  const fromWindow = getPublicConfigValue('VAPID_PUBLIC_KEY');
   if (fromWindow) {
     return fromWindow;
   }
 
-  if (!vapidKeyPromise) {
-    vapidKeyPromise = fetch('/.netlify/functions/getConfig')
-      .then(async (response) => {
-        if (!response.ok) return '';
-        const config = await response.json().catch(() => ({}));
-        return config?.VAPID_PUBLIC_KEY || '';
-      })
-      .catch(() => '')
-      .finally(() => {
-        vapidKeyPromise = null;
-      });
-  }
-
-  return vapidKeyPromise;
+  const config = await resolvePublicPushConfig();
+  return sanitizeConfigValue(config.VAPID_PUBLIC_KEY);
 };
 
-// Detecta se está no TWA (APK Android)
+const resolveFCMVapidKey = async (): Promise<string> => {
+  const fromWindow = getPublicConfigValue('FCM_VAPID_KEY') || getPublicConfigValue('VAPID_PUBLIC_KEY');
+  if (fromWindow) {
+    return fromWindow;
+  }
+
+  const config = await resolvePublicPushConfig();
+  return sanitizeConfigValue(config.FCM_VAPID_KEY) || sanitizeConfigValue(config.VAPID_PUBLIC_KEY);
+};
+
+const resolveFirebaseConfig = async () => {
+  const config = await resolvePublicPushConfig();
+
+  return {
+    apiKey: sanitizeConfigValue(config.FIREBASE_API_KEY) || DEFAULT_FIREBASE_CONFIG.apiKey,
+    authDomain: sanitizeConfigValue(config.FIREBASE_AUTH_DOMAIN) || DEFAULT_FIREBASE_CONFIG.authDomain,
+    projectId: sanitizeConfigValue(config.FIREBASE_PROJECT_ID) || DEFAULT_FIREBASE_CONFIG.projectId,
+    storageBucket: sanitizeConfigValue(config.FIREBASE_STORAGE_BUCKET) || DEFAULT_FIREBASE_CONFIG.storageBucket,
+    messagingSenderId: sanitizeConfigValue(config.FIREBASE_MESSAGING_SENDER_ID) || DEFAULT_FIREBASE_CONFIG.messagingSenderId,
+    appId: sanitizeConfigValue(config.FIREBASE_APP_ID) || DEFAULT_FIREBASE_CONFIG.appId
+  };
+};
+
+// Detecta se está no TWA (APK Android) desta branch, evitando tratar qualquer PWA Android como TWA.
 const isTWA = (): boolean => {
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-  const isAndroid = /Android/.test(navigator.userAgent);
-  const result = isStandalone && isAndroid;
-  console.log('[Push] TWA check:', { isStandalone, isAndroid, result });
+  const isAndroid = /Android/i.test(navigator.userAgent);
+  const hasAndroidAppReferrer = typeof document !== 'undefined' && document.referrer.startsWith('android-app://');
+  const isKnownAndroidHost = KNOWN_ANDROID_TWA_HOSTS.has(window.location.hostname);
+  const result = isStandalone && isAndroid && (hasAndroidAppReferrer || isKnownAndroidHost);
+
+  console.log('[Push] TWA check:', {
+    isStandalone,
+    isAndroid,
+    hasAndroidAppReferrer,
+    isKnownAndroidHost,
+    hostname: window.location.hostname,
+    result
+  });
+
   return result;
 };
 
-// Aguarda configuração carregar
-const waitForConfig = async (maxAttempts = 20): Promise<boolean> => {
-  for (let i = 0; i < maxAttempts; i++) {
-    if (getVapidPublicKey()) {
-      return true;
-    }
-    await new Promise(r => setTimeout(r, 100));
-  }
-  return false;
+const logServiceWorkerRegistration = (label: string, registration: ServiceWorkerRegistration | null) => {
+  console.log(label, registration ? {
+    scope: registration.scope,
+    activeScriptURL: registration.active?.scriptURL,
+    activeState: registration.active?.state,
+    waitingScriptURL: registration.waiting?.scriptURL,
+    installingScriptURL: registration.installing?.scriptURL
+  } : null);
 };
 
 // Aguarda Service Worker estar ativo
 const waitForServiceWorker = async (maxAttempts = 30): Promise<ServiceWorkerRegistration | null> => {
   for (let i = 0; i < maxAttempts; i++) {
-    const registration = await navigator.serviceWorker.getRegistration('/sw.js');
+    const registration = await navigator.serviceWorker.getRegistration('/');
     if (registration?.active) {
-      console.log('[Push] SW ativo encontrado');
+      logServiceWorkerRegistration('[Push] SW ativo encontrado', registration);
       return registration;
     }
     console.log('[Push] Aguardando SW ativar...', i);
@@ -115,22 +185,27 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
 
     const readyRegistration = await Promise.race([readyPromise, timeoutPromise]);
     if (readyRegistration) {
-      console.log('[Push] SW pronto encontrado');
+      logServiceWorkerRegistration('[Push] SW pronto encontrado', readyRegistration);
       await readyRegistration.update();
       return readyRegistration;
     }
 
-    const existing = await navigator.serviceWorker.getRegistration();
+    const existing = await navigator.serviceWorker.getRegistration('/');
     if (existing) {
-      console.log('[Push] SW existente encontrado');
+      logServiceWorkerRegistration('[Push] SW existente encontrado', existing);
       await existing.update();
+      const activeRegistration = existing.active ? existing : await waitForServiceWorker(10);
+      if (activeRegistration) {
+        return activeRegistration;
+      }
       return existing;
     }
 
     console.log('[Push] Registrando novo SW...');
     const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
-    console.log('[Push] SW registrado com sucesso');
-    return registration;
+    logServiceWorkerRegistration('[Push] SW registrado com sucesso', registration);
+    const activeRegistration = registration.active ? registration : await waitForServiceWorker(15);
+    return activeRegistration || registration;
   } catch (error: any) {
     console.error('[Push] Erro ao registrar SW:', error.message);
     return null;
@@ -148,21 +223,29 @@ export const requestNotificationPermission = async (): Promise<NotificationPermi
   return permission;
 };
 
+const ensureNotificationPermission = async (): Promise<NotificationPermission> => {
+  if (!('Notification' in window)) {
+    throw new Error('Notificações não suportadas');
+  }
+
+  if (Notification.permission === 'granted') {
+    return 'granted';
+  }
+
+  if (Notification.permission === 'denied') {
+    throw new Error('Permissão de notificações bloqueada. Ative nas configurações do navegador/app.');
+  }
+
+  return await requestNotificationPermission();
+};
+
 // ============================================
 // FCM SUPPORT
 // ============================================
 
-const firebaseConfig = {
-  apiKey: "AIzaSyBsvIYTFYii5rxVOSVU58AJjPafjaMv4mI",
-  authDomain: "meteor-weather-13033.firebaseapp.com",
-  projectId: "meteor-weather-13033",
-  storageBucket: "meteor-weather-13033.firebasestorage.app",
-  messagingSenderId: "919442203209",
-  appId: "1:919442203209:android:e1a3dc2b50639982701598"
-};
-
 let fcmMessaging: any = null;
 let fcmInitialized = false;
+let firebaseApp: any = null;
 
 const initFCM = async () => {
   if (fcmInitialized) return fcmMessaging;
@@ -173,19 +256,31 @@ const initFCM = async () => {
   
   try {
     console.log('[FCM] Inicializando...');
-    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js');
+    const firebaseConfig = await resolveFirebaseConfig();
+    console.log('[FCM] Config resolvida:', {
+      authDomain: firebaseConfig.authDomain,
+      projectId: firebaseConfig.projectId,
+      messagingSenderId: firebaseConfig.messagingSenderId,
+      appId: firebaseConfig.appId,
+      appIdLooksWeb: firebaseConfig.appId.includes(':web:')
+    });
+
+    const { getApps, initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js');
     const { getMessaging, onMessage } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging.js');
-    
-    const app = initializeApp(firebaseConfig);
-    fcmMessaging = getMessaging(app);
+
+    firebaseApp = getApps().length > 0 ? getApps()[0] : initializeApp(firebaseConfig);
+    fcmMessaging = getMessaging(firebaseApp);
     
     onMessage(fcmMessaging, (payload: any) => {
       console.log('[FCM] Foreground message:', payload);
       if (Notification.permission === 'granted') {
-        new Notification(payload.notification?.title || 'Meteor', {
-          body: payload.notification?.body,
+        const notification = payload.notification || {};
+        const data = payload.data || {};
+
+        new Notification(notification.title || data.title || 'Meteor', {
+          body: notification.body || data.body,
           icon: '/favicon.svg',
-          data: payload.data
+          data
         });
       }
     });
@@ -201,6 +296,12 @@ const initFCM = async () => {
 
 const getFCMToken = async (): Promise<string | null> => {
   try {
+    const permission = await ensureNotificationPermission();
+    if (permission !== 'granted') {
+      console.warn('[FCM] Permissão não concedida:', permission);
+      return null;
+    }
+
     const messaging = await initFCM();
     if (!messaging) return null;
 
@@ -209,11 +310,22 @@ const getFCMToken = async (): Promise<string | null> => {
       console.warn('[FCM] Service Worker indisponível para registrar token');
       return null;
     }
-    
-    console.log('[FCM] Obtendo token...');
+
+    const vapidKey = await resolveFCMVapidKey();
+    if (!vapidKey) {
+      console.error('[FCM] Chave VAPID do FCM ausente');
+      return null;
+    }
+
+    logServiceWorkerRegistration('[FCM] Usando SW para token', registration);
+    console.log('[FCM] Obtendo token...', {
+      permission,
+      vapidSource: getPublicConfigValue('FCM_VAPID_KEY') ? 'FCM_VAPID_KEY' : getPublicConfigValue('VAPID_PUBLIC_KEY') ? 'VAPID_PUBLIC_KEY' : 'fetched'
+    });
+
     const { getToken } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging.js');
     const token = await getToken(messaging, {
-      vapidKey: 'BCO0C6hZ4122lxqL0iG_lzfbjXybgjB6e-GOFA9yNj1RZfK9f5Qs1i9PQYZF1bTt2yH9LPwVd1N5j5qk5GjJ5E',
+      vapidKey,
       serviceWorkerRegistration: registration
     });
     
@@ -223,8 +335,13 @@ const getFCMToken = async (): Promise<string | null> => {
     }
     console.log('[FCM] Sem token');
     return null;
-  } catch (error) {
-    console.error('[FCM] Erro:', error);
+  } catch (error: any) {
+    console.error('[FCM] Erro ao obter token:', {
+      name: error?.name,
+      code: error?.code,
+      message: error?.message,
+      stack: error?.stack
+    });
     return null;
   }
 };
@@ -281,7 +398,7 @@ const subscribeWebPush = async (city: string): Promise<PushSubscription | null> 
       throw new Error('Push não suportado');
     }
 
-    const permission = await requestNotificationPermission();
+    const permission = await ensureNotificationPermission();
     if (permission !== 'granted') {
       throw new Error('Permissão negada');
     }
