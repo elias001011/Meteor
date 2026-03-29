@@ -28,6 +28,16 @@ const ChangelogModal: React.FC<any> = ({ isOpen, onClose }) => {
 
     const versions = [
         {
+            version: "6.0.1",
+            title: "Android Push com fallback seguro no TWA",
+            changes: [
+                "A branch android agora só insiste no FCM quando a configuração web pública do Firebase está realmente pronta.",
+                "Quando o FCM não está configurado corretamente, o app cai para Web Push no TWA em vez de travar no mesmo erro genérico.",
+                "O Service Worker passou a normalizar payloads de Web Push e FCM no mesmo fluxo.",
+                "Logs de diagnóstico do push foram reforçados para identificar falhas de token, worker e configuração."
+            ]
+        },
+        {
             version: "6.1.0",
             title: "IA Nova Geração & Push mais estável",
             changes: [

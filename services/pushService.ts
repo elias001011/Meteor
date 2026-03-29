@@ -99,6 +99,23 @@ const resolveFirebaseConfig = async () => {
   };
 };
 
+const canUseFCMInTWA = async (): Promise<boolean> => {
+  const firebaseConfig = await resolveFirebaseConfig();
+  const vapidKey = await resolveFCMVapidKey();
+  const appIdLooksWeb = firebaseConfig.appId.includes(':web:');
+  const hasVapidKey = Boolean(vapidKey);
+  const ready = appIdLooksWeb && hasVapidKey;
+
+  console.log('[FCM] Ready check:', {
+    appId: firebaseConfig.appId,
+    appIdLooksWeb,
+    hasVapidKey,
+    ready
+  });
+
+  return ready;
+};
+
 // Detecta se está no TWA (APK Android) desta branch, evitando tratar qualquer PWA Android como TWA.
 const isTWA = (): boolean => {
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
@@ -370,20 +387,27 @@ export const subscribeToPush = async (city: string) => {
   // TWA: tenta FCM primeiro
   if (isTWA()) {
     console.log('[Push] Modo TWA detectado');
-    try {
-      const fcmToken = await getFCMToken();
-      if (fcmToken) {
-        console.log('[Push] Usando FCM');
-        await saveFCMToken(fcmToken, city);
-        localStorage.setItem('meteor_push_type', 'fcm');
-        localStorage.setItem('meteor_push_city', city);
-        localStorage.setItem('meteor_push_enabled', 'true');
-        return { type: 'fcm', token: fcmToken };
+    if (await canUseFCMInTWA()) {
+      try {
+        const fcmToken = await getFCMToken();
+        if (fcmToken) {
+          console.log('[Push] Usando FCM');
+          await saveFCMToken(fcmToken, city);
+          localStorage.setItem('meteor_push_type', 'fcm');
+          localStorage.setItem('meteor_push_city', city);
+          localStorage.setItem('meteor_push_enabled', 'true');
+          return { type: 'fcm', token: fcmToken };
+        }
+      } catch (e) {
+        console.warn('[Push] FCM falhou:', e);
       }
-    } catch (e) {
-      console.warn('[Push] FCM falhou:', e);
+
+      console.warn('[Push] FCM indisponível no TWA, tentando Web Push como fallback');
+    } else {
+      console.warn('[Push] Config web do Firebase ausente/inválida no TWA, usando Web Push');
     }
-    throw new Error('Falha ao inicializar FCM no Android. Tente novamente ou verifique a configuração do app.');
+
+    return await subscribeWebPush(city);
   }
   
   // Web Push
@@ -504,10 +528,6 @@ export const getPushStatus = async () => {
       return { isSubscribed: true, city: localCity, type: 'fcm' };
     }
 
-    if (isTWA()) {
-      return { isSubscribed: false, city: localCity, type: null };
-    }
-
     // Verifica Web Push
     try {
       const registration = await registerServiceWorker();
@@ -526,9 +546,8 @@ export const getPushStatus = async () => {
 export const sendTestNotification = async () => {
   console.log('[Push] Teste solicitado');
   const pushType = localStorage.getItem('meteor_push_type');
-  const isAndroidTwa = isTWA();
   
-  if (pushType === 'fcm' || isAndroidTwa) {
+  if (pushType === 'fcm') {
     const token = await getFCMToken();
     if (token) {
       console.log('[Push] Enviando teste FCM');
@@ -544,9 +563,7 @@ export const sendTestNotification = async () => {
       }
       return;
     }
-    if (isAndroidTwa) {
-      throw new Error('Não foi possível obter o token FCM no Android.');
-    }
+    throw new Error('Não foi possível obter o token FCM no Android.');
   }
   
   // Web Push
