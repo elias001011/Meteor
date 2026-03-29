@@ -448,7 +448,7 @@ const handler: Handler = async (event: HandlerEvent) => {
         }
 
         const effectiveTimeContext = timeContext || new Date().toLocaleString('pt-BR');
-        const selectedProvider: AiProvider = provider === 'gpt' ? 'gpt' : 'gemini';
+        const selectedProvider: AiProvider = provider === 'gemini' ? 'gemini' : 'gpt';
 
         const primaryRunner = selectedProvider === 'gpt'
             ? () => runGroqProvider(weatherContext, history, prompt, effectiveTimeContext, userInstructions || '', isSearchEnabled)

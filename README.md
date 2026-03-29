@@ -36,9 +36,9 @@ O projeto utiliza uma arquitetura **BFF (Backend-for-Frontend)** via Netlify Fun
     *   Qualidade do Ar (AQI) e componentes poluentes.
 
 *   **🤖 Meteor AI (Assistente Inteligente):**
-    *   Baseada em **Gemini** com fallback para **Groq / openai/gpt-oss-20b**.
+    *   Baseada em **Groq / openai/gpt-oss-20b** como modelo principal, com fallback para **Gemini**.
     *   Contexto completo: A IA "vê" o clima da sua tela, hora local e histórico de conversa.
-    *   **Ferramentas (Stealth Tools):** A IA pode decidir autonomamente buscar dados na Web com grounding nativo ou consultar o clima de outras cidades globais.
+    *   **Ferramentas (Stealth Tools):** O fluxo suporta grounding nativo para pesquisa web e consulta de clima de outras cidades.
     *   **Segurança Reforçada:** Diretrizes estritas contra injeção de prompt.
 
 *   **🎨 Experiência Visual Imersiva:**
@@ -54,7 +54,7 @@ O projeto utiliza uma arquitetura **BFF (Backend-for-Frontend)** via Netlify Fun
 *   **Estilização:** Tailwind CSS.
 *   **Mapas:** Leaflet + OpenStreetMap + Camadas OpenWeather.
 *   **Backend (Serverless):** Netlify Functions (Node.js).
-*   **IA:** Google GenAI SDK (`@google/genai`) + Groq (OpenAI-compatible).
+*   **IA:** Groq (OpenAI-compatible) como primário + Google GenAI SDK (`@google/genai`) para fallback Gemini.
 *   **Gerenciamento de Estado:** React Context API + LocalStorage.
 
 ---

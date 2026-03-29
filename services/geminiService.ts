@@ -46,8 +46,8 @@ const writeUsage = (usageData: { count: number; date: string }) => {
 
 /**
  * Main orchestration layer for the chat UI.
- * Gemini keeps the current prompt-loop flow.
- * GPT/Groq goes straight to the server-side tool-use path.
+ * GPT/Groq is the primary path.
+ * Gemini remains available as a fallback/provider option.
  */
 export async function* streamChatResponse(
     prompt: string,
@@ -56,7 +56,7 @@ export async function* streamChatResponse(
     initialSearchResults: SearchResultItem[] | null,
     timeContext: string,
     isSearchEnabled: boolean,
-    aiProvider: AiProvider = 'gemini',
+    aiProvider: AiProvider = 'gpt',
     skipUsageIncrement: boolean = false
 ): AsyncGenerator<StreamResponse, void, unknown> {
     const settings = getSettings();

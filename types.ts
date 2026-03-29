@@ -184,6 +184,7 @@ export interface WeatherInsightsConfig {
 }
 
 export interface AppSettings {
+    settingsVersion?: number;
     userName?: string;
     userAiInstructions?: string;
     showClock: boolean;

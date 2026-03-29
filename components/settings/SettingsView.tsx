@@ -140,14 +140,14 @@ const SettingsView: React.FC<SettingsViewProps> = ({
 
     const aiProviderOptions: { id: AiProvider, label: string, description: string }[] = [
         {
-            id: 'gemini',
-            label: 'Gemini',
-            description: 'Mantém o fluxo atual, com grounding nativo do Gemini para pesquisa web.'
-        },
-        {
             id: 'gpt',
             label: 'GPT-OSS (Groq)',
             description: 'Usa o openai/gpt-oss-20b com browser search e tool use nativos.'
+        },
+        {
+            id: 'gemini',
+            label: 'Gemini',
+            description: 'Fallback com grounding nativo do Gemini para pesquisa web.'
         }
     ];
     
@@ -616,7 +616,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                     <div className="flex flex-col gap-2">
                          <label className={`${density.text} text-sm font-medium text-gray-300`}>Modelo principal</label>
                          <select
-                             value={settings.aiProvider || 'gemini'}
+                             value={settings.aiProvider || 'gpt'}
                              onChange={(e) => handleSave({ aiProvider: e.target.value as AiProvider })}
                              className={selectStyle}
                          >
@@ -627,7 +627,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                              ))}
                          </select>
                          <p className="text-xs text-gray-500">
-                             {aiProviderOptions.find((opt) => opt.id === (settings.aiProvider || 'gemini'))?.description}
+                             {aiProviderOptions.find((opt) => opt.id === (settings.aiProvider || 'gpt'))?.description}
                          </p>
                          <p className="text-xs text-gray-500">
                              O fallback sempre usa o outro provider quando o principal falha.

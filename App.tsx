@@ -620,7 +620,7 @@ const App: React.FC = () => {
     });
 
     const performChatRequest = async (searchData: SearchResultItem[] | null) => {
-        const stream = streamChatResponse(query, history, weatherInfo, searchData, timeContext, isSearchEnabled, settings.aiProvider || 'gemini');
+        const stream = streamChatResponse(query, history, weatherInfo, searchData, timeContext, isSearchEnabled, settings.aiProvider || 'gpt');
         let fullText = '';
         const allSources: GroundingSource[] = [];
 
@@ -694,7 +694,7 @@ const App: React.FC = () => {
     
     let searchResults: SearchResultItem[] | null = null;
     
-    if (isSearchEnabled && (settings.aiProvider || 'gemini') !== 'gpt') {
+    if (isSearchEnabled && (settings.aiProvider || 'gpt') !== 'gpt') {
       setIsSending(true); 
        try {
         const dateQuery = `${text} ${new Date().toLocaleDateString('pt-BR')}`;
