@@ -4,6 +4,10 @@ const APP_SHELL_URLS = [
   '/index.html',
   '/favicon.svg',
 ];
+const ANDROID_ONLY_HOSTS = new Set([
+  'android--meteor-ai.netlify.app',
+  'meteor-android.netlify.app',
+]);
 
 const urlBase64ToUint8Array = base64String => {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -13,7 +17,7 @@ const urlBase64ToUint8Array = base64String => {
 };
 
 self.addEventListener('install', event => {
-  console.log('[SW] Instalando v6.0.3...');
+  console.log('[SW] Instalando v6.0.4...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(async cache => {
@@ -83,7 +87,7 @@ self.addEventListener('fetch', event => {
 // NOTIFICAÇÕES PUSH - Meteor v6.1
 // ============================================
 
-console.log('[SW] Service Worker v6.0.3 ativo');
+console.log('[SW] Service Worker v6.0.4 ativo');
 
 self.addEventListener('push', event => {
   let rawText = '';
@@ -187,6 +191,11 @@ self.addEventListener('notificationclick', event => {
 });
 
 self.addEventListener('pushsubscriptionchange', event => {
+  if (ANDROID_ONLY_HOSTS.has(self.location.hostname)) {
+    console.log('[SW] Ignorando pushsubscriptionchange no host Android; FCM controla o token');
+    return;
+  }
+
   console.log('[SW] pushsubscriptionchange disparado');
   event.waitUntil((async () => {
     try {

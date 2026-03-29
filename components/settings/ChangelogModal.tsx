@@ -28,6 +28,15 @@ const ChangelogModal: React.FC<any> = ({ isOpen, onClose }) => {
 
     const versions = [
         {
+            version: "6.0.4",
+            title: "Limpeza de subscription antiga antes do FCM",
+            changes: [
+                "O Android agora remove qualquer PushSubscription antiga antes de pedir um token novo ao Firebase.",
+                "O service worker da branch Android deixa de tentar renovar Web Push automaticamente, evitando conflito com o FCM.",
+                "Se o token continuar falhando, a mensagem exibida passa a apontar melhor a etapa que falhou."
+            ]
+        },
+        {
             version: "6.0.3",
             title: "Android força FCM e para de cair no Web Push",
             changes: [

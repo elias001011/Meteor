@@ -217,6 +217,25 @@ const waitForActiveServiceWorker = async (
   return null;
 };
 
+const clearExistingPushSubscription = async (registration: ServiceWorkerRegistration) => {
+  try {
+    const existingSubscription = await registration.pushManager.getSubscription();
+    if (!existingSubscription) {
+      console.log('[Push] Nenhuma subscription antiga encontrada antes do FCM');
+      return;
+    }
+
+    console.log('[Push] Limpando subscription antiga antes do FCM:', {
+      endpoint: existingSubscription.endpoint.substring(0, 80)
+    });
+
+    await existingSubscription.unsubscribe();
+    console.log('[Push] Subscription antiga removida');
+  } catch (error) {
+    console.warn('[Push] Falha ao limpar subscription antiga antes do FCM:', error);
+  }
+};
+
 // Aguarda Service Worker estar ativo
 const waitForServiceWorker = async (maxAttempts = 30): Promise<ServiceWorkerRegistration | null> => {
   for (let i = 0; i < maxAttempts; i++) {
@@ -354,7 +373,13 @@ const initFCM = async () => {
     });
 
     const { getApps, initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js');
-    const { getMessaging, onMessage } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging.js');
+    const { getMessaging, isSupported, onMessage } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging.js');
+
+    const messagingSupported = await isSupported().catch(() => false);
+    console.log('[FCM] isSupported:', messagingSupported);
+    if (!messagingSupported) {
+      throw new Error('FCM Web não é suportado neste runtime Android/Chrome.');
+    }
 
     firebaseApp = getApps().length > 0 ? getApps()[0] : initializeApp(firebaseConfig);
     fcmMessaging = getMessaging(firebaseApp);
@@ -386,25 +411,26 @@ const getFCMToken = async (): Promise<string | null> => {
   try {
     const permission = await ensureNotificationPermission();
     if (permission !== 'granted') {
-      console.warn('[FCM] Permissão não concedida:', permission);
-      return null;
+      throw new Error(`Permissão de notificação não concedida: ${permission}`);
     }
 
     const messaging = await initFCM();
-    if (!messaging) return null;
+    if (!messaging) {
+      throw new Error('Firebase Messaging não foi inicializado no runtime Android.');
+    }
 
     const registration = await registerServiceWorker();
     const activeRegistration = await waitForActiveServiceWorker(registration, 10000);
     if (!activeRegistration) {
-      console.warn('[FCM] Service Worker indisponível para registrar token');
-      return null;
+      throw new Error('Service Worker ativo não disponível para registrar o token FCM.');
     }
 
     const vapidKey = await resolveFCMVapidKey();
     if (!vapidKey) {
-      console.error('[FCM] Chave VAPID do FCM ausente');
-      return null;
+      throw new Error('Chave VAPID do FCM ausente no deploy.');
     }
+
+    await clearExistingPushSubscription(activeRegistration);
 
     logServiceWorkerRegistration('[FCM] Usando SW para token', activeRegistration);
     console.log('[FCM] Obtendo token...', {
@@ -422,8 +448,7 @@ const getFCMToken = async (): Promise<string | null> => {
       console.log('[FCM] Token obtido:', token.substring(0, 20) + '...');
       return token;
     }
-    console.log('[FCM] Sem token');
-    return null;
+    throw new Error('FCM não retornou token. Verifique a FCM Registration API e a chave Web Push do Firebase.');
   } catch (error: any) {
     console.error('[FCM] Erro ao obter token:', {
       name: error?.name,
@@ -431,7 +456,7 @@ const getFCMToken = async (): Promise<string | null> => {
       message: error?.message,
       stack: error?.stack
     });
-    return null;
+    throw error instanceof Error ? error : new Error('Falha inesperada ao obter token FCM.');
   }
 };
 
@@ -466,9 +491,6 @@ export const subscribeToPush = async (city: string) => {
 
     try {
       const fcmToken = await getFCMToken();
-      if (!fcmToken) {
-        throw new Error('Não foi possível obter o token FCM no Android.');
-      }
 
       console.log('[Push] Usando FCM');
       await saveFCMToken(fcmToken, city);
