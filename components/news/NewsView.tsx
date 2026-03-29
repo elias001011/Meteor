@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getTopHeadlines, searchNews, NewsArticle, NewsCategory, formatPublishedDate, extractNewsContext } from '../../services/newsService';
 import { useTheme } from '../context/ThemeContext';
+import { safeExternalUrl } from '../../services/urlSafety';
 import { SearchIcon, NewspaperIcon, RefreshCwIcon, SparklesIcon, ExternalLinkIcon, AlertCircleIcon } from '../icons';
 
 interface NewsViewProps {
@@ -204,7 +205,10 @@ const NewsView: React.FC<NewsViewProps> = ({ onAskAIAboutNews }) => {
                 {/* News Grid */}
                 {!loading && !error && articles.length > 0 && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {articles.map((article, index) => (
+                        {articles.map((article, index) => {
+                            const safeUrl = safeExternalUrl(article.url);
+
+                            return (
                             <article
                                 key={`${article.url}-${index}`}
                                 className={`group ${cardClass} rounded-2xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-xl border border-white/5 hover:border-white/10 flex flex-col`}
@@ -261,20 +265,27 @@ const NewsView: React.FC<NewsViewProps> = ({ onAskAIAboutNews }) => {
                                             <SparklesIcon className="w-4 h-4" />
                                             Resumo com IA
                                         </button>
-                                        
-                                        <a
-                                            href={article.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-medium transition-colors"
-                                        >
-                                            <ExternalLinkIcon className="w-3.5 h-3.5" />
-                                            Ler
-                                        </a>
+                                        {safeUrl ? (
+                                            <a
+                                                href={safeUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-medium transition-colors"
+                                            >
+                                                <ExternalLinkIcon className="w-3.5 h-3.5" />
+                                                Ler
+                                            </a>
+                                        ) : (
+                                            <span className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-white/5 text-gray-500 text-xs font-medium cursor-not-allowed opacity-70">
+                                                <ExternalLinkIcon className="w-3.5 h-3.5" />
+                                                Ler
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             </article>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
 
