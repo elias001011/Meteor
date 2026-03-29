@@ -146,11 +146,82 @@ const logServiceWorkerRegistration = (label: string, registration: ServiceWorker
   } : null);
 };
 
+const isServiceWorkerActivated = (registration: ServiceWorkerRegistration | null): boolean =>
+  Boolean(registration?.active && registration.active.state === 'activated');
+
+const waitForWorkerState = async (
+  worker: ServiceWorker | null | undefined,
+  targetState: ServiceWorkerState = 'activated',
+  timeoutMs = 10000
+): Promise<boolean> => {
+  if (!worker) return false;
+  if (worker.state === targetState) return true;
+
+  return await new Promise<boolean>((resolve) => {
+    const timer = window.setTimeout(() => {
+      worker.removeEventListener('statechange', onStateChange);
+      resolve(worker.state === targetState);
+    }, timeoutMs);
+
+    const onStateChange = () => {
+      if (worker.state === targetState) {
+        window.clearTimeout(timer);
+        worker.removeEventListener('statechange', onStateChange);
+        resolve(true);
+      }
+    };
+
+    worker.addEventListener('statechange', onStateChange);
+  });
+};
+
+const waitForActiveServiceWorker = async (
+  preferredRegistration: ServiceWorkerRegistration | null,
+  timeoutMs = 10000
+): Promise<ServiceWorkerRegistration | null> => {
+  if (isServiceWorkerActivated(preferredRegistration)) {
+    return preferredRegistration;
+  }
+
+  const candidateWorker =
+    preferredRegistration?.installing ||
+    preferredRegistration?.waiting ||
+    preferredRegistration?.active;
+
+  if (candidateWorker) {
+    await waitForWorkerState(candidateWorker, 'activated', timeoutMs);
+  }
+
+  const readyRegistration = await Promise.race<ServiceWorkerRegistration | null>([
+    navigator.serviceWorker.ready.then((registration) => registration).catch(() => null),
+    new Promise<ServiceWorkerRegistration | null>((resolve) => {
+      window.setTimeout(() => resolve(null), timeoutMs);
+    })
+  ]);
+
+  if (isServiceWorkerActivated(readyRegistration)) {
+    logServiceWorkerRegistration('[Push] SW ativo via ready', readyRegistration);
+    return readyRegistration;
+  }
+
+  for (let i = 0; i < 20; i++) {
+    const registration = await navigator.serviceWorker.getRegistration('/');
+    if (isServiceWorkerActivated(registration)) {
+      logServiceWorkerRegistration('[Push] SW ativo via polling final', registration);
+      return registration;
+    }
+    await new Promise((resolve) => window.setTimeout(resolve, 250));
+  }
+
+  logServiceWorkerRegistration('[Push] SW ainda sem active após espera', preferredRegistration);
+  return null;
+};
+
 // Aguarda Service Worker estar ativo
 const waitForServiceWorker = async (maxAttempts = 30): Promise<ServiceWorkerRegistration | null> => {
   for (let i = 0; i < maxAttempts; i++) {
     const registration = await navigator.serviceWorker.getRegistration('/');
-    if (registration?.active) {
+    if (isServiceWorkerActivated(registration)) {
       logServiceWorkerRegistration('[Push] SW ativo encontrado', registration);
       return registration;
     }
@@ -204,25 +275,25 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
     if (readyRegistration) {
       logServiceWorkerRegistration('[Push] SW pronto encontrado', readyRegistration);
       await readyRegistration.update();
-      return readyRegistration;
+      return await waitForActiveServiceWorker(readyRegistration, 10000);
     }
 
     const existing = await navigator.serviceWorker.getRegistration('/');
     if (existing) {
       logServiceWorkerRegistration('[Push] SW existente encontrado', existing);
       await existing.update();
-      const activeRegistration = existing.active ? existing : await waitForServiceWorker(10);
+      const activeRegistration = await waitForActiveServiceWorker(existing, 10000);
       if (activeRegistration) {
         return activeRegistration;
       }
-      return existing;
+      return await waitForServiceWorker(10);
     }
 
     console.log('[Push] Registrando novo SW...');
     const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
     logServiceWorkerRegistration('[Push] SW registrado com sucesso', registration);
-    const activeRegistration = registration.active ? registration : await waitForServiceWorker(15);
-    return activeRegistration || registration;
+    const activeRegistration = await waitForActiveServiceWorker(registration, 12000);
+    return activeRegistration || await waitForServiceWorker(15);
   } catch (error: any) {
     console.error('[Push] Erro ao registrar SW:', error.message);
     return null;
@@ -323,7 +394,8 @@ const getFCMToken = async (): Promise<string | null> => {
     if (!messaging) return null;
 
     const registration = await registerServiceWorker();
-    if (!registration) {
+    const activeRegistration = await waitForActiveServiceWorker(registration, 10000);
+    if (!activeRegistration) {
       console.warn('[FCM] Service Worker indisponível para registrar token');
       return null;
     }
@@ -334,7 +406,7 @@ const getFCMToken = async (): Promise<string | null> => {
       return null;
     }
 
-    logServiceWorkerRegistration('[FCM] Usando SW para token', registration);
+    logServiceWorkerRegistration('[FCM] Usando SW para token', activeRegistration);
     console.log('[FCM] Obtendo token...', {
       permission,
       vapidSource: getPublicConfigValue('FCM_VAPID_KEY') ? 'FCM_VAPID_KEY' : getPublicConfigValue('VAPID_PUBLIC_KEY') ? 'VAPID_PUBLIC_KEY' : 'fetched'
@@ -343,7 +415,7 @@ const getFCMToken = async (): Promise<string | null> => {
     const { getToken } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging.js');
     const token = await getToken(messaging, {
       vapidKey,
-      serviceWorkerRegistration: registration
+      serviceWorkerRegistration: activeRegistration
     });
     
     if (token) {
@@ -429,14 +501,15 @@ const subscribeWebPush = async (city: string): Promise<PushSubscription | null> 
 
     // Registra e aguarda SW ativo
     const registration = await registerServiceWorker();
-    if (!registration) {
+    const activeRegistration = await waitForActiveServiceWorker(registration, 10000);
+    if (!activeRegistration) {
       throw new Error('Falha ao registrar SW');
     }
 
-    console.log('[Push] SW state:', registration.active?.state);
+    console.log('[Push] SW state:', activeRegistration.active?.state);
     
     // Remove subscription antiga
-    const existing = await registration.pushManager.getSubscription();
+    const existing = await activeRegistration.pushManager.getSubscription();
     if (existing) {
       console.log('[Push] Removendo subscription antiga');
       await existing.unsubscribe();
@@ -450,7 +523,7 @@ const subscribeWebPush = async (city: string): Promise<PushSubscription | null> 
     }
 
     console.log('[Push] Criando subscription...');
-    const subscription = await registration.pushManager.subscribe({
+    const subscription = await activeRegistration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
     });
