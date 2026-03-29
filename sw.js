@@ -13,7 +13,7 @@ const urlBase64ToUint8Array = base64String => {
 };
 
 self.addEventListener('install', event => {
-  console.log('[SW] Instalando v6.0.1...');
+  console.log('[SW] Instalando v6.0.2...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(async cache => {
@@ -83,7 +83,7 @@ self.addEventListener('fetch', event => {
 // NOTIFICAÇÕES PUSH - Meteor v6.1
 // ============================================
 
-console.log('[SW] Service Worker v6.0.1 ativo');
+console.log('[SW] Service Worker v6.0.2 ativo');
 
 self.addEventListener('push', event => {
   let rawText = '';

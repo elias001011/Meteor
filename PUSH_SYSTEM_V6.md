@@ -170,5 +170,5 @@ const isTWA = () => {
 
 ---
 
-**Versão:** 6.0.1  
+**Versão:** 6.0.2  
 **Atualizado:** 2026-02-12

@@ -28,6 +28,15 @@ const ChangelogModal: React.FC<any> = ({ isOpen, onClose }) => {
 
     const versions = [
         {
+            version: "6.0.2",
+            title: "TWA validado com assinatura real",
+            changes: [
+                "O assetlinks.json da branch android agora usa a fingerprint SHA-256 real do keystore do app.",
+                "Isso permite ao Android validar o domínio do app como Trusted Web Activity de verdade, em vez de cair em fallback inconsistente.",
+                "Mantidas as correções anteriores de Service Worker ativo, precache robusto e fallback controlado do push."
+            ]
+        },
+        {
             version: "6.0.1",
             title: "Android Push com fallback seguro no TWA",
             changes: [
