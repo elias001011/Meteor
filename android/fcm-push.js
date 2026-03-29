@@ -27,6 +27,28 @@ export const isTWA = () => {
 let messaging = null;
 let fcmInitialized = false;
 
+const getOrRegisterServiceWorker = async () => {
+  if (!('serviceWorker' in navigator)) {
+    return null;
+  }
+
+  try {
+    let registration = await navigator.serviceWorker.getRegistration('/sw.js');
+    if (!registration) {
+      registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    }
+
+    if (!registration.active) {
+      await navigator.serviceWorker.ready;
+    }
+
+    return registration;
+  } catch (error) {
+    console.error('[FCM] Erro ao preparar Service Worker:', error);
+    return null;
+  }
+};
+
 export const initFCM = async () => {
   if (!isTWA()) {
     console.log('[FCM] Não está no TWA, pulando FCM');
@@ -66,10 +88,16 @@ export const getFCMToken = async () => {
   if (!messaging) return null;
   
   try {
+    const registration = await getOrRegisterServiceWorker();
+    if (!registration) {
+      throw new Error('Service Worker indisponível para FCM');
+    }
+
     const { getToken } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging.js');
     
     const token = await getToken(messaging, {
-      vapidKey: 'BCO0C6hZ4122lxqL0iG_lzfbjXybgjB6e-GOFA9yNj1RZfK9f5Qs1i9PQYZF1bTt2yH9LPwVd1N5j5qk5GjJ5E' // VAPID key do Firebase
+      vapidKey: 'BCO0C6hZ4122lxqL0iG_lzfbjXybgjB6e-GOFA9yNj1RZfK9f5Qs1i9PQYZF1bTt2yH9LPwVd1N5j5qk5GjJ5E', // VAPID key do Firebase
+      serviceWorkerRegistration: registration
     });
     
     if (token) {

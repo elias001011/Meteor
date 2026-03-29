@@ -203,11 +203,18 @@ const getFCMToken = async (): Promise<string | null> => {
   try {
     const messaging = await initFCM();
     if (!messaging) return null;
+
+    const registration = await registerServiceWorker();
+    if (!registration) {
+      console.warn('[FCM] Service Worker indisponível para registrar token');
+      return null;
+    }
     
     console.log('[FCM] Obtendo token...');
     const { getToken } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging.js');
     const token = await getToken(messaging, {
-      vapidKey: 'BCO0C6hZ4122lxqL0iG_lzfbjXybgjB6e-GOFA9yNj1RZfK9f5Qs1i9PQYZF1bTt2yH9LPwVd1N5j5qk5GjJ5E'
+      vapidKey: 'BCO0C6hZ4122lxqL0iG_lzfbjXybgjB6e-GOFA9yNj1RZfK9f5Qs1i9PQYZF1bTt2yH9LPwVd1N5j5qk5GjJ5E',
+      serviceWorkerRegistration: registration
     });
     
     if (token) {
