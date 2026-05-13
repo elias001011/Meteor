@@ -1,4 +1,4 @@
-import { GoogleGenAI, type Content, type GroundingChunk, type GroundingMetadata } from '@google/genai';
+import { GoogleGenAI, ServiceTier, type Content, type GroundingChunk, type GroundingMetadata } from '@google/genai';
 import { type Handler, type HandlerEvent } from '@netlify/functions';
 
 interface GroundingSource {
@@ -20,9 +20,10 @@ const GOOGLE_SEARCH_TOOL = {
     },
 } as const;
 const MODEL_ATTEMPTS = [
-    { model: 'gemini-3.1-flash-lite', useSearch: true, useThinking: true },
-    { model: 'gemini-3.1-flash-lite', useSearch: false, useThinking: false },
-    { model: 'gemini-3.1-flash-lite', useSearch: false, useThinking: true },
+    { model: 'gemini-3.1-flash-lite', useSearch: true, serviceTier: ServiceTier.STANDARD },
+    { model: 'gemini-3.1-flash-lite', useSearch: true, serviceTier: ServiceTier.PRIORITY },
+    { model: 'gemini-3.1-flash-lite', useSearch: false, serviceTier: ServiceTier.PRIORITY },
+    { model: 'gemini-3.1-flash-lite', useSearch: false, serviceTier: ServiceTier.STANDARD },
 ] as const;
 
 const isRecord = (value: unknown): value is Record<string, unknown> => (
@@ -228,14 +229,10 @@ const buildUserInstructionBlock = (userInstructions: string): string => {
     ].join('\n');
 };
 
-const buildGenerationConfig = (options: { useSearch: boolean; useThinking: boolean }) => ({
+const buildGenerationConfig = (options: { useSearch: boolean; serviceTier: ServiceTier }) => ({
     systemInstruction: buildSystemInstruction(),
     ...(options.useSearch ? { tools: [GOOGLE_SEARCH_TOOL] } : {}),
-    ...(options.useThinking ? {
-        thinkingConfig: {
-            thinkingLevel: 'low' as const,
-        },
-    } : {}),
+    serviceTier: options.serviceTier,
 });
 
 const runModelWithFallbacks = async (ai: GoogleGenAI, contents: Content[]) => {
@@ -248,7 +245,7 @@ const runModelWithFallbacks = async (ai: GoogleGenAI, contents: Content[]) => {
                 contents,
                 config: buildGenerationConfig({
                     useSearch: attempt.useSearch,
-                    useThinking: attempt.useThinking,
+                    serviceTier: attempt.serviceTier,
                 }),
             });
 
