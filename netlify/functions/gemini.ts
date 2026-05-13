@@ -3,6 +3,70 @@
 import { GoogleGenAI, Content } from "@google/genai";
 import { type Handler, type HandlerEvent } from "@netlify/functions";
 
+const MAX_PROMPT_LENGTH = 8000;
+const MAX_HISTORY_MESSAGES = 20;
+const MAX_HISTORY_TEXT_LENGTH = 4000;
+const MAX_SEARCH_RESULTS = 8;
+const MAX_USER_INSTRUCTIONS_LENGTH = 500;
+const MAX_TIME_CONTEXT_LENGTH = 120;
+
+const isRecord = (value: unknown): value is Record<string, unknown> => (
+    typeof value === 'object' && value !== null && !Array.isArray(value)
+);
+
+const clampString = (value: unknown, maxLength: number): string => {
+    if (typeof value !== 'string') return '';
+    return value.slice(0, maxLength);
+};
+
+const sanitizeHistory = (history: unknown): Content[] => {
+    if (!Array.isArray(history)) return [];
+
+    return history
+        .slice(-MAX_HISTORY_MESSAGES)
+        .map((entry) => {
+            if (!isRecord(entry)) return null;
+
+            const role = entry.role === 'user' || entry.role === 'model' ? entry.role : null;
+            const parts = Array.isArray(entry.parts) ? entry.parts : null;
+            const text = typeof entry.text === 'string'
+                ? entry.text
+                : typeof parts?.[0] === 'object' && parts?.[0] !== null && typeof (parts[0] as Record<string, unknown>).text === 'string'
+                    ? (parts[0] as Record<string, string>).text
+                    : '';
+
+            if (!role || !text) return null;
+
+            return {
+                role,
+                parts: [{ text: text.slice(0, MAX_HISTORY_TEXT_LENGTH) }],
+            } satisfies Content;
+        })
+        .filter((entry): entry is Content => entry !== null);
+};
+
+const sanitizeSearchResults = (results: unknown): any[] => {
+    if (!Array.isArray(results)) return [];
+
+    return results.slice(0, MAX_SEARCH_RESULTS).map((item) => {
+        if (!isRecord(item)) return null;
+
+        const title = clampString(item.title, 300);
+        const link = clampString(item.link, 500);
+        if (!title || !link) return null;
+
+        return {
+            title,
+            link,
+            snippet: clampString(item.snippet, 1000),
+        };
+    }).filter((item): item is { title: string; link: string; snippet: string } => item !== null);
+};
+
+const sanitizeWeatherContext = (weatherContext: unknown): any | null => {
+    return isRecord(weatherContext) ? weatherContext : null;
+};
+
 // Enhanced system instructions with Stealth Tools and Formatting Rules
 const buildContextualContent = (
     weatherInfo: any | null, 
@@ -143,28 +207,38 @@ const tryOpenRouter = async (
 const handler: Handler = async (event: HandlerEvent) => {
     const geminiKey = process.env.GEMINI_API;
     const openRouterKey = process.env.OPENROUTER_API;
+    const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
 
     if (!geminiKey && !openRouterKey) {
         return { 
             statusCode: 500, 
+            headers,
             body: JSON.stringify({ message: "Nenhuma chave de API configurada (Gemini ou OpenRouter)." }) 
         };
     }
 
     if (event.httpMethod !== 'POST') {
-        return { statusCode: 405, body: 'Method Not Allowed' };
+        return { statusCode: 405, headers, body: JSON.stringify({ message: 'Method Not Allowed' }) };
     }
 
     const startTime = Date.now();
 
     try {
-        const { prompt, history, weatherContext, searchResults, weatherToolResult, timeContext, userInstructions, isSearchEnabled } = JSON.parse(event.body || '{}');
+        const body = JSON.parse(event.body || '{}');
+        const prompt = clampString(body.prompt, MAX_PROMPT_LENGTH).trim();
+        const history = sanitizeHistory(body.history);
+        const weatherContext = sanitizeWeatherContext(body.weatherContext);
+        const searchResults = sanitizeSearchResults(body.searchResults);
+        const weatherToolResult = isRecord(body.weatherToolResult) ? body.weatherToolResult : null;
+        const timeContext = clampString(body.timeContext, MAX_TIME_CONTEXT_LENGTH) || new Date().toLocaleString('pt-BR');
+        const userInstructions = clampString(body.userInstructions, MAX_USER_INSTRUCTIONS_LENGTH);
+        const isSearchEnabled = Boolean(body.isSearchEnabled);
 
         if (!prompt) {
-            return { statusCode: 400, body: JSON.stringify({ message: "Prompt obrigatório." }) };
+            return { statusCode: 400, headers, body: JSON.stringify({ message: "Prompt obrigatório." }) };
         }
 
-        const effectiveTimeContext = timeContext || new Date().toLocaleString('pt-BR');
+        const effectiveTimeContext = timeContext;
         
         const contextualContent = buildContextualContent(
             weatherContext, 
@@ -221,7 +295,7 @@ const handler: Handler = async (event: HandlerEvent) => {
 
         return {
             statusCode: 200,
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify({ 
                 text, 
                 model: usedModel,
@@ -234,6 +308,7 @@ const handler: Handler = async (event: HandlerEvent) => {
         console.error("[Handler] Erro Fatal:", error);
         return {
             statusCode: 500,
+            headers,
             body: JSON.stringify({ 
                 message: error instanceof Error ? error.message : "Erro ao processar resposta da IA." 
             }),

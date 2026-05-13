@@ -458,24 +458,48 @@ const MAP_LAYER_FALLBACKS: Record<string, string> = {
     'WS10': 'wind_new'
 };
 
+const ALLOWED_TILE_LAYERS = new Set(['TA2', 'CL', 'PR0', 'APM', 'WS10']);
+
+const parseCoordinate = (value: unknown): number | null => {
+    if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (!trimmed) return null;
+        const numeric = Number(trimmed);
+        return Number.isFinite(numeric) ? numeric : null;
+    }
+    const numeric = typeof value === 'number' ? value : NaN;
+    return Number.isFinite(numeric) ? numeric : null;
+};
+
+const isPositiveIntegerString = (value: unknown): value is string => (
+    typeof value === 'string' && /^\d+$/.test(value)
+);
+
 const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
     if (!API_KEY) {
         return { statusCode: 500, body: JSON.stringify({ message: "API key para clima não configurada no servidor." }) };
     }
 
-    const { endpoint, ...params } = event.queryStringParameters;
+    const queryParams = event.queryStringParameters || {};
+    const { endpoint, ...params } = queryParams;
     const query = new URLSearchParams(params as Record<string, string>);
     
     try {
         switch (endpoint) {
             case 'all': {
-                const lat = params.lat;
-                const lon = params.lon;
-                const q = params.q; // City name from search
-                const country = params.country;
+                const lat = parseCoordinate(params.lat);
+                const lon = parseCoordinate(params.lon);
+                const q = params.q?.trim(); // City name from search
+                const country = params.country?.trim();
                 const source = params.source; // 'onecall', 'free', 'open-meteo'
 
-                if (!lat || !lon) return { statusCode: 400, body: JSON.stringify({ message: "Latitude e longitude são obrigatórias." }) };
+                if (lat === null || lon === null) return { statusCode: 400, body: JSON.stringify({ message: "Latitude e longitude são obrigatórias." }) };
+                if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+                    return { statusCode: 400, body: JSON.stringify({ message: "Coordenadas inválidas." }) };
+                }
+                if (q && q.length > 120) {
+                    return { statusCode: 400, body: JSON.stringify({ message: "Nome da cidade muito longo." }) };
+                }
                 
                 let weatherBundle;
                 let fallbackStatus: 'onecall_failed' | 'free_tier_failed' | null = null;
@@ -595,6 +619,16 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
 
             case 'direct':
             case 'reverse': {
+                if (endpoint === 'direct') {
+                    const cityQuery = params.q?.trim();
+                    if (!cityQuery) {
+                        return { statusCode: 400, body: JSON.stringify({ message: "Parâmetro q é obrigatório para busca direta." }) };
+                    }
+                    if (cityQuery.length > 120) {
+                        return { statusCode: 400, body: JSON.stringify({ message: "Consulta de cidade muito longa." }) };
+                    }
+                    query.set('q', cityQuery);
+                }
                 const baseUrl = `https://api.openweathermap.org/geo/1.0/${endpoint}`;
                 query.set('appid', API_KEY);
                 if (endpoint === 'reverse' && !query.has('limit')) query.set('limit', '1');
@@ -607,7 +641,9 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
 
             case 'tile': {
                 const { layer, z, x, y } = params;
-                if (!layer || !z || !x || !y) return { statusCode: 400, body: JSON.stringify({ message: "Parâmetros de tile ausentes." }) };
+                if (!layer || !ALLOWED_TILE_LAYERS.has(layer) || !isPositiveIntegerString(z) || !isPositiveIntegerString(x) || !isPositiveIntegerString(y)) {
+                    return { statusCode: 400, body: JSON.stringify({ message: "Parâmetros de tile inválidos." }) };
+                }
                 
                 // Try Maps 2.0 (Paid/Developer)
                 const tileUrl2 = `https://maps.openweathermap.org/maps/2.0/weather/${layer}/${z}/${x}/${y}?appid=${API_KEY}`;
@@ -640,7 +676,9 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
 
             case 'relief': {
                 const { z, x, y } = params;
-                if (!z || !x || !y) return { statusCode: 400, body: JSON.stringify({ message: "Parâmetros de tile de relevo ausentes." }) };
+                if (!isPositiveIntegerString(z) || !isPositiveIntegerString(x) || !isPositiveIntegerString(y)) {
+                    return { statusCode: 400, body: JSON.stringify({ message: "Parâmetros de tile de relevo inválidos." }) };
+                }
                 // Relief map is generally paid-only on OWM Maps 2.0 and has no direct 1.0 equivalent.
                 // We try to fetch it, and if it fails (401), we return empty so the map doesn't break.
                 const tileUrl = `https://maps.openweathermap.org/maps/2.0/relief/${z}/${x}/${y}?appid=${API_KEY}`;

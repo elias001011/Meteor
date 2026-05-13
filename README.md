@@ -132,6 +132,8 @@ O app estará disponível em `http://localhost:8888`.
 ## 🔒 Privacidade e Dados
 
 *   **Local-First:** Histórico de chat e configurações são salvos apenas no LocalStorage do navegador.
+*   **Sem Login:** O app não possui autenticação de conta nem sincronização em nuvem.
+*   **Backup em Arquivo:** É possível exportar e restaurar todos os dados relevantes por um arquivo JSON.
 *   **Cache:** Dados meteorológicos são cacheados localmente para reduzir chamadas de API.
 *   **Segurança:** Nenhuma chave de API é exposta no código do cliente.
 

@@ -2,16 +2,23 @@ import { type Handler, type HandlerEvent } from "@netlify/functions";
 
 const API_KEY = process.env.SEARCH_API;
 const SEARCH_ID = process.env.SEARCH_ID;
+const MAX_QUERY_LENGTH = 120;
 
 const handler: Handler = async (event: HandlerEvent) => {
+    const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
+
     if (!API_KEY || !SEARCH_ID) {
-        return { statusCode: 500, body: JSON.stringify({ message: "Chaves da API de pesquisa não configuradas no servidor." }) };
+        return { statusCode: 500, headers, body: JSON.stringify({ message: "Chaves da API de pesquisa não configuradas no servidor." }) };
     }
 
-    const query = event.queryStringParameters?.q;
+    const query = event.queryStringParameters?.q?.trim();
 
     if (!query) {
-        return { statusCode: 400, body: JSON.stringify({ message: "Parâmetro de busca 'q' é obrigatório." }) };
+        return { statusCode: 400, headers, body: JSON.stringify({ message: "Parâmetro de busca 'q' é obrigatório." }) };
+    }
+
+    if (query.length > MAX_QUERY_LENGTH) {
+        return { statusCode: 400, headers, body: JSON.stringify({ message: "Consulta de busca muito longa." }) };
     }
 
     const url = `https://www.googleapis.com/customsearch/v1?key=${API_KEY}&cx=${SEARCH_ID}&q=${encodeURIComponent(query)}`;
@@ -35,14 +42,14 @@ const handler: Handler = async (event: HandlerEvent) => {
 
         return {
             statusCode: 200,
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify(searchResults),
         };
 
     } catch (error) {
         console.error('Erro na função de pesquisa Netlify:', error);
         const errorMessage = error instanceof Error ? error.message : "Um erro interno ocorreu na pesquisa.";
-        return { statusCode: 500, body: JSON.stringify({ message: errorMessage }) };
+        return { statusCode: 500, headers, body: JSON.stringify({ message: errorMessage }) };
     }
 };
 

@@ -16,6 +16,7 @@ import TipsView from './components/tips/TipsView';
 import AlertsView from './components/alerts/AlertsView';
 import MobileAiControls from './components/ai/MobileAiControls';
 import SettingsView from './components/settings/SettingsView';
+import PlaceholderView from './components/common/PlaceholderView';
 import { Content } from '@google/genai';
 import ErrorPopup from './components/common/ErrorPopup';
 import DataSourceModal from './components/common/DataSourceModal';
@@ -24,8 +25,8 @@ import ChangelogModal from './components/settings/ChangelogModal';
 import CitySelectionModal from './components/common/CitySelectionModal';
 import OnboardingModal from './components/common/OnboardingModal';
 import { ThemeProvider, useTheme } from './components/context/ThemeContext';
-import { AuthProvider } from './components/context/AuthContext';
 import ZenMode from './components/weather/ZenMode';
+import type { BackupImportOptions } from './services/settingsService';
 
 // Rain animation component defined locally
 const RainAnimation: React.FC<{ intensity: 'low' | 'high' }> = ({ intensity }) => {
@@ -227,10 +228,11 @@ const AppContent: React.FC<{
                             onOpenCitySelection={props.onOpenSettingsCity}
                         />
                     </div>}
-                    {view === 'tips' && <div className={`h-full overflow-hidden ${animationClass}`}><TipsView /></div>}
-                    {view === 'alerts' && (
-                        <div className={`h-full overflow-hidden ${animationClass}`}>
-                            <AlertsView 
+    {view === 'tips' && <div className={`h-full overflow-hidden ${animationClass}`}><TipsView /></div>}
+    {view === 'info' && <div className={`h-full overflow-hidden ${animationClass}`}><PlaceholderView title="Informações" /></div>}
+    {view === 'alerts' && (
+        <div className={`h-full overflow-hidden ${animationClass}`}>
+            <AlertsView 
                                 currentWeather={weatherInfo.weatherData}
                                 dailyForecast={weatherInfo.dailyForecast}
                                 apiAlerts={weatherInfo.alerts}
@@ -264,6 +266,9 @@ const AppContent: React.FC<{
                     </div>
                     <div className={`${view === 'tips' ? 'block' : 'hidden'} h-full overflow-hidden pb-24 pt-16 ${animationClass}`}>
                         <TipsView />
+                    </div>
+                    <div className={`${view === 'info' ? 'block' : 'hidden'} h-full overflow-hidden pb-24 pt-16 ${animationClass}`}>
+                        <PlaceholderView title="Informações" />
                     </div>
                     <div className={`${view === 'alerts' ? 'block' : 'hidden'} h-full overflow-hidden pb-24 pt-16 ${animationClass}`}>
                         <AlertsView 
@@ -413,7 +418,7 @@ const App: React.FC = () => {
       localStorage.removeItem('chat_history');
   }, []);
 
-  const handleImportData = (content: string, options: any) => {
+  const handleImportData = (content: string, options: BackupImportOptions) => {
       const success = importAppData(content, options);
       if (success) {
           setAppError("Dados importados com sucesso! Recarregando...");
@@ -750,7 +755,6 @@ const App: React.FC = () => {
   }, [handleSendMessage]);
 
   return (
-    <AuthProvider>
     <ThemeProvider 
       theme={activeTheme} 
       transparencyMode={settings.transparencyMode} 
@@ -812,9 +816,8 @@ const App: React.FC = () => {
               handleSettingsChange({ ...settings, specificLocation: city });
               setShowSettingsCityModal(false);
           }}
-      />
-    </ThemeProvider>
-    </AuthProvider>
+        />
+      </ThemeProvider>
   );
 };
 
