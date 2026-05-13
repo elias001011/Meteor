@@ -1,4 +1,4 @@
-const CACHE_NAME = 'meteor-cache-v3';
+const CACHE_NAME = 'meteor-cache-v4';
 const APP_SHELL_URLS = [
   '/',
   '/index.html',
@@ -43,6 +43,29 @@ self.addEventListener('fetch', event => {
         JSON.stringify({ message: 'Serviço temporariamente indisponível.' }),
         { status: 503, headers: { 'Content-Type': 'application/json' } }
       ))
+    );
+    return;
+  }
+
+  const isNavigationRequest =
+    event.request.mode === 'navigate' ||
+    url.pathname === '/' ||
+    url.pathname.endsWith('.html');
+
+  if (isNavigationRequest) {
+    event.respondWith(
+      (async () => {
+        try {
+          return await fetch(event.request, { cache: 'no-store' });
+        } catch (error) {
+          const shell = await caches.match('/index.html') || await caches.match('/');
+          if (shell) {
+            return shell;
+          }
+
+          return new Response('', { status: 503, statusText: 'Offline' });
+        }
+      })()
     );
     return;
   }
