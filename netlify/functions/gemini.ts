@@ -12,7 +12,12 @@ const MAX_HISTORY_TEXT_LENGTH = 4000;
 const MAX_USER_INSTRUCTIONS_LENGTH = 500;
 const MAX_TIME_CONTEXT_LENGTH = 120;
 const MAX_WEATHER_CONTEXT_TEXT_LENGTH = 4000;
-const GEMINI_MODELS = ['gemini-3.1-flash-lite', 'gemini-2.5-flash-lite'] as const;
+const MODEL_ATTEMPTS = [
+    { model: 'gemini-3.1-flash-lite', useSearch: true, useThinking: true },
+    { model: 'gemini-3.1-flash-lite', useSearch: false, useThinking: true },
+    { model: 'gemini-3.1-flash-lite', useSearch: false, useThinking: false },
+    { model: 'gemini-2.5-flash-lite', useSearch: false, useThinking: false },
+] as const;
 
 const isRecord = (value: unknown): value is Record<string, unknown> => (
     typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -217,23 +222,28 @@ const buildUserInstructionBlock = (userInstructions: string): string => {
     ].join('\n');
 };
 
-const buildGenerationConfig = () => ({
+const buildGenerationConfig = (options: { useSearch: boolean; useThinking: boolean }) => ({
     systemInstruction: buildSystemInstruction(),
-    tools: [{ googleSearch: { searchTypes: ['web_search'] } }],
-    thinkingConfig: {
-        thinkingLevel: 'low' as const,
-    },
+    ...(options.useSearch ? { tools: [{ googleSearch: { searchTypes: ['web_search'] } }] } : {}),
+    ...(options.useThinking ? {
+        thinkingConfig: {
+            thinkingLevel: 'low' as const,
+        },
+    } : {}),
 });
 
 const runModelWithFallbacks = async (ai: GoogleGenAI, contents: Content[]) => {
     let lastError: unknown = null;
 
-    for (const model of GEMINI_MODELS) {
+    for (const attempt of MODEL_ATTEMPTS) {
         try {
             const result = await ai.models.generateContent({
-                model,
+                model: attempt.model,
                 contents,
-                config: buildGenerationConfig(),
+                config: buildGenerationConfig({
+                    useSearch: attempt.useSearch,
+                    useThinking: attempt.useThinking,
+                }),
             });
 
             const text = (result.text || '').trim();
@@ -241,10 +251,10 @@ const runModelWithFallbacks = async (ai: GoogleGenAI, contents: Content[]) => {
                 throw new Error('Resposta vazia do modelo.');
             }
 
-            return { result, text, model };
+            return { result, text, model: attempt.model };
         } catch (error) {
             lastError = error;
-            console.error(`[Handler] Falha no modelo ${model}:`, error);
+            console.error(`[Handler] Falha no modelo ${attempt.model} (search=${attempt.useSearch}, thinking=${attempt.useThinking}):`, error);
         }
     }
 
