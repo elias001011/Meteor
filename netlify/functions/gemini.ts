@@ -1,4 +1,4 @@
-import { GoogleGenAI, ServiceTier, type Content, type GroundingChunk, type GroundingMetadata } from '@google/genai';
+import { GoogleGenAI, type Content, type GroundingChunk, type GroundingMetadata } from '@google/genai';
 import { type Handler, type HandlerEvent } from '@netlify/functions';
 
 interface GroundingSource {
@@ -20,11 +20,10 @@ const GOOGLE_SEARCH_TOOL = {
     },
 } as const;
 const MODEL_ATTEMPTS = [
-    { model: 'gemini-3.1-flash-lite', useSearch: true, serviceTier: ServiceTier.STANDARD },
-    { model: 'gemini-3.1-flash-lite', useSearch: true, serviceTier: ServiceTier.PRIORITY },
-    { model: 'gemini-3.1-flash-lite', useSearch: false, serviceTier: ServiceTier.PRIORITY },
-    { model: 'gemini-3.1-flash-lite', useSearch: false, serviceTier: ServiceTier.STANDARD },
+    { model: 'gemini-3.1-flash-lite', useSearch: true },
+    { model: 'gemini-3.1-flash-lite', useSearch: false },
 ] as const;
+const MODEL_RETRY_DELAYS_MS = [0, 1500, 3000] as const;
 
 const isRecord = (value: unknown): value is Record<string, unknown> => (
     typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -229,35 +228,57 @@ const buildUserInstructionBlock = (userInstructions: string): string => {
     ].join('\n');
 };
 
-const buildGenerationConfig = (options: { useSearch: boolean; serviceTier: ServiceTier }) => ({
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const isTransientModelError = (error: unknown): boolean => {
+    if (!isRecord(error)) return false;
+
+    const status = toNumber(error.status);
+    const message = typeof error.message === 'string' ? error.message : '';
+
+    return status === 503 || /high demand|unavailable/i.test(message);
+};
+
+const buildGenerationConfig = (options: { useSearch: boolean }) => ({
     systemInstruction: buildSystemInstruction(),
     ...(options.useSearch ? { tools: [GOOGLE_SEARCH_TOOL] } : {}),
-    serviceTier: options.serviceTier,
 });
 
 const runModelWithFallbacks = async (ai: GoogleGenAI, contents: Content[]) => {
     let lastError: unknown = null;
 
     for (const attempt of MODEL_ATTEMPTS) {
-        try {
-            const result = await ai.models.generateContent({
-                model: attempt.model,
-                contents,
-                config: buildGenerationConfig({
-                    useSearch: attempt.useSearch,
-                    serviceTier: attempt.serviceTier,
-                }),
-            });
-
-            const text = (result.text || '').trim();
-            if (!text) {
-                throw new Error('Resposta vazia do modelo.');
+        for (const [retryIndex, delayMs] of MODEL_RETRY_DELAYS_MS.entries()) {
+            if (delayMs > 0) {
+                await sleep(delayMs);
             }
 
-            return { result, text, model: attempt.model };
-        } catch (error) {
-            lastError = error;
-            console.error(`[Handler] Falha no modelo ${attempt.model} (search=${attempt.useSearch}, thinking=${attempt.useThinking}):`, error);
+            try {
+                const result = await ai.models.generateContent({
+                    model: attempt.model,
+                    contents,
+                    config: buildGenerationConfig({
+                        useSearch: attempt.useSearch,
+                    }),
+                });
+
+                const text = (result.text || '').trim();
+                if (!text) {
+                    throw new Error('Resposta vazia do modelo.');
+                }
+
+                return { result, text, model: attempt.model };
+            } catch (error) {
+                lastError = error;
+                console.error(
+                    `[Handler] Falha no modelo ${attempt.model} (search=${attempt.useSearch}, retry=${retryIndex + 1}/${MODEL_RETRY_DELAYS_MS.length}):`,
+                    error
+                );
+
+                if (!isTransientModelError(error)) {
+                    break;
+                }
+            }
         }
     }
 
