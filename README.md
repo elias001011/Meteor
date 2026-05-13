@@ -1,7 +1,7 @@
 
 # Meteor  ☄️
 
-![Version](https://img.shields.io/badge/version-5.3.0-purple.svg)
+![Version](https://img.shields.io/badge/version-5.8.0-purple.svg)
 ![React](https://img.shields.io/badge/React-19-61dafb.svg)
 ![Vite](https://img.shields.io/badge/Vite-7-646cff.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6.svg)
@@ -17,7 +17,7 @@ O projeto utiliza uma arquitetura **BFF (Backend-for-Frontend)** via Netlify Fun
 
 ---
 
-## ✨ Funcionalidades Principais (v5.3.0)
+## ✨ Funcionalidades Principais (v5.8.0)
 
 *   **🧘 Modo Zen 2.0 (Novo):**
     *   **Estilos Visual:** Escolha entre o estilo "Cinemático" clássico ou o novo estilo "Minimalista" centralizado.
@@ -36,10 +36,11 @@ O projeto utiliza uma arquitetura **BFF (Backend-for-Frontend)** via Netlify Fun
     *   Qualidade do Ar (AQI) e componentes poluentes.
 
 *   **🤖 Meteor AI (Assistente Inteligente):**
-    *   Baseada no **Google Gemini 2.5 Flash Lite**.
+    *   Baseada no **Google Gemini 3.1 Flash-Lite**.
     *   Contexto completo: A IA "vê" o clima da sua tela, hora local e histórico de conversa.
-    *   **Ferramentas (Stealth Tools):** A IA pode decidir autonomamente buscar dados na Web (Google Search) ou consultar o clima de outras cidades globais.
-    *   **Segurança Reforçada:** Diretrizes estritas contra injeção de prompt.
+    *   **Busca Web Nativa:** A IA usa o Google Search grounding oficial quando precisar de dados recentes ou verificáveis, sem botão manual.
+    *   **Especialista em Clima:** Prioriza contexto local exibido no app quando o usuário não informa localização.
+    *   **Segurança Reforçada:** Diretrizes estritas contra injeção de prompt e falhas de provedor.
 
 *   **🎨 Experiência Visual Imersiva:**
     *   **Motor de Temas Dinâmico:** A cor do app muda conforme o clima (Sol, Chuva, Nublado, Noite).
@@ -88,15 +89,8 @@ Crie um arquivo `.env` na raiz do projeto com as chaves de API necessárias:
 # Google Gemini API (https://aistudio.google.com/)
 GEMINI_API="sua_chave_aqui"
 
-# Open Router API (Fallback gratuito - https://openrouter.ai/)
-OPENROUTER_API="sua_chave_aqui"
-
 # OpenWeatherMap API (https://openweathermap.org/)
 CLIMA_API="sua_chave_aqui"
-
-# Google Custom Search API (Para capacidade de busca da IA)
-SEARCH_API="sua_chave_google_search"
-SEARCH_ID="seu_search_engine_id"
 
 # GNews API (Para notícias - https://gnews.io/)
 GNEWS_API="sua_chave_aqui"
@@ -104,6 +98,8 @@ GNEWS_API="sua_chave_aqui"
 # Unsplash API (Opcional - Para imagens de fundo das cidades)
 UNSPLASH_ACESS_KEY="sua_chave_aqui"
 ```
+
+> A IA não usa uma chave separada de busca: o app depende da busca nativa do Google no Gemini, então basta configurar `GEMINI_API`.
 
 ### 4. Execução
 
@@ -124,8 +120,7 @@ O app estará disponível em `http://localhost:8888`.
     *   `/context`: Gestão de estado global (ThemeContext).
 *   `/netlify/functions`: **Backend Serverless**.
     *   `weather.ts`: Proxy e lógica de cache/fallback para APIs de clima.
-    *   `gemini.ts`: Orquestrador da IA, injeção de prompt de sistema e ferramentas.
-    *   `search.ts`: Proxy para Google Custom Search.
+    *   `gemini.ts`: Orquestrador da IA com Gemini 3.1 Flash-Lite, contexto do app e Google Search grounding nativo.
 
 ---
 
