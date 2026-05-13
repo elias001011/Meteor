@@ -32,19 +32,7 @@ const cleanApiKey = (value: unknown): string => {
 };
 
 const resolveGeminiApiKey = (): string => {
-    const candidates = [
-        process.env.GEMINI_API,
-        process.env.GEMINI_API_KEY,
-        process.env.GOOGLE_API_KEY,
-        process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-    ];
-
-    for (const candidate of candidates) {
-        const cleaned = cleanApiKey(candidate);
-        if (cleaned) return cleaned;
-    }
-
-    return '';
+    return cleanApiKey(process.env.GEMINI_API);
 };
 
 const toNumber = (value: unknown): number | null => {
@@ -272,7 +260,7 @@ const handler: Handler = async (event: HandlerEvent) => {
             statusCode: 500,
             headers,
             body: JSON.stringify({
-                message: 'Chave da API Gemini não configurada no servidor. Configure GEMINI_API ou GEMINI_API_KEY.',
+                message: 'Chave da API Gemini não configurada no servidor. Configure GEMINI_API.',
             }),
         };
     }
