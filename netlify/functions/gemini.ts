@@ -23,7 +23,6 @@ const MODEL_ATTEMPTS = [
     { model: 'gemini-3.1-flash-lite', useSearch: true, useThinking: true },
     { model: 'gemini-3.1-flash-lite', useSearch: false, useThinking: true },
     { model: 'gemini-3.1-flash-lite', useSearch: false, useThinking: false },
-    { model: 'gemini-2.5-flash-lite', useSearch: false, useThinking: false },
 ] as const;
 
 const isRecord = (value: unknown): value is Record<string, unknown> => (
