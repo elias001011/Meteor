@@ -12,17 +12,17 @@ const MAX_HISTORY_TEXT_LENGTH = 4000;
 const MAX_USER_INSTRUCTIONS_LENGTH = 500;
 const MAX_TIME_CONTEXT_LENGTH = 120;
 const MAX_WEATHER_CONTEXT_TEXT_LENGTH = 4000;
-const GOOGLE_SEARCH_TOOL: {
-    type: 'google_search';
-    search_types: Array<'web_search'>;
-} = {
-    type: 'google_search',
-    search_types: ['web_search'],
-};
+const GOOGLE_SEARCH_TOOL = {
+    googleSearch: {
+        searchTypes: {
+            webSearch: {},
+        },
+    },
+} as const;
 const MODEL_ATTEMPTS = [
     { model: 'gemini-3.1-flash-lite', useSearch: true, useThinking: true },
-    { model: 'gemini-3.1-flash-lite', useSearch: false, useThinking: true },
     { model: 'gemini-3.1-flash-lite', useSearch: false, useThinking: false },
+    { model: 'gemini-3.1-flash-lite', useSearch: false, useThinking: true },
 ] as const;
 
 const isRecord = (value: unknown): value is Record<string, unknown> => (
