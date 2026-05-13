@@ -12,6 +12,7 @@ const MAX_HISTORY_TEXT_LENGTH = 4000;
 const MAX_USER_INSTRUCTIONS_LENGTH = 500;
 const MAX_TIME_CONTEXT_LENGTH = 120;
 const MAX_WEATHER_CONTEXT_TEXT_LENGTH = 4000;
+const GEMINI_MODELS = ['gemini-3.1-flash-lite', 'gemini-2.5-flash-lite'] as const;
 
 const isRecord = (value: unknown): value is Record<string, unknown> => (
     typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -20,6 +21,30 @@ const isRecord = (value: unknown): value is Record<string, unknown> => (
 const clampString = (value: unknown, maxLength: number): string => {
     if (typeof value !== 'string') return '';
     return value.slice(0, maxLength);
+};
+
+const cleanApiKey = (value: unknown): string => {
+    if (typeof value !== 'string') return '';
+
+    return value
+        .trim()
+        .replace(/^['"]|['"]$/g, '');
+};
+
+const resolveGeminiApiKey = (): string => {
+    const candidates = [
+        process.env.GEMINI_API,
+        process.env.GEMINI_API_KEY,
+        process.env.GOOGLE_API_KEY,
+        process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+    ];
+
+    for (const candidate of candidates) {
+        const cleaned = cleanApiKey(candidate);
+        if (cleaned) return cleaned;
+    }
+
+    return '';
 };
 
 const toNumber = (value: unknown): number | null => {
@@ -204,15 +229,51 @@ const buildUserInstructionBlock = (userInstructions: string): string => {
     ].join('\n');
 };
 
+const buildGenerationConfig = () => ({
+    systemInstruction: buildSystemInstruction(),
+    tools: [{ googleSearch: { searchTypes: ['web_search'] } }],
+    thinkingConfig: {
+        thinkingLevel: 'low' as const,
+    },
+});
+
+const runModelWithFallbacks = async (ai: GoogleGenAI, contents: Content[]) => {
+    let lastError: unknown = null;
+
+    for (const model of GEMINI_MODELS) {
+        try {
+            const result = await ai.models.generateContent({
+                model,
+                contents,
+                config: buildGenerationConfig(),
+            });
+
+            const text = (result.text || '').trim();
+            if (!text) {
+                throw new Error('Resposta vazia do modelo.');
+            }
+
+            return { result, text, model };
+        } catch (error) {
+            lastError = error;
+            console.error(`[Handler] Falha no modelo ${model}:`, error);
+        }
+    }
+
+    throw lastError instanceof Error ? lastError : new Error('Todos os modelos falharam.');
+};
+
 const handler: Handler = async (event: HandlerEvent) => {
-    const geminiKey = process.env.GEMINI_API;
+    const geminiKey = resolveGeminiApiKey();
     const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
 
     if (!geminiKey) {
         return {
             statusCode: 500,
             headers,
-            body: JSON.stringify({ message: 'Chave da API Gemini não configurada no servidor.' }),
+            body: JSON.stringify({
+                message: 'Chave da API Gemini não configurada no servidor. Configure GEMINI_API ou GEMINI_API_KEY.',
+            }),
         };
     }
 
@@ -282,22 +343,7 @@ const handler: Handler = async (event: HandlerEvent) => {
             },
         ];
 
-        const result = await ai.models.generateContent({
-            model: 'gemini-3.1-flash-lite',
-            contents,
-            config: {
-                systemInstruction: buildSystemInstruction(),
-                tools: [{ googleSearch: {} }],
-                thinkingConfig: {
-                    thinkingLevel: 'low',
-                },
-            },
-        });
-
-        const text = (result.text || '').trim();
-        if (!text) {
-            throw new Error('Resposta vazia do modelo.');
-        }
+        const { result, text, model } = await runModelWithFallbacks(ai, contents);
 
         const candidate = result.candidates?.[0];
         const sources = extractGroundingSources(candidate?.groundingMetadata);
@@ -312,7 +358,7 @@ const handler: Handler = async (event: HandlerEvent) => {
             headers,
             body: JSON.stringify({
                 text,
-                model: 'gemini-3.1-flash-lite',
+                model,
                 processingTime: Date.now() - startTime,
                 toolUsed,
                 sources,
