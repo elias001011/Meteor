@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { SendIcon, MicIcon, SearchIcon } from '../icons';
+import { SendIcon, MicIcon } from '../icons';
 import { useTheme } from '../context/ThemeContext';
 
 interface ChatInputProps {
@@ -8,8 +8,6 @@ interface ChatInputProps {
   isSending: boolean;
   isListening: boolean;
   onToggleListening: () => void;
-  isSearchEnabled: boolean;
-  onToggleSearch: () => void;
   text: string;
   setText: (text: string) => void;
 }
@@ -19,8 +17,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
     isSending, 
     isListening, 
     onToggleListening,
-    isSearchEnabled,
-    onToggleSearch,
     text,
     setText
 }) => {
@@ -35,7 +31,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex items-center gap-2 w-full">
+    <form onSubmit={handleSubmit} className="flex items-end gap-2 w-full">
       <button 
         type="button" 
         onClick={onToggleListening}
@@ -53,19 +49,12 @@ const ChatInput: React.FC<ChatInputProps> = ({
                 handleSubmit(e);
             }
         }}
-        placeholder={isListening ? "Ouvindo..." : "Pergunte algo..."}
+        placeholder={isListening ? "Ouvindo..." : "Pergunte algo sobre o clima..."}
         rows={1}
         disabled={isListening}
-        className={`flex-1 bg-gray-700/50 border border-gray-600/50 rounded-full py-2 px-4 text-white placeholder-gray-400 resize-none focus:outline-none focus:ring-2 ${classes.ring} max-h-14 disabled:bg-gray-800 disabled:cursor-not-allowed`}
+        enterKeyHint="send"
+        className={`flex-1 min-h-[52px] bg-gray-700/50 border border-gray-600/50 rounded-full py-3 px-4 text-white placeholder-gray-400 resize-none focus:outline-none focus:ring-2 ${classes.ring} max-h-40 leading-6 disabled:bg-gray-800 disabled:cursor-not-allowed`}
       />
-       <button 
-        type="button" 
-        onClick={onToggleSearch}
-        className={`p-2 transition-colors rounded-full ${isSearchEnabled ? `${classes.text} bg-gray-800 border border-gray-700` : 'text-gray-400 hover:text-white'}`}
-        aria-label={isSearchEnabled ? "Desativar pesquisa na web" : "Ativar pesquisa na web"}
-      >
-          <SearchIcon className="w-6 h-6" />
-      </button>
       <button
         type="submit"
         disabled={isSending || !text.trim() || isListening}

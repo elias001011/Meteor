@@ -6,9 +6,8 @@ import MapView from './components/map/MapView';
 import NewsView from './components/news/NewsView';
 import BottomNav from './components/layout/BottomNav';
 import Header from './components/layout/Header';
-import type { ChatMessage, View, CitySearchResult, AllWeatherData, GroundingSource, SearchResultItem, DataSource, AppSettings, AppTheme } from './types';
-import { streamChatResponse } from './services/geminiService';
-import { getSearchResults } from './services/searchService';
+import type { ChatMessage, View, CitySearchResult, AllWeatherData, DataSource, AppSettings, AppTheme } from './types';
+import { generateChatResponse } from './services/geminiService';
 import { fetchAllWeatherData } from './services/weatherService';
 import { getSettings, saveSettings, importAppData } from './services/settingsService';
 import DesktopWeather from './components/weather/DesktopWeather';
@@ -76,8 +75,6 @@ const AppContent: React.FC<{
     setChatInputText: (t: string) => void;
     isListening: boolean;
     onToggleListening: () => void;
-    isSearchEnabled: boolean;
-    onToggleSearch: () => void;
     handleSendMessage: (t: string, c?: boolean) => void;
     weatherInfo: Partial<AllWeatherData>;
     weatherStatus: 'idle' | 'loading' | 'success' | 'error';
@@ -145,8 +142,6 @@ const AppContent: React.FC<{
         setChatInputText: props.setChatInputText,
         isListening: props.isListening,
         onToggleListening: props.onToggleListening,
-        isSearchEnabled: props.isSearchEnabled,
-        onToggleSearch: props.onToggleSearch
     };
     
     // Performance Mode Overrides for Animation
@@ -288,8 +283,6 @@ const AppContent: React.FC<{
                 />
                 <MobileAiControls
                     isVisible={view === 'ai'}
-                    onSendMessage={(text) => props.handleSendMessage(text, false)}
-                    isSending={props.isSending}
                     {...aiViewProps}
                 />
             </div>
@@ -301,7 +294,6 @@ const App: React.FC = () => {
   const [view, setView] = useState<View>('weather');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isSending, setIsSending] = useState(false);
-  const [isSearchEnabled, setIsSearchEnabled] = useState(false);
   const [isZenMode, setIsZenMode] = useState(false);
   
   const [isListening, setIsListening] = useState(false);
@@ -609,7 +601,7 @@ const App: React.FC = () => {
       }
   }, [currentCoords, currentCityInfo, handleFetchWeather]);
 
-  const sendQueryToModel = useCallback(async (query: string, initialSearchResults: SearchResultItem[] | null) => {
+  const sendQueryToModel = useCallback(async (query: string) => {
     setIsSending(true);
 
     const modelMessage: ChatMessage = { id: (Date.now() + 1).toString(), role: 'model', text: '', sources: [] };
@@ -624,70 +616,44 @@ const App: React.FC = () => {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
     });
 
-    const performChatRequest = async (searchData: SearchResultItem[] | null) => {
-        const stream = streamChatResponse(query, history, weatherInfo, searchData, timeContext, isSearchEnabled);
-        let fullText = '';
-        const allSources: GroundingSource[] = [];
+    try {
+        const result = await generateChatResponse({
+            prompt: query,
+            history,
+            weatherContext: weatherInfo,
+            timeContext,
+            userInstructions: settings.userAiInstructions,
+        });
 
-        if (searchData) {
-            searchData.forEach(result => {
-                if (!allSources.some(s => s.uri === result.link)) {
-                    allSources.push({ uri: result.link, title: result.title });
-                }
-            });
-        }
-
-        try {
-            let hasReceivedData = false;
-            for await (const chunk of stream) {
-                hasReceivedData = true;
-                fullText = chunk.text;
-                
-                setMessages(prev => {
-                    const newMessages = [...prev];
-                    const lastMessage = newMessages[newMessages.length - 1];
-                    if (lastMessage.role === 'model') {
-                        lastMessage.text = fullText;
-                        lastMessage.sources = [...allSources];
-                        if (chunk.isFinal) {
-                            lastMessage.modelUsed = chunk.model;
-                            lastMessage.processingTime = chunk.processingTime;
-                            lastMessage.toolExecuted = chunk.toolUsed;
-                        }
-                    }
-                    return newMessages;
-                });
+        setMessages(prev => {
+            const newMessages = [...prev];
+            const lastMessage = newMessages[newMessages.length - 1];
+            if (lastMessage.role === 'model') {
+                lastMessage.text = result.text;
+                lastMessage.sources = result.sources || [];
+                lastMessage.modelUsed = result.model || 'gemini-3.1-flash-lite';
+                lastMessage.processingTime = result.processingTime;
+                lastMessage.toolExecuted = result.toolUsed;
             }
-            
-            // Se não recebeu nenhum dado, mostrar erro
-            if (!hasReceivedData || !fullText.trim()) {
-                setMessages(prev => {
-                    const newMessages = [...prev];
-                    const lastMessage = newMessages[newMessages.length - 1];
-                    if (lastMessage.role === 'model') {
-                        lastMessage.text = "Desculpe, não consegui processar sua solicitação. Tente novamente em alguns segundos.";
-                        lastMessage.modelUsed = "erro";
-                    }
-                    return newMessages;
-                });
+            return newMessages;
+        });
+    } catch (error) {
+        console.error("Error in chat request", error);
+        setMessages(prev => {
+            const newMessages = [...prev];
+            const lastMessage = newMessages[newMessages.length - 1];
+            if (lastMessage.role === 'model') {
+                lastMessage.text = "O modelo falhou. Tente novamente mais tarde";
+                lastMessage.modelUsed = "erro";
+                lastMessage.sources = [];
+                lastMessage.toolExecuted = undefined;
             }
-        } catch (e) {
-            console.error("Error in chat stream", e);
-            setMessages(prev => {
-                const newMessages = [...prev];
-                const lastMessage = newMessages[newMessages.length - 1];
-                if (lastMessage.role === 'model') {
-                    lastMessage.text = "Erro ao processar resposta. Verifique sua conexão ou tente novamente. Se o problema persistir, a IA pode estar temporariamente indisponível.";
-                    lastMessage.modelUsed = "erro";
-                }
-                return newMessages;
-            });
-        }
-    };
-
-    await performChatRequest(initialSearchResults);
-    setIsSending(false);
-  }, [messages, weatherInfo, isSearchEnabled]);
+            return newMessages;
+        });
+    } finally {
+        setIsSending(false);
+    }
+  }, [messages, weatherInfo, settings.userAiInstructions]);
   
   const handleSendMessage = useCallback(async (text: string, isContinuation: boolean = false) => {
     if (!text.trim()) return;
@@ -696,22 +662,9 @@ const App: React.FC = () => {
         const userMessage: ChatMessage = { id: Date.now().toString(), role: 'user', text };
         setMessages(prev => [...prev, userMessage]);
     }
-    
-    let searchResults: SearchResultItem[] | null = null;
-    
-    if (isSearchEnabled) {
-      setIsSending(true); 
-       try {
-        const dateQuery = `${text} ${new Date().toLocaleDateString('pt-BR')}`;
-        searchResults = await getSearchResults(dateQuery);
-      } catch (e) {
-        console.error("Web search failed:", e);
-      }
-      setIsSending(false);
-    }
-    
-    sendQueryToModel(text, searchResults);
-  }, [isSearchEnabled, sendQueryToModel]);
+
+    await sendQueryToModel(text);
+  }, [sendQueryToModel]);
 
 
   const handleToggleListening = useCallback(() => {
@@ -728,10 +681,6 @@ const App: React.FC = () => {
     setIsListening(prev => !prev);
   }, [isListening]);
 
-  const handleToggleSearch = () => {
-    setIsSearchEnabled(prev => !prev);
-  };
-  
   const toggleZenMode = () => {
       if (!weatherInfo.weatherData && !isZenMode) {
           setAppError("Aguarde os dados do clima carregarem para entrar no modo Zen.");
@@ -776,8 +725,6 @@ const App: React.FC = () => {
         setChatInputText={setChatInputText}
         isListening={isListening}
         onToggleListening={handleToggleListening}
-        isSearchEnabled={isSearchEnabled}
-        onToggleSearch={handleToggleSearch}
         handleSendMessage={handleSendMessage}
         weatherInfo={weatherInfo}
         weatherStatus={weatherStatus}

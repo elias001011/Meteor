@@ -1,4 +1,4 @@
-const CACHE_NAME = 'meteor-cache-v2';
+const CACHE_NAME = 'meteor-cache-v3';
 const APP_SHELL_URLS = [
   '/',
   '/index.html',
@@ -30,26 +30,48 @@ self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   
   const url = new URL(event.request.url);
-  
-  if (url.pathname.startsWith('/.netlify/functions/')) {
-    event.respondWith(fetch(event.request));
+
+  // Deixa CDNs e outras origens seguirem o fluxo normal do navegador.
+  // Isso evita o Service Worker quebrar scripts e estilos externos.
+  if (url.origin !== self.location.origin) {
     return;
   }
-  
+
+  if (url.pathname.startsWith('/.netlify/functions/')) {
+    event.respondWith(
+      fetch(event.request).catch(() => new Response(
+        JSON.stringify({ message: 'Serviço temporariamente indisponível.' }),
+        { status: 503, headers: { 'Content-Type': 'application/json' } }
+      ))
+    );
+    return;
+  }
+
   event.respondWith(
-    fetch(event.request)
-      .then(response => {
-        if (!response || response.status !== 200 || response.type !== 'basic') {
-          return response;
+    (async () => {
+      try {
+        const response = await fetch(event.request);
+        if (response && response.ok) {
+          const responseToCache = response.clone();
+          const cache = await caches.open(CACHE_NAME);
+          await cache.put(event.request, responseToCache);
         }
-        const responseToCache = response.clone();
-        caches.open(CACHE_NAME).then(cache => {
-          cache.put(event.request, responseToCache);
-        });
         return response;
-      })
-      .catch(() => {
-        return caches.match(event.request);
-      })
+      } catch (error) {
+        const cachedResponse = await caches.match(event.request);
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+
+        if (event.request.mode === 'navigate') {
+          const shell = await caches.match('/index.html') || await caches.match('/');
+          if (shell) {
+            return shell;
+          }
+        }
+
+        return new Response('', { status: 503, statusText: 'Offline' });
+      }
+    })()
   );
 });

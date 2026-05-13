@@ -28,6 +28,16 @@ const ChangelogModal: React.FC<any> = ({ isOpen, onClose }) => {
 
     const versions = [
         {
+            version: "5.8.0",
+            title: "IA Nativa e Busca Automática",
+            changes: [
+                "Meteor AI migrada para Gemini 3.1 Flash-Lite com busca web nativa.",
+                "Remoção total do fallback OpenRouter e do botão de busca manual.",
+                "Clima atual do app usado como contexto quando o usuário não informa localização.",
+                "Melhorias de segurança e redução de superfície de ataque."
+            ]
+        },
+        {
             version: "5.3.0",
             title: "Remoção de Notificações Push",
             changes: [
@@ -39,13 +49,13 @@ const ChangelogModal: React.FC<any> = ({ isOpen, onClose }) => {
         },
         {
             version: "5.0.0",
-            title: "Notícias & IA Híbrida",
+            title: "Notícias & IA Contextual",
             changes: [
                 "Nova Aba Notícias: Integração completa com GNews API para notícias em tempo real.",
                 "Categorias de Notícias: Geral, Mundo, Brasil, Negócios, Tecnologia, Ciência, Saúde, Esportes e Entretenimento.",
                 "Resumo com IA: Botão em cada notícia para analisar e discutir o conteúdo com a Meteor AI.",
-                "Fallback Open Router: Sistema de IA híbrido - se o Google falhar, usa Open Router (gratuito).",
-                "Limite Inteligente: 5 conversas diárias por usuário, independente do provedor utilizado.",
+                "Busca web assistida para dados recentes e verificáveis.",
+                "Limite inteligente da IA removido em versões posteriores.",
                 "Tradução de Summaries: Summaries dos cards diários agora em português BR.",
                 "Correções UI: Animação da barra de pesquisa otimizada para não cortar na interface."
             ]

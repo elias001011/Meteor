@@ -38,11 +38,11 @@ const AiWelcome: React.FC<AiWelcomeProps> = ({ onPromptSelect }) => {
             "O que é o índice UV e por que importa?",
             "Resuma as condições climáticas atuais.",
             "Qual a melhor hora para correr hoje?",
-            "Curiosidades sobre tempestades solares.",
+            "Por que a sensação térmica muda tanto?",
             "Como se formam os furacões?",
             "Dicas de segurança para tempestades.",
             "Qual a temperatura ideal para plantar?",
-            "Me conte uma piada sobre meteorologia."
+            "Como identificar risco de temporal?"
         ];
         
         // Simple deterministic rotation based on day of year
@@ -111,11 +111,15 @@ const AiWelcome: React.FC<AiWelcomeProps> = ({ onPromptSelect }) => {
                             </li>
                             <li className="flex gap-3">
                                 <span className={`${classes.text} font-bold`}>•</span>
-                                <span><strong>Busca Web:</strong> Se precisar de notícias ou dados recentes, a IA ativa a busca automaticamente.</span>
+                                <span><strong>Busca Web:</strong> Se precisar de notícias ou dados recentes, a IA ativa a Busca do Google nativa automaticamente.</span>
                             </li>
                             <li className="flex gap-3">
                                 <span className={`${classes.text} font-bold`}>•</span>
-                                <span><strong>Consulta Global:</strong> Pergunte sobre o tempo em Paris ou Tóquio. A IA consultará a Open-Meteo em tempo real.</span>
+                                <span><strong>Clima Atual:</strong> Se você não informar localização, a IA usa o clima que já está na tela do app.</span>
+                            </li>
+                            <li className="flex gap-3">
+                                <span className={`${classes.text} font-bold`}>•</span>
+                                <span><strong>Consulta Global:</strong> Pergunte sobre o tempo em qualquer cidade. A IA usa a web nativa para informações recentes e verificáveis.</span>
                             </li>
                             <li className="flex gap-3">
                                 <span className={`${classes.text} font-bold`}>•</span>

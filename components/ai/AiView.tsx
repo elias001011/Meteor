@@ -22,8 +22,6 @@ interface AiViewProps {
     isSending: boolean;
     isListening: boolean;
     onToggleListening: () => void;
-    isSearchEnabled: boolean;
-    onToggleSearch: () => void;
     chatInputText: string;
     setChatInputText: (text: string) => void;
 }
@@ -175,7 +173,7 @@ const AiView: React.FC<AiViewProps> = (props) => {
             </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto lg:pb-24 pb-40 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto lg:pb-24 pb-56 custom-scrollbar">
           {!hasMessages ? (
              <AiWelcome onPromptSelect={(text) => onSendMessage(text, false)} />
           ) : (
@@ -186,17 +184,15 @@ const AiView: React.FC<AiViewProps> = (props) => {
         {/* Input Area (Always visible unless on specific conditions, but requested to keep) */}
         <div className="hidden lg:block fixed bottom-4 left-1/2 -translate-x-1/2 w-full max-w-3xl px-4 z-20">
             <div className="bg-gray-900/90 backdrop-blur-xl border border-gray-700/50 p-2 rounded-full shadow-2xl">
-                <ChatInput 
-                    onSendMessage={(text) => onSendMessage(text, false)} 
-                    isSending={isSending}
-                    text={chatInputProps.chatInputText}
-                    setText={chatInputProps.setChatInputText}
-                    isListening={chatInputProps.isListening}
-                    onToggleListening={chatInputProps.onToggleListening}
-                    isSearchEnabled={chatInputProps.isSearchEnabled}
-                    onToggleSearch={chatInputProps.onToggleSearch}
-                />
-            </div>
+                    <ChatInput 
+                        onSendMessage={(text) => onSendMessage(text, false)} 
+                        isSending={isSending}
+                        text={chatInputProps.chatInputText}
+                        setText={chatInputProps.setChatInputText}
+                        isListening={chatInputProps.isListening}
+                        onToggleListening={chatInputProps.onToggleListening}
+                    />
+                </div>
             <p className="text-center text-[10px] text-gray-500 mt-2 px-4">
                 A IA pode cometer erros. Verifique informações importantes.
             </p>

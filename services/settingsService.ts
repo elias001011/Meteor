@@ -4,7 +4,6 @@ import type { AppSettings, ChatMessage, CitySearchResult, ExportData } from '../
 
 const SETTINGS_KEY = 'meteor_settings';
 const WEATHER_CACHE_PREFIX = 'weather_data_';
-const AI_USAGE_KEY = 'meteor_ai_usage'; // Key used in geminiService.ts
 
 // Helper to detect if user is on mobile
 const isMobileDevice = (): boolean => {
@@ -520,9 +519,5 @@ export const resetCache = () => {
 };
 
 export const resetAllData = () => {
-    const aiUsage = localStorage.getItem(AI_USAGE_KEY);
     localStorage.clear();
-    if (aiUsage) {
-        localStorage.setItem(AI_USAGE_KEY, aiUsage);
-    }
 };
