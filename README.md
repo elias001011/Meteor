@@ -87,6 +87,7 @@ Crie um arquivo `.env` na raiz do projeto com as chaves de API necessárias:
 
 ```env
 # Google Gemini API (https://aistudio.google.com/)
+# O backend também aceita GEMINI_API_KEY, GOOGLE_API_KEY e GOOGLE_GENERATIVE_AI_API_KEY.
 GEMINI_API="sua_chave_aqui"
 
 # OpenWeatherMap API (https://openweathermap.org/)
@@ -99,7 +100,7 @@ GNEWS_API="sua_chave_aqui"
 UNSPLASH_ACESS_KEY="sua_chave_aqui"
 ```
 
-> A IA não usa uma chave separada de busca: o app depende da busca nativa do Google no Gemini, então basta configurar `GEMINI_API`.
+> A IA não usa uma chave separada de busca: o app depende da busca nativa do Google no Gemini, então basta configurar uma das chaves Gemini acima.
 
 ### 4. Execução
 

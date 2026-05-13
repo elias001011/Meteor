@@ -32,7 +32,8 @@ const ChangelogModal: React.FC<any> = ({ isOpen, onClose }) => {
             title: "IA Nativa e Busca Automática",
             changes: [
                 "Meteor AI migrada para Gemini 3.1 Flash-Lite com busca web nativa.",
-                "Remoção total do fallback OpenRouter e do botão de busca manual.",
+                "Fallback interno entre modelos Gemini para reduzir falhas, sem OpenRouter.",
+                "Remoção total do botão de busca manual.",
                 "Clima atual do app usado como contexto quando o usuário não informa localização.",
                 "Melhorias de segurança e redução de superfície de ataque."
             ]
