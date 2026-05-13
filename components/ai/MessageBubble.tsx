@@ -13,6 +13,7 @@ interface MessageBubbleProps {
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, onRegenerate }) => {
   const isModel = message.role === 'model';
+  const isLoading = isModel && message.text.trim().length === 0;
   const { classes } = useTheme();
   const [showInfo, setShowInfo] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -69,6 +70,26 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, onRegene
       });
   };
 
+  const renderLoadingDots = () => (
+    <div
+      className="flex items-center gap-2 py-1"
+      role="status"
+      aria-live="polite"
+      aria-label="Carregando resposta da IA"
+    >
+      <span className="sr-only">Carregando resposta da IA</span>
+      {[0, 1, 2].map((dot) => (
+        <span
+          key={dot}
+          className="h-2.5 w-2.5 rounded-full bg-cyan-300 shadow-[0_0_10px_rgba(103,232,249,0.45)]"
+          style={{
+            animation: `pulse 1.2s ease-in-out ${dot * 0.16}s infinite`,
+          }}
+        />
+      ))}
+    </div>
+  );
+
   const handleCopy = () => {
       navigator.clipboard.writeText(message.text);
   };
@@ -98,9 +119,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, onRegene
           }`}
           style={isModel ? undefined : { boxShadow: `0 0 24px ${classes.hex}33` }}
         >
-          <div className="text-base leading-relaxed break-words">
-            {isModel ? renderFormattedText(message.text) : message.text}
-            {!isModel && message.text.length === 0 ? '...' : ''}
+          <div className={`text-base leading-relaxed break-words ${isLoading ? 'min-h-[28px] flex items-center' : ''}`}>
+            {isLoading ? renderLoadingDots() : isModel ? renderFormattedText(message.text) : message.text}
           </div>
         </div>
 
