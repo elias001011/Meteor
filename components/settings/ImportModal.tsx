@@ -3,11 +3,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { XIcon } from '../icons';
 import { useTheme } from '../context/ThemeContext';
+import type { BackupImportOptions } from '../../services/settingsService';
 
 interface ImportModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onImport: (fileContent: string, options: { importSettings: boolean, importCache: boolean, importChat: boolean }) => void;
+    onImport: (fileContent: string, options: BackupImportOptions) => void;
 }
 
 const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onImport }) => {
@@ -16,12 +17,14 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onImport }) 
         importCache: true,
         importChat: false 
     });
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { glassClass } = useTheme();
 
     useEffect(() => {
         if (isOpen) {
             document.body.style.overflow = 'hidden';
+            setErrorMessage(null);
         } else {
             document.body.style.overflow = '';
         }
@@ -35,12 +38,30 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onImport }) 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
+        setErrorMessage(null);
+
+        const isJsonFile = file.type === 'application/json' || file.name.toLowerCase().endsWith('.json') || file.type === '';
+        if (!isJsonFile) {
+            setErrorMessage('Selecione um arquivo JSON de backup.');
+            return;
+        }
+
+        const maxSizeBytes = 2 * 1024 * 1024;
+        if (file.size > maxSizeBytes) {
+            setErrorMessage('O arquivo de backup está muito grande. Use um arquivo com até 2 MB.');
+            return;
+        }
 
         const reader = new FileReader();
         reader.onload = (event) => {
             if (event.target?.result) {
                 onImport(event.target.result as string, options);
+            } else {
+                setErrorMessage('O arquivo selecionado está vazio.');
             }
+        };
+        reader.onerror = () => {
+            setErrorMessage('Não foi possível ler o arquivo selecionado.');
         };
         reader.readAsText(file);
     };
@@ -52,7 +73,16 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onImport }) 
                     <XIcon className="w-6 h-6" />
                 </button>
 
-                <h3 className="text-xl font-bold text-white mb-4">Importar Dados</h3>
+                <h3 className="text-xl font-bold text-white mb-2">Restaurar Backup</h3>
+                <p className="text-sm text-gray-400 mb-4">
+                    Escolha um arquivo JSON exportado pelo Meteor para restaurar seus dados locais.
+                </p>
+
+                {errorMessage && (
+                    <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                        {errorMessage}
+                    </div>
+                )}
                 
                 <div className="space-y-3 mb-6">
                     <label className="flex items-center gap-3 p-3 bg-gray-700/50 rounded-lg cursor-pointer">
@@ -87,7 +117,7 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onImport }) 
                 <input 
                     type="file" 
                     ref={fileInputRef} 
-                    accept=".json" 
+                    accept=".json,application/json" 
                     onChange={handleFileChange} 
                     onClick={(e) => { (e.target as HTMLInputElement).value = '' }}
                     className="hidden" 

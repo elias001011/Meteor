@@ -1,6 +1,6 @@
 
 
-export type View = 'weather' | 'ai' | 'map' | 'news' | 'settings' | 'tips' | 'alerts';
+export type View = 'weather' | 'ai' | 'map' | 'news' | 'settings' | 'tips' | 'alerts' | 'info';
 
 export interface WeatherData {
   city: string;

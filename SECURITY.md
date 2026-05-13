@@ -3,11 +3,12 @@
 
 ## Versões Suportadas
 
-Atualmente o projeto se encontra na versão **4.3.0**. Todas as novas atualizações substituem as versões anteriores.
+Atualmente o projeto se encontra na versão **5.3.0**. Todas as novas atualizações substituem as versões anteriores.
 
 | Versão | Suportada | Notas |
 | ------- | --------- | ----- |
-| 4.3.0   | ✅        | Versão atual (Modo Zen 2.0, Sons Ambientes, Novos Estilos). |
+| 5.3.0   | ✅        | Versão atual (Modo Zen 2.0, backup local em arquivo, sem login). |
+| 4.3.0   | ❌        | Obsoleto. |
 | 4.2.0   | ❌        | Obsoleto. |
 | 4.1.0   | ❌        | Obsoleto. |
 | 4.0.0   | ❌        | Obsoleto. |
@@ -25,4 +26,5 @@ Nós analisaremos o problema e responderemos o mais rápido possível.
 ### Medidas de Segurança Implementadas:
 1. **Backend-for-Frontend (BFF):** Todas as requisições para APIs de terceiros (OpenWeather, Gemini, Google Search) são feitas através de Netlify Functions.
 2. **Sanitização de Inputs:** Filtros aplicados em prompts de IA para prevenir injeções maliciosas.
-3. **Ofuscação de Cache:** Dados sensíveis salvos no LocalStorage passam por um processo simples de codificação.
+3. **Backup Validado:** Importação de arquivo JSON com validação de formato, limites de tamanho e filtragem de campos permitidos.
+4. **Cabeçalhos de Segurança:** O deploy inclui políticas de navegador mais restritivas para reduzir risco de XSS e clickjacking.

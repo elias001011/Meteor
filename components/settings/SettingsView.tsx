@@ -4,14 +4,11 @@ import React, { useState, useEffect } from 'react';
 import type { AppSettings, View, DataSource, AppTheme, TransparencyMode, ClockDisplayMode, BackgroundMode, MapTheme, BorderEffectMode, LayoutDensity, DesktopLayout, UnitSystem, ForecastComplexity, ForecastDetailView, ZenModeStyle, ZenModeBackground, ZenModeSound } from '../../types';
 import { getSettings, resetSettings, resetCache, resetAllData, exportAppData } from '../../services/settingsService';
 import { useTheme } from '../context/ThemeContext';
-import { useAuth } from '../context/AuthContext';
 import { 
     XIcon, LightbulbIcon, SparklesIcon, ChevronLeftIcon, GaugeIcon, 
     HeartIcon, GithubIcon, FileTextIcon, GlobeIcon, SettingsIcon, 
-    DatabaseIcon, AlertTriangleIcon, MapIcon, HomeIcon, EyeIcon, MaximizeIcon,
-    UserIcon, CloudIcon, LogOutIcon, LogInIcon
+    DatabaseIcon, AlertTriangleIcon, MapIcon, HomeIcon, EyeIcon, MaximizeIcon
 } from '../icons';
-import LoadingSpinner from '../common/LoadingSpinner';
 
 interface SettingsViewProps {
     settings: AppSettings;
@@ -39,26 +36,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({
     
     const { classes, density, isPerformanceMode, cardClass, glassClass } = useTheme();
     const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
-    
-    // Hooks para a aba Data
-    const { 
-        user, 
-        isLoggedIn, 
-        login, 
-        logout, 
-        userData, 
-        identityError,
-        isSyncing,
-        lastSyncTime,
-        syncToCloud,
-        syncFromCloud,
-        updateSyncPreferences,
-        hasPendingSync,
-        deleteAccount
-    } = useAuth();
-    
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
     useEffect(() => {
         const handleFsChange = () => setIsFullscreen(!!document.fullscreenElement);
@@ -619,305 +596,36 @@ const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
     );
     
-    const handleSyncToCloud = async () => {
-        const result = await syncToCloud(true);
-        setSyncMessage(result.message);
-        setTimeout(() => setSyncMessage(null), 3000);
-    };
-    
-    const handleSyncFromCloud = async () => {
-        const result = await syncFromCloud();
-        setSyncMessage(result.message);
-        if (result.success) {
-            setTimeout(() => window.location.reload(), 1500);
-        } else {
-            setTimeout(() => setSyncMessage(null), 3000);
-        }
-    };
-    
-    const handleDeleteAccount = async () => {
-        if (!confirm('ATENÇÃO: Esta ação é irreversível! Todos os seus dados serão excluídos permanentemente. Deseja continuar?')) {
-            return;
-        }
-        
-        console.log('Iniciando exclusão de conta...');
-        const result = await deleteAccount();
-        console.log('Resultado da exclusão:', result);
-        
-        if (result.success) {
-            alert('Conta excluída com sucesso! Todos os seus dados foram removidos.');
-            window.location.href = '/';
-        } else {
-            alert('Erro ao excluir conta: ' + result.error);
-        }
-    };
-
-    // Solicitação de exclusão de dados via email
-    const [showDataDeletionRequest, setShowDataDeletionRequest] = useState(false);
-    const [deletionReason, setDeletionReason] = useState('');
-    const [isRequestingDeletion, setIsRequestingDeletion] = useState(false);
-
-    const handleRequestDataDeletion = async () => {
-        if (!isLoggedIn || !user?.email) {
-            alert('Você precisa estar logado para solicitar a exclusão de dados.');
-            return;
-        }
-
-        setIsRequestingDeletion(true);
-        try {
-            const response = await fetch('/.netlify/functions/requestDataDeletion', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    email: user.email,
-                    userId: user.id,
-                    reason: deletionReason
-                })
-            });
-
-            const result = await response.json();
-
-            if (response.ok && result.success) {
-                alert('✅ Solicitação enviada com sucesso! Analisaremos seu pedido em breve.');
-                setShowDataDeletionRequest(false);
-                setDeletionReason('');
-            } else {
-                alert('Erro ao enviar solicitação: ' + (result.error || 'Tente novamente mais tarde'));
-            }
-        } catch (error) {
-            alert('Erro ao enviar solicitação. Tente novamente mais tarde.');
-        } finally {
-            setIsRequestingDeletion(false);
-        }
-    };
-    
-    const formatLastSync = () => {
-        if (!lastSyncTime) return 'Nunca sincronizado';
-        const date = new Date(lastSyncTime);
-        const now = new Date();
-        const diff = now.getTime() - date.getTime();
-        const minutes = Math.floor(diff / 60000);
-        const hours = Math.floor(diff / 3600000);
-        const days = Math.floor(diff / 86400000);
-        
-        if (minutes < 1) return 'Sincronizado agora';
-        if (minutes < 60) return `Sincronizado há ${minutes} min`;
-        if (hours < 24) return `Sincronizado há ${hours}h`;
-        return `Sincronizado há ${days} dias`;
-    };
-    
-    const toggleSyncPreference = (key: 'settings' | 'chatHistory' | 'favoriteCities' | 'weatherCache') => {
-        if (!userData) return;
-        const newPrefs = { 
-            ...userData.syncPreferences,
-            [key]: !userData.syncPreferences[key]
-        };
-        updateSyncPreferences(newPrefs);
-    };
-
-    const renderData = () => {
-        return (
-        <div className={`space-y-6 animate-enter`}>
-            {/* Mensagem de sincronização */}
-            {syncMessage && (
-                <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[9999] bg-blue-600/90 backdrop-blur-md text-white px-6 py-3 rounded-full font-medium shadow-xl border border-blue-400/50 animate-enter-pop">
-                    {syncMessage}
-                </div>
-            )}
-        
-            {/* Card de Conta e Nuvem */}
-            <section className={`${cardClass} rounded-3xl ${density.padding} border border-blue-500/20`}>
-                <h3 className={`text-lg font-bold text-blue-400 mb-4 flex items-center gap-2`}>
-                    <CloudIcon className="w-5 h-5" /> Conta e Nuvem
+    const renderData = () => (
+        <div className="space-y-6 animate-enter">
+            <section className={`${cardClass} rounded-3xl ${density.padding} border border-cyan-500/20`}>
+                <h3 className="text-lg font-bold text-cyan-400 mb-4 flex items-center gap-2">
+                    <DatabaseIcon className="w-5 h-5" />
+                    Backup Local
                 </h3>
-                
-                {identityError ? (
-                    <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
-                        <p className="text-yellow-200 text-sm mb-2">
-                            <strong>Serviço Temporariamente Indisponível</strong>
-                        </p>
-                        <p className="text-gray-400 text-sm">
-                            O sistema de autenticação está em manutenção. 
-                            Tente novamente mais tarde.
-                        </p>
-                    </div>
-                ) : !isLoggedIn ? (
-                    <div className="space-y-4">
-                        <div className="bg-white/5 rounded-xl p-4">
-                            <div className="flex items-center gap-3 mb-3">
-                                <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center">
-                                    <UserIcon className="w-5 h-5 text-gray-400" />
-                                </div>
-                                <div>
-                                    <p className="text-white font-medium">Você não está conectado</p>
-                                    <p className="text-sm text-gray-500">Entre para sincronizar seus dados</p>
-                                </div>
-                            </div>
-                            <button 
-                                onClick={login}
-                                className={`w-full ${classes.bg} hover:brightness-110 text-white py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-all`}
-                            >
-                                <LogInIcon className="w-4 h-4" />
-                                Entrar / Criar Conta
-                            </button>
-                        </div>
-                        <p className="text-xs text-gray-500">
-                            Com uma conta, seus dados (configurações, histórico de chat, cidades favoritas) 
-                            são sincronizados na nuvem e acessíveis de qualquer dispositivo.
-                        </p>
-                    </div>
-                ) : (
-                    <div className="space-y-4">
-                        {/* Status da conta */}
-                        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4">
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                                    <UserIcon className="w-5 h-5 text-emerald-400" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-white font-medium truncate">{user?.email}</p>
-                                    <p className="text-sm text-emerald-400 flex items-center gap-1">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                                        Conectado
-                                    </p>
-                                </div>
-                            </div>
-                            <p className="text-xs text-gray-500 mt-2">
-                                {formatLastSync()}
-                                {hasPendingSync && (
-                                    <span className="text-yellow-400 ml-2">• Alterações pendentes</span>
-                                )}
-                            </p>
-                        </div>
-                        
-                        {/* Estatísticas */}
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="bg-white/5 rounded-xl p-3 text-center">
-                                <p className="text-2xl font-bold text-white">{userData?.favoriteCities?.length || 0}</p>
-                                <p className="text-xs text-gray-500">Cidades Salvas</p>
-                            </div>
-                            <div className="bg-white/5 rounded-xl p-3 text-center">
-                                <p className="text-2xl font-bold text-white">{userData?.aiChatHistory?.length || 0}</p>
-                                <p className="text-xs text-gray-500">Mensagens IA</p>
-                            </div>
-                        </div>
-                        
-                        {/* Botões de sincronização */}
-                        <div className="grid grid-cols-2 gap-3">
-                            <button 
-                                onClick={handleSyncToCloud}
-                                disabled={isSyncing}
-                                className="bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-300 py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-all disabled:opacity-50"
-                            >
-                                {isSyncing ? (
-                                    <LoadingSpinner size="sm" />
-                                ) : (
-                                    <CloudIcon className="w-4 h-4" />
-                                )}
-                                Enviar para Nuvem
-                            </button>
-                            <button 
-                                onClick={handleSyncFromCloud}
-                                disabled={isSyncing}
-                                className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-all disabled:opacity-50"
-                            >
-                                {isSyncing ? (
-                                    <LoadingSpinner size="sm" />
-                                ) : (
-                                    <DatabaseIcon className="w-4 h-4" />
-                                )}
-                                Baixar da Nuvem
-                            </button>
-                        </div>
-                        
-                        {/* Controle de sincronização */}
-                        <div className="border-t border-white/10 pt-4">
-                            <h4 className="text-sm font-medium text-gray-300 mb-3">O que sincronizar:</h4>
-                            <div className="space-y-2">
-                                <label className="flex items-center justify-between cursor-pointer p-2 rounded-lg hover:bg-white/5 transition-colors">
-                                    <span className="text-sm text-gray-400">Configurações do app</span>
-                                    <input 
-                                        type="checkbox" 
-                                        checked={userData?.syncPreferences?.settings !== false}
-                                        onChange={() => toggleSyncPreference('settings')}
-                                        className="w-4 h-4 rounded border-gray-600 text-blue-500 focus:ring-blue-500/50"
-                                    />
-                                </label>
-                                <label className="flex items-center justify-between cursor-pointer p-2 rounded-lg hover:bg-white/5 transition-colors">
-                                    <span className="text-sm text-gray-400">Histórico de chat</span>
-                                    <input 
-                                        type="checkbox" 
-                                        checked={userData?.syncPreferences?.chatHistory !== false}
-                                        onChange={() => toggleSyncPreference('chatHistory')}
-                                        className="w-4 h-4 rounded border-gray-600 text-blue-500 focus:ring-blue-500/50"
-                                    />
-                                </label>
-                                <label className="flex items-center justify-between cursor-pointer p-2 rounded-lg hover:bg-white/5 transition-colors">
-                                    <span className="text-sm text-gray-400">Cidades favoritas</span>
-                                    <input 
-                                        type="checkbox" 
-                                        checked={userData?.syncPreferences?.favoriteCities !== false}
-                                        onChange={() => toggleSyncPreference('favoriteCities')}
-                                        className="w-4 h-4 rounded border-gray-600 text-blue-500 focus:ring-blue-500/50"
-                                    />
-                                </label>
-                            </div>
-                        </div>
-                        
-                        {/* Botões de conta */}
-                        <div className="border-t border-white/10 pt-4 space-y-2">
-                            <button 
-                                onClick={logout}
-                                className="w-full border border-gray-600 text-gray-300 hover:bg-white/5 py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-all"
-                            >
-                                <LogOutIcon className="w-4 h-4" />
-                                Sair da Conta
-                            </button>
-                            
-                            {/* Solicitar Exclusão de Dados */}
-                            {!showDataDeletionRequest ? (
-                                <button 
-                                    onClick={() => setShowDataDeletionRequest(true)}
-                                    className="w-full border border-red-500/30 text-red-400/70 hover:text-red-400 hover:bg-red-500/10 py-2 rounded-xl font-medium text-sm transition-all"
-                                >
-                                    Solicitar exclusão dos dados
-                                </button>
-                            ) : (
-                                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 space-y-3 animate-enter">
-                                    <p className="text-red-300 text-sm">
-                                        Envie uma solicitação para exclusão dos seus dados. Nossa equipe analisará seu pedido.
-                                    </p>
-                                    <textarea
-                                        placeholder="Motivo da exclusão (opcional)..."
-                                        value={deletionReason}
-                                        onChange={(e) => setDeletionReason(e.target.value)}
-                                        className="w-full bg-gray-900/60 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-red-500/50 resize-none"
-                                        rows={2}
-                                    />
-                                    <div className="flex gap-2">
-                                        <button 
-                                            onClick={() => setShowDataDeletionRequest(false)}
-                                            className="flex-1 bg-gray-700 text-white py-2 rounded-lg text-sm"
-                                        >
-                                            Cancelar
-                                        </button>
-                                        <button 
-                                            onClick={handleRequestDataDeletion}
-                                            disabled={isRequestingDeletion}
-                                            className="flex-1 bg-red-500 text-white py-2 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            {isRequestingDeletion ? 'Enviando...' : 'Enviar solicitação'}
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
+                <p className="text-sm text-gray-300 leading-relaxed">
+                    Seus dados ficam apenas neste dispositivo. Exporte um arquivo JSON para manter uma cópia segura e restaure o mesmo arquivo quando precisar recuperar o app.
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5">
+                    <button onClick={handleExport} className="bg-black/20 hover:bg-white/10 border border-white/10 text-white py-4 rounded-xl font-medium flex items-center justify-center gap-2 text-sm transition-colors">
+                        Exportar Backup
+                    </button>
+                    <button onClick={onOpenImport} className="bg-black/20 hover:bg-white/10 border border-white/10 text-white py-4 rounded-xl font-medium flex items-center justify-center gap-2 text-sm transition-colors">
+                        Restaurar Backup
+                    </button>
+                </div>
+
+                <p className="text-xs text-gray-500 mt-3">
+                    O backup inclui configurações, histórico de chat, localização recente e cache do clima.
+                </p>
             </section>
 
-             <section className={`${cardClass} rounded-3xl ${density.padding}`}>
-                <h3 className={`text-lg font-bold ${classes.text} mb-4 flex items-center gap-2`}><DatabaseIcon className="w-5 h-5" /> Gerenciamento Local</h3>
+            <section className={`${cardClass} rounded-3xl ${density.padding}`}>
+                <h3 className={`text-lg font-bold ${classes.text} mb-4 flex items-center gap-2`}>
+                    <SettingsIcon className="w-5 h-5" />
+                    Gerenciamento Local
+                </h3>
                 <div className={density.settingsGap}>
                     <div className="flex flex-col gap-2">
                         <label className={`${density.text} text-sm font-medium text-gray-300`}>Fonte Preferida</label>
@@ -928,13 +636,9 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                             <option value="open-meteo" className={optionClass}>Open-Meteo (Open Source)</option>
                         </select>
                     </div>
-                     <div className="flex items-center justify-between pb-6 border-b border-white/5 pt-4">
+                    <div className="flex items-center justify-between pb-6 border-b border-white/5 pt-4">
                         <span className={`${density.text} text-white font-medium`}>Salvar Histórico de Chat</span>
                         <ToggleSwitch checked={settings.saveChatHistory} onChange={() => handleSave({ saveChatHistory: !settings.saveChatHistory })} activeColorClass={classes.bg} />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <button onClick={handleExport} className="bg-black/20 hover:bg-white/10 border border-white/10 text-white py-4 rounded-xl font-medium flex items-center justify-center gap-2 text-sm transition-colors">Exportar Dados</button>
-                        <button onClick={onOpenImport} className="bg-black/20 hover:bg-white/10 border border-white/10 text-white py-4 rounded-xl font-medium flex items-center justify-center gap-2 text-sm transition-colors">Importar Dados</button>
                     </div>
                     <div className="border-t border-white/5 pt-6 space-y-4">
                         <h4 className="text-red-400 text-xs font-bold uppercase tracking-wider mb-2">Zona de Perigo</h4>
@@ -949,7 +653,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({
             </section>
         </div>
     );
-    };
 
     const renderAbout = () => (
         <div className={`space-y-6 animate-enter`}>
@@ -996,7 +699,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                     <TabButton id="general" label="Geral" icon={<SettingsIcon className="w-4 h-4" />} />
                     <TabButton id="visual" label="Visual" icon={<EyeIcon className="w-4 h-4" />} />
                     <TabButton id="ai" label="IA" icon={<SparklesIcon className="w-4 h-4" />} />
-                    <TabButton id="data" label="Dados" icon={<DatabaseIcon className="w-4 h-4" />} />
+                    <TabButton id="data" label="Backup" icon={<DatabaseIcon className="w-4 h-4" />} />
                     <TabButton id="about" label="Sobre" icon={<HeartIcon className="w-4 h-4" />} />
                 </div>
             </div>
