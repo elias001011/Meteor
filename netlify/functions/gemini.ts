@@ -22,6 +22,8 @@ const GOOGLE_SEARCH_TOOL = {
 const MODEL_ATTEMPTS = [
     { model: 'gemini-3.1-flash-lite', useSearch: true },
     { model: 'gemini-3.1-flash-lite', useSearch: false },
+    { model: 'gemini-2.5-flash-lite', useSearch: true },
+    { model: 'gemini-2.5-flash-lite', useSearch: false },
 ] as const;
 const MODEL_RETRY_DELAYS_MS = [0, 1500, 3000] as const;
 
@@ -288,7 +290,6 @@ const runModelWithFallbacks = async (ai: GoogleGenAI, contents: Content[]) => {
 const handler: Handler = async (event: HandlerEvent) => {
     const geminiKey = resolveGeminiApiKey();
     const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
-    const debugMode = event.queryStringParameters?.debug === '1';
 
     if (!geminiKey) {
         return {
@@ -389,19 +390,11 @@ const handler: Handler = async (event: HandlerEvent) => {
         };
     } catch (error) {
         console.error('[Handler] Erro fatal na IA:', error);
-        const errorObject = isRecord(error) ? error : null;
         return {
             statusCode: 500,
             headers,
             body: JSON.stringify({
                 message: 'O modelo falhou. Tente novamente mais tarde',
-                ...(debugMode ? {
-                    debug: {
-                        name: typeof errorObject?.name === 'string' ? errorObject.name : (error instanceof Error ? error.name : 'UnknownError'),
-                        status: toNumber(errorObject?.status),
-                        message: error instanceof Error ? error.message : String(error),
-                    },
-                } : {}),
             }),
         };
     }
