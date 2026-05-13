@@ -94,8 +94,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, onRegene
           className={`px-6 py-5 rounded-3xl shadow-sm ${
             isModel
               ? 'bg-gray-800/95 border border-gray-700/50 rounded-bl-none text-gray-100'
-              : `${classes.bg} text-white rounded-br-none shadow-lg shadow-${classes.text.split('-')[1]}-500/20`
+              : `${classes.bg} text-white rounded-br-none shadow-lg`
           }`}
+          style={isModel ? undefined : { boxShadow: `0 0 24px ${classes.hex}33` }}
         >
           <div className="text-base leading-relaxed break-words">
             {isModel ? renderFormattedText(message.text) : message.text}

@@ -64,7 +64,10 @@ const AiWelcome: React.FC<AiWelcomeProps> = ({ onPromptSelect }) => {
 
     return (
         <div className="flex flex-col items-center justify-center min-h-full p-6 animate-enter">
-            <div className={`p-5 rounded-full bg-gradient-to-br ${classes.gradient} mb-6 shadow-lg shadow-${classes.text.split('-')[1]}-500/20`}>
+            <div
+                className={`p-5 rounded-full bg-gradient-to-br ${classes.gradient} mb-6 shadow-lg`}
+                style={{ boxShadow: `0 0 24px ${classes.hex}33` }}
+            >
                 <SparklesIcon className="w-12 h-12 text-white" />
             </div>
             
