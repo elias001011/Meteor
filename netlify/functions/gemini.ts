@@ -12,6 +12,13 @@ const MAX_HISTORY_TEXT_LENGTH = 4000;
 const MAX_USER_INSTRUCTIONS_LENGTH = 500;
 const MAX_TIME_CONTEXT_LENGTH = 120;
 const MAX_WEATHER_CONTEXT_TEXT_LENGTH = 4000;
+const GOOGLE_SEARCH_TOOL: {
+    type: 'google_search';
+    search_types: Array<'web_search'>;
+} = {
+    type: 'google_search',
+    search_types: ['web_search'],
+};
 const MODEL_ATTEMPTS = [
     { model: 'gemini-3.1-flash-lite', useSearch: true, useThinking: true },
     { model: 'gemini-3.1-flash-lite', useSearch: false, useThinking: true },
@@ -224,7 +231,7 @@ const buildUserInstructionBlock = (userInstructions: string): string => {
 
 const buildGenerationConfig = (options: { useSearch: boolean; useThinking: boolean }) => ({
     systemInstruction: buildSystemInstruction(),
-    ...(options.useSearch ? { tools: [{ googleSearch: { searchTypes: ['web_search'] } }] } : {}),
+    ...(options.useSearch ? { tools: [GOOGLE_SEARCH_TOOL] } : {}),
     ...(options.useThinking ? {
         thinkingConfig: {
             thinkingLevel: 'low' as const,
