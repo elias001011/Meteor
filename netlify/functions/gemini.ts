@@ -1,5 +1,6 @@
 import { GoogleGenAI, type Content, type GroundingChunk, type GroundingMetadata } from '@google/genai';
 import { type Handler, type HandlerEvent } from '@netlify/functions';
+import { buildRateLimitResponse, checkRateLimit, sanitizeExternalUrl } from './security';
 
 interface GroundingSource {
     uri: string;
@@ -41,7 +42,8 @@ const cleanApiKey = (value: unknown): string => {
 
     return value
         .trim()
-        .replace(/^['"]|['"]$/g, '');
+        .replace(/^[']|[']$/g, '')
+        .replace(/^["]|["]$/g, '');
 };
 
 const resolveGeminiApiKey = (): string => {
@@ -100,19 +102,23 @@ const extractChunkSource = (chunk: GroundingChunk): GroundingSource | null => {
 
     if (!candidate) return null;
 
-    const uri = chunk.web?.uri
+    const rawUri = chunk.web?.uri
         || chunk.maps?.uri
         || chunk.retrievedContext?.uri
         || chunk.image?.sourceUri
         || '';
 
+    const uri = sanitizeExternalUrl(rawUri);
     if (!uri) return null;
 
-    const title = chunk.web?.title
+    const title = clampString(
+        chunk.web?.title
         || chunk.maps?.title
         || chunk.retrievedContext?.title
         || chunk.image?.title
-        || safeHostname(uri);
+        || safeHostname(uri),
+        180
+    ) || safeHostname(uri);
 
     return { uri, title };
 };
@@ -303,6 +309,15 @@ const handler: Handler = async (event: HandlerEvent) => {
 
     if (event.httpMethod !== 'POST') {
         return { statusCode: 405, headers, body: JSON.stringify({ message: 'Method Not Allowed' }) };
+    }
+
+    const rateLimit = await checkRateLimit(event, {
+        namespace: 'gemini',
+        limit: 25,
+        windowSeconds: 600,
+    });
+    if (!rateLimit.allowed) {
+        return buildRateLimitResponse(rateLimit);
     }
 
     const startTime = Date.now();
