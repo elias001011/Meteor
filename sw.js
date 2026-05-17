@@ -1,4 +1,4 @@
-const CACHE_NAME = 'meteor-cache-v4';
+const CACHE_NAME = 'meteor-cache-v5';
 const APP_SHELL_URLS = [
   '/',
   '/index.html',
@@ -32,18 +32,15 @@ self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
   // Deixa CDNs e outras origens seguirem o fluxo normal do navegador.
-  // Isso evita o Service Worker quebrar scripts e estilos externos.
+  // Isso evita o Service Worker quebrar scripts, estilos externos e imagens remotas.
   if (url.origin !== self.location.origin) {
     return;
   }
 
+  // Não intercepta chamadas das Netlify Functions.
+  // O mapa usa essas rotas como tiles de imagem; se o SW responder JSON/503,
+  // o Leaflet entende como tile quebrado e o console mostra erro de Service Worker.
   if (url.pathname.startsWith('/.netlify/functions/')) {
-    event.respondWith(
-      fetch(event.request).catch(() => new Response(
-        JSON.stringify({ message: 'Serviço temporariamente indisponível.' }),
-        { status: 503, headers: { 'Content-Type': 'application/json' } }
-      ))
-    );
     return;
   }
 
