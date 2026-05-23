@@ -1,8 +1,10 @@
-const CACHE_NAME = 'meteor-cache-v5';
+const CACHE_NAME = 'meteor-cache-v6-pwa';
 const APP_SHELL_URLS = [
   '/',
   '/index.html',
   '/favicon.svg',
+  '/pwa-icon.svg',
+  '/manifest.json',
 ];
 
 self.addEventListener('install', event => {
