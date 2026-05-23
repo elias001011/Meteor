@@ -17,6 +17,17 @@ declare global {
 
 let deferredInstallPrompt: BeforeInstallPromptEvent | null = null;
 
+const installButtonBaseClass = [
+  'mt-3',
+  'px-4',
+  'py-2',
+  'rounded-xl',
+  'text-sm',
+  'font-bold',
+  'transition-all',
+  'border',
+].join(' ');
+
 const isPwaStandalone = () =>
   window.matchMedia('(display-mode: standalone)').matches ||
   (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
@@ -28,6 +39,20 @@ const dispatchPwaInstallState = () => {
       installed: isPwaStandalone(),
     },
   }));
+};
+
+const updatePwaInstallButtonState = (button: HTMLButtonElement, label?: string) => {
+  const installed = isPwaStandalone();
+  const canInstall = Boolean(deferredInstallPrompt);
+
+  button.textContent = label || (installed ? 'Instalado' : canInstall ? 'Instalar' : 'Instalação indisponível');
+  button.disabled = installed || !canInstall;
+  button.className = [
+    installButtonBaseClass,
+    canInstall && !installed
+      ? 'bg-cyan-500/20 text-cyan-200 border-cyan-400/30 hover:bg-cyan-500/30 active:scale-95'
+      : 'bg-white/5 text-gray-500 border-white/10 cursor-not-allowed',
+  ].join(' ');
 };
 
 window.meteorCanInstallPwa = false;
@@ -75,36 +100,27 @@ const enhancePwaSettingsCard = () => {
   const card = title?.closest('div.relative.overflow-hidden') as HTMLElement | null;
   const textContainer = title?.parentElement as HTMLElement | null;
 
-  if (!card || !textContainer || card.querySelector('[data-meteor-pwa-install]')) {
+  if (!card || !textContainer) {
+    return;
+  }
+
+  const existingButton = card.querySelector('[data-meteor-pwa-install]') as HTMLButtonElement | null;
+  if (existingButton) {
+    updatePwaInstallButtonState(existingButton);
     return;
   }
 
   const button = document.createElement('button');
   button.type = 'button';
   button.dataset.meteorPwaInstall = 'true';
-  button.textContent = window.meteorCanInstallPwa ? 'Instalar' : 'Instalação indisponível';
-  button.disabled = !window.meteorCanInstallPwa;
-  button.className = [
-    'mt-3',
-    'px-4',
-    'py-2',
-    'rounded-xl',
-    'text-sm',
-    'font-bold',
-    'transition-all',
-    'border',
-    window.meteorCanInstallPwa
-      ? 'bg-cyan-500/20 text-cyan-200 border-cyan-400/30 hover:bg-cyan-500/30 active:scale-95'
-      : 'bg-white/5 text-gray-500 border-white/10 cursor-not-allowed',
-  ].join(' ');
+  updatePwaInstallButtonState(button);
 
   button.addEventListener('click', async () => {
     if (!window.meteorInstallPwa) return;
-    button.textContent = 'Abrindo instalação...';
+    updatePwaInstallButtonState(button, 'Abrindo instalação...');
     button.disabled = true;
     const installed = await window.meteorInstallPwa();
-    button.textContent = installed ? 'Instalado' : 'Instalar';
-    button.disabled = installed || !window.meteorCanInstallPwa;
+    updatePwaInstallButtonState(button, installed ? 'Instalado' : undefined);
   });
 
   textContainer.appendChild(button);
