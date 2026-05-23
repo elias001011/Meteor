@@ -806,8 +806,11 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
         }
     } catch (error) {
         console.error('Erro na função Netlify:', error);
-        const errorMessage = error instanceof Error ? error.message : "Um erro interno ocorreu.";
-        return { statusCode: 500, headers: DEFAULT_JSON_HEADERS, body: JSON.stringify({ message: safeText(errorMessage, 180) || "Um erro interno ocorreu." }) };
+        return {
+            statusCode: 500,
+            headers: DEFAULT_JSON_HEADERS,
+            body: JSON.stringify({ message: "Falha ao buscar dados climáticos." }),
+        };
     }
 };
 
