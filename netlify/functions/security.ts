@@ -39,28 +39,45 @@ export const getClientIp = (event: HandlerEvent): string => {
   return 'unknown';
 };
 
-const parseCount = (value: unknown): number => {
-  if (typeof value === 'number' && Number.isFinite(value)) return value;
+const parseRateLimitState = (value: unknown): { windowId: number; count: number } | null => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return { windowId: -1, count: value };
+  }
+
   if (typeof value === 'string') {
     const trimmed = value.trim();
-    if (!trimmed) return 0;
+    if (!trimmed) return null;
     const numeric = Number(trimmed);
-    if (Number.isFinite(numeric)) return numeric;
+    if (Number.isFinite(numeric)) return { windowId: -1, count: numeric };
 
     try {
       const parsed = JSON.parse(trimmed);
-      if (typeof parsed?.count === 'number' && Number.isFinite(parsed.count)) {
-        return parsed.count;
+      if (
+        typeof parsed?.windowId === 'number' &&
+        Number.isFinite(parsed.windowId) &&
+        typeof parsed?.count === 'number' &&
+        Number.isFinite(parsed.count)
+      ) {
+        return { windowId: parsed.windowId, count: parsed.count };
       }
     } catch {
-      return 0;
+      return null;
     }
   }
+
   if (typeof value === 'object' && value !== null && 'count' in value) {
-    const count = (value as { count?: unknown }).count;
-    return typeof count === 'number' && Number.isFinite(count) ? count : 0;
+    const state = value as { count?: unknown; windowId?: unknown };
+    if (
+      typeof state.windowId === 'number' &&
+      Number.isFinite(state.windowId) &&
+      typeof state.count === 'number' &&
+      Number.isFinite(state.count)
+    ) {
+      return { windowId: state.windowId, count: state.count };
+    }
   }
-  return 0;
+
+  return null;
 };
 
 export const checkRateLimit = async (
@@ -72,20 +89,19 @@ export const checkRateLimit = async (
   const retryAfter = options.windowSeconds - (now % options.windowSeconds);
   const ip = normalizeKeyPart(getClientIp(event));
   const namespace = normalizeKeyPart(options.namespace);
-  const key = `${namespace}:${ip}:${windowId}`;
+  const key = `${namespace}:${ip}`;
 
   try {
     const store = getStore('meteor-rate-limits');
-    const current = parseCount(await store.get(key));
+    const state = parseRateLimitState(await store.get(key));
+    const current = state?.windowId === windowId ? state.count : 0;
 
     if (current >= options.limit) {
       return { allowed: false, remaining: 0, retryAfter };
     }
 
     const next = current + 1;
-    await store.set(key, JSON.stringify({ count: next }), {
-      ttl: options.windowSeconds + 60,
-    });
+    await store.set(key, JSON.stringify({ windowId, count: next, updatedAt: now }));
 
     return {
       allowed: true,

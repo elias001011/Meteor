@@ -3,6 +3,7 @@
 import { type Handler, type HandlerEvent, type HandlerContext } from "@netlify/functions";
 import { getStore } from "@netlify/blobs";
 import { Buffer } from "buffer";
+import { buildRateLimitResponse, checkRateLimit, safeText } from "./security";
 
 const API_KEY = process.env.CLIMA_API;
 const UNSPLASH_KEY = process.env.UNSPLASH_ACESS_KEY;
@@ -460,6 +461,54 @@ const MAP_LAYER_FALLBACKS: Record<string, string> = {
 
 const ALLOWED_TILE_LAYERS = new Set(['TA2', 'CL', 'PR0', 'APM', 'WS10']);
 
+const DEFAULT_JSON_HEADERS = {
+    'Content-Type': 'application/json',
+    'Cache-Control': 'no-store',
+};
+
+const RATE_LIMIT_BY_ENDPOINT: Record<string, { namespace: string; limit: number; windowSeconds: number }> = {
+    all: { namespace: 'weather-all', limit: 80, windowSeconds: 600 },
+    direct: { namespace: 'weather-geo', limit: 120, windowSeconds: 600 },
+    reverse: { namespace: 'weather-geo', limit: 120, windowSeconds: 600 },
+    tile: { namespace: 'weather-tiles', limit: 900, windowSeconds: 600 },
+    relief: { namespace: 'weather-relief', limit: 500, windowSeconds: 600 },
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> => (
+    typeof value === 'object' && value !== null && !Array.isArray(value)
+);
+
+const parseStoredCount = (value: unknown): number => {
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value === 'string') {
+        const numeric = Number(value);
+        if (Number.isFinite(numeric)) return numeric;
+        try {
+            const parsed = JSON.parse(value);
+            if (typeof parsed === 'number' && Number.isFinite(parsed)) return parsed;
+            if (typeof parsed?.count === 'number' && Number.isFinite(parsed.count)) return parsed.count;
+            return 0;
+        } catch {
+            return 0;
+        }
+    }
+    return 0;
+};
+
+const parseDailyStoredCount = (value: unknown, expectedDate: string): number => {
+    if (typeof value === 'string') {
+        try {
+            const parsed = JSON.parse(value);
+            if (parsed?.date && parsed.date !== expectedDate) return 0;
+            if (typeof parsed?.count === 'number' && Number.isFinite(parsed.count)) return parsed.count;
+        } catch {
+            return parseStoredCount(value);
+        }
+    }
+
+    return parseStoredCount(value);
+};
+
 const parseCoordinate = (value: unknown): number | null => {
     if (typeof value === 'string') {
         const trimmed = value.trim();
@@ -475,12 +524,57 @@ const isPositiveIntegerString = (value: unknown): value is string => (
     typeof value === 'string' && /^\d+$/.test(value)
 );
 
+const clampLimit = (value: unknown, fallback: number, maxAllowed: number): string => {
+    const parsed = typeof value === 'string' ? Number.parseInt(value, 10) : fallback;
+    if (!Number.isFinite(parsed)) return String(fallback);
+    return String(Math.min(Math.max(parsed, 1), maxAllowed));
+};
+
+const sanitizeGeoResults = (value: unknown) => {
+    if (!Array.isArray(value)) return [];
+
+    return value.slice(0, 10).map((item) => {
+        if (!isRecord(item)) return null;
+
+        const lat = parseCoordinate(item.lat);
+        const lon = parseCoordinate(item.lon);
+        const name = safeText(item.name, 120);
+        const country = safeText(item.country, 8);
+
+        if (!name || !country || lat === null || lon === null) return null;
+
+        const result: { name: string; country: string; lat: number; lon: number; state?: string } = {
+            name,
+            country,
+            lat,
+            lon,
+        };
+        const state = safeText(item.state, 120);
+        if (state) result.state = state;
+
+        return result;
+    }).filter((item): item is { name: string; country: string; lat: number; lon: number; state?: string } => item !== null);
+};
+
 const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
     if (!API_KEY) {
-        return { statusCode: 500, body: JSON.stringify({ message: "API key para clima não configurada no servidor." }) };
+        return { statusCode: 500, headers: DEFAULT_JSON_HEADERS, body: JSON.stringify({ message: "API key para clima não configurada no servidor." }) };
+    }
+
+    if (event.httpMethod !== 'GET') {
+        return { statusCode: 405, headers: DEFAULT_JSON_HEADERS, body: JSON.stringify({ message: 'Method Not Allowed' }) };
     }
 
     const queryParams = event.queryStringParameters || {};
+    const endpointName = typeof queryParams.endpoint === 'string' ? queryParams.endpoint : '';
+    const rateLimit = await checkRateLimit(
+        event,
+        RATE_LIMIT_BY_ENDPOINT[endpointName] || { namespace: 'weather-unknown', limit: 60, windowSeconds: 600 }
+    );
+    if (!rateLimit.allowed) {
+        return buildRateLimitResponse(rateLimit);
+    }
+
     const { endpoint, ...params } = queryParams;
     const query = new URLSearchParams(params as Record<string, string>);
     
@@ -500,36 +594,39 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
                 if (q && q.length > 120) {
                     return { statusCode: 400, body: JSON.stringify({ message: "Nome da cidade muito longo." }) };
                 }
+
+                const latParam = String(lat);
+                const lonParam = String(lon);
                 
                 let weatherBundle;
                 let fallbackStatus: 'onecall_failed' | 'free_tier_failed' | null = null;
                 
                 if (source === 'onecall') {
                     try {
-                        weatherBundle = await fetchWithOneCall(lat, lon);
+                        weatherBundle = await fetchWithOneCall(latParam, lonParam);
                     } catch (error) {
                          fallbackStatus = 'onecall_failed';
-                         weatherBundle = await fetchWithFreeTier(lat, lon);
+                         weatherBundle = await fetchWithFreeTier(latParam, lonParam);
                     }
                 } else if (source === 'free') {
                     try {
-                        weatherBundle = await fetchWithFreeTier(lat, lon);
+                        weatherBundle = await fetchWithFreeTier(latParam, lonParam);
                     } catch (error) {
                          fallbackStatus = 'free_tier_failed';
-                         weatherBundle = await fetchWithOpenMeteo(lat, lon);
+                         weatherBundle = await fetchWithOpenMeteo(latParam, lonParam);
                     }
                 } else if (source === 'open-meteo') {
-                     weatherBundle = await fetchWithOpenMeteo(lat, lon);
+                     weatherBundle = await fetchWithOpenMeteo(latParam, lonParam);
                 } else {
                     // AUTO MODE (Logic: Try OneCall -> Check Limit -> Fallback to Free -> Fallback to Open-Meteo)
                     let useFallbackDirectly = false;
                     try {
                         const store = getStore("onecall-rate-limit");
                         const today = new Date().toISOString().split('T')[0];
-                        const counterKey = `onecall_requests_${today}`;
-                        const currentCount = (await store.get(counterKey)) as number | null;
+                        const counterKey = 'onecall_requests';
+                        const currentCount = parseDailyStoredCount(await store.get(counterKey), today);
                         
-                        if (currentCount && currentCount >= ONE_CALL_DAILY_LIMIT) {
+                        if (currentCount >= ONE_CALL_DAILY_LIMIT) {
                             useFallbackDirectly = true;
                         }
                     } catch (blobError) {
@@ -538,30 +635,30 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
 
                     if (useFallbackDirectly) {
                          try {
-                            weatherBundle = await fetchWithFreeTier(lat, lon);
+                            weatherBundle = await fetchWithFreeTier(latParam, lonParam);
                         } catch (error) {
                             fallbackStatus = 'free_tier_failed';
-                            weatherBundle = await fetchWithOpenMeteo(lat, lon);
+                            weatherBundle = await fetchWithOpenMeteo(latParam, lonParam);
                         }
                     } else {
                         try {
-                            weatherBundle = await fetchWithOneCall(lat, lon);
+                            weatherBundle = await fetchWithOneCall(latParam, lonParam);
                             try { // Increment counter on success
                                 const store = getStore("onecall-rate-limit");
                                 const today = new Date().toISOString().split('T')[0];
-                                const counterKey = `onecall_requests_${today}`;
-                                const newCount = ((await store.get(counterKey)) as number || 0) + 1;
-                                await store.set(counterKey, newCount, { ttl: 86400 });
+                                const counterKey = 'onecall_requests';
+                                const newCount = parseDailyStoredCount(await store.get(counterKey), today) + 1;
+                                await store.set(counterKey, JSON.stringify({ date: today, count: newCount }));
                             } catch (blobError) {
                                 // Failed to increment counter
                             }
                         } catch (error) {
                             fallbackStatus = 'onecall_failed';
                             try {
-                                weatherBundle = await fetchWithFreeTier(lat, lon);
+                                weatherBundle = await fetchWithFreeTier(latParam, lonParam);
                             } catch (error2) {
                                 fallbackStatus = 'free_tier_failed';
-                                weatherBundle = await fetchWithOpenMeteo(lat, lon);
+                                weatherBundle = await fetchWithOpenMeteo(latParam, lonParam);
                             }
                         }
                     }
@@ -628,15 +725,24 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
                         return { statusCode: 400, body: JSON.stringify({ message: "Consulta de cidade muito longa." }) };
                     }
                     query.set('q', cityQuery);
+                    query.set('limit', clampLimit(params.limit, 5, 10));
+                } else {
+                    const lat = parseCoordinate(params.lat);
+                    const lon = parseCoordinate(params.lon);
+                    if (lat === null || lon === null || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+                        return { statusCode: 400, body: JSON.stringify({ message: "Coordenadas inválidas." }) };
+                    }
+                    query.set('lat', String(lat));
+                    query.set('lon', String(lon));
+                    query.set('limit', clampLimit(params.limit, 1, 10));
                 }
                 const baseUrl = `https://api.openweathermap.org/geo/1.0/${endpoint}`;
                 query.set('appid', API_KEY);
-                if (endpoint === 'reverse' && !query.has('limit')) query.set('limit', '1');
                 const apiUrl = `${baseUrl}?${query.toString()}`;
                 const response = await fetch(apiUrl);
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.message);
-                return { statusCode: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) };
+                return { statusCode: 200, headers: DEFAULT_JSON_HEADERS, body: JSON.stringify(sanitizeGeoResults(data)) };
             }
 
             case 'tile': {
@@ -701,7 +807,7 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
     } catch (error) {
         console.error('Erro na função Netlify:', error);
         const errorMessage = error instanceof Error ? error.message : "Um erro interno ocorreu.";
-        return { statusCode: 500, body: JSON.stringify({ message: errorMessage }) };
+        return { statusCode: 500, headers: DEFAULT_JSON_HEADERS, body: JSON.stringify({ message: safeText(errorMessage, 180) || "Um erro interno ocorreu." }) };
     }
 };
 

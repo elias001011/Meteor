@@ -64,7 +64,7 @@ const sanitizeHistory = (history: unknown): Content[] => {
 
     return history
         .slice(-MAX_HISTORY_MESSAGES)
-        .map((entry) => {
+        .map((entry): Content | null => {
             if (!isRecord(entry)) return null;
 
             const role = entry.role === 'user' || entry.role === 'model' ? entry.role : null;

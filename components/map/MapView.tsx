@@ -1,10 +1,13 @@
 
 
 import React, { useEffect, useRef, useState } from 'react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import markerIconUrl from 'leaflet/dist/images/marker-icon.png';
+import markerIconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
+import markerShadowUrl from 'leaflet/dist/images/marker-shadow.png';
 import { LayersIcon, ThermometerIcon, WindIcon, DropletsIcon, GaugeIcon } from '../icons';
 import type { MapTheme } from '../../types';
-
-declare var L: any;
 
 type WeatherLayer = 'TA2' | 'CL' | 'PR0' | 'APM' | 'WS10';
 type BaseLayer = 'standard' | 'relief';
@@ -14,6 +17,16 @@ interface MapViewProps {
     lon?: number;
     theme?: MapTheme;
 }
+
+const locationMarkerIcon = L.icon({
+    iconUrl: markerIconUrl,
+    iconRetinaUrl: markerIconRetinaUrl,
+    shadowUrl: markerShadowUrl,
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+});
 
 const MapView: React.FC<MapViewProps> = ({ lat, lon, theme = 'dark' }) => {
     const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -28,14 +41,14 @@ const MapView: React.FC<MapViewProps> = ({ lat, lon, theme = 'dark' }) => {
     const [activeOverlay, setActiveOverlay] = useState<WeatherLayer | null>(null);
 
     // Default view (Brazil)
-    const DEFAULT_CENTER = [-14.2350, -51.9253];
+    const DEFAULT_CENTER: L.LatLngTuple = [-14.2350, -51.9253];
     const DEFAULT_ZOOM = 4;
 
     // Initialize Map
     useEffect(() => {
         if (!mapContainerRef.current || typeof L === 'undefined' || mapInstanceRef.current) return;
 
-        const initialCenter = lat !== undefined && lon !== undefined ? [lat, lon] : DEFAULT_CENTER;
+        const initialCenter: L.LatLngTuple = lat !== undefined && lon !== undefined ? [lat, lon] : DEFAULT_CENTER;
         const initialZoom = lat !== undefined && lon !== undefined ? 10 : DEFAULT_ZOOM;
 
         const map = L.map(mapContainerRef.current, { 
@@ -124,12 +137,7 @@ const MapView: React.FC<MapViewProps> = ({ lat, lon, theme = 'dark' }) => {
             if (markerRef.current) {
                 markerRef.current.setLatLng(newLatLng);
             } else {
-                const customIcon = L.icon({
-                    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-                    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-                    iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
-                });
-                markerRef.current = L.marker([lat, lon], { icon: customIcon }).addTo(map);
+                markerRef.current = L.marker([lat, lon], { icon: locationMarkerIcon }).addTo(map);
             }
         } else {
             map.setView(DEFAULT_CENTER, DEFAULT_ZOOM);
