@@ -1,12 +1,8 @@
 import { type Handler, type HandlerEvent } from "@netlify/functions";
-import { buildRateLimitResponse, checkRateLimit, safeText, sanitizeExternalUrl } from "./security";
+import { buildCorsHeaders, buildOptionsResponse, buildRateLimitResponse, checkRateLimit, safeText, sanitizeExternalUrl } from "./security";
 
 const BASE_URL = "https://gnews.io/api/v4";
 const VALID_CATEGORIES = ['general', 'world', 'nation', 'business', 'technology', 'entertainment', 'sports', 'science', 'health'];
-const DEFAULT_HEADERS = {
-    'Content-Type': 'application/json',
-    'Cache-Control': 'no-store',
-};
 
 const clampMax = (value: string | undefined, fallback: number, maxAllowed: number): string => {
     const parsed = Number.parseInt(value || String(fallback), 10);
@@ -15,28 +11,38 @@ const clampMax = (value: string | undefined, fallback: number, maxAllowed: numbe
 };
 
 const handler: Handler = async (event: HandlerEvent) => {
+    const headers = buildCorsHeaders(event, {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store',
+    });
+
+    if (event.httpMethod === 'OPTIONS') {
+        return buildOptionsResponse(event);
+    }
+
     const PRIMARY_KEY = process.env.GNEWS_API;
     const FALLBACK_KEY = process.env.GNEWS_2;
 
     if (!PRIMARY_KEY && !FALLBACK_KEY) {
         return { 
             statusCode: 500,
-            headers: DEFAULT_HEADERS,
+            headers,
             body: JSON.stringify({ message: "API keys not configured" }) 
         };
     }
 
     if (event.httpMethod !== 'GET') {
-        return { statusCode: 405, headers: DEFAULT_HEADERS, body: JSON.stringify({ message: 'Method Not Allowed' }) };
+        return { statusCode: 405, headers, body: JSON.stringify({ message: 'Method Not Allowed' }) };
     }
 
     const rateLimit = await checkRateLimit(event, {
         namespace: 'news',
         limit: 80,
         windowSeconds: 600,
+        failClosed: true,
     });
     if (!rateLimit.allowed) {
-        return buildRateLimitResponse(rateLimit);
+        return buildRateLimitResponse(rateLimit, event);
     }
 
     try {
@@ -65,7 +71,7 @@ const handler: Handler = async (event: HandlerEvent) => {
                 if (!query || query.length < 2) {
                     return { 
                         statusCode: 400,
-                        headers: DEFAULT_HEADERS,
+                        headers,
                         body: JSON.stringify({ message: "Search query required (min 2 chars)" }) 
                     };
                 }
@@ -84,7 +90,7 @@ const handler: Handler = async (event: HandlerEvent) => {
             default:
                 return { 
                     statusCode: 400,
-                    headers: DEFAULT_HEADERS,
+                    headers,
                     body: JSON.stringify({ message: 'Invalid endpoint' }) 
                 };
         }
@@ -112,11 +118,10 @@ const handler: Handler = async (event: HandlerEvent) => {
         }
 
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
             return {
                 statusCode: response.status,
-                headers: DEFAULT_HEADERS,
-                body: JSON.stringify({ message: safeText(errorData.message, 180) || "Error fetching news" }),
+                headers,
+                body: JSON.stringify({ message: "Error fetching news" }),
             };
         }
 
@@ -137,10 +142,10 @@ const handler: Handler = async (event: HandlerEvent) => {
 
         return {
             statusCode: 200,
-            headers: { 
+            headers: buildCorsHeaders(event, { 
                 'Content-Type': 'application/json',
                 'Cache-Control': 'public, max-age=300',
-            },
+            }),
             body: JSON.stringify({
                 totalArticles: typeof data.totalArticles === 'number' ? data.totalArticles : sanitizedArticles.length,
                 articles: sanitizedArticles,
@@ -151,10 +156,8 @@ const handler: Handler = async (event: HandlerEvent) => {
         console.error("[News] Error:", error);
         return {
             statusCode: 500,
-            headers: DEFAULT_HEADERS,
-            body: JSON.stringify({ 
-                message: error instanceof Error ? safeText(error.message, 180) : "Internal error" 
-            }),
+            headers,
+            body: JSON.stringify({ message: "Internal error" }),
         };
     }
 };
