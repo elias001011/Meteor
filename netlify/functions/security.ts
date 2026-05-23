@@ -5,6 +5,7 @@ export interface RateLimitOptions {
   namespace: string;
   limit: number;
   windowSeconds: number;
+  failClosed?: boolean;
 }
 
 export interface RateLimitResult {
@@ -12,6 +13,15 @@ export interface RateLimitResult {
   remaining: number;
   retryAfter: number;
 }
+
+const ALLOWED_ORIGINS = new Set([
+  'https://meteor-ai.netlify.app',
+  'https://dev--meteor-ai.netlify.app',
+  'http://localhost:8888',
+  'http://localhost:5173',
+  'http://127.0.0.1:8888',
+  'http://127.0.0.1:5173',
+]);
 
 const normalizeKeyPart = (value: string): string => (
   value
@@ -25,6 +35,41 @@ const getHeader = (event: HandlerEvent, name: string): string => {
   const direct = event.headers[lower] || event.headers[name];
   return typeof direct === 'string' ? direct : '';
 };
+
+const normalizeOrigin = (value: string): string => {
+  const text = value.trim().replace(/\/$/, '');
+  if (!text) return '';
+
+  try {
+    return new URL(text).origin;
+  } catch {
+    return '';
+  }
+};
+
+export const buildCorsHeaders = (
+  event: HandlerEvent,
+  baseHeaders: Record<string, string> = {}
+): Record<string, string> => {
+  const requestOrigin = normalizeOrigin(getHeader(event, 'origin'));
+  const origin = requestOrigin && ALLOWED_ORIGINS.has(requestOrigin)
+    ? requestOrigin
+    : 'https://meteor-ai.netlify.app';
+
+  return {
+    ...baseHeaders,
+    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Vary': 'Origin',
+  };
+};
+
+export const buildOptionsResponse = (event: HandlerEvent) => ({
+  statusCode: 204,
+  headers: buildCorsHeaders(event, { 'Cache-Control': 'no-store' }),
+  body: '',
+});
 
 export const getClientIp = (event: HandlerEvent): string => {
   const netlifyIp = getHeader(event, 'x-nf-client-connection-ip');
@@ -109,19 +154,32 @@ export const checkRateLimit = async (
       retryAfter,
     };
   } catch (error) {
-    // Fail-open: if Netlify Blobs is temporarily unavailable, keep the app working.
     console.warn('[Security] Rate limit unavailable:', error);
+
+    if (options.failClosed) {
+      return { allowed: false, remaining: 0, retryAfter: Math.max(60, retryAfter) };
+    }
+
     return { allowed: true, remaining: options.limit, retryAfter };
   }
 };
 
-export const buildRateLimitResponse = (result: RateLimitResult) => ({
+export const buildRateLimitResponse = (
+  result: RateLimitResult,
+  event?: HandlerEvent
+) => ({
   statusCode: 429,
-  headers: {
-    'Content-Type': 'application/json',
-    'Cache-Control': 'no-store',
-    'Retry-After': String(result.retryAfter),
-  },
+  headers: event
+    ? buildCorsHeaders(event, {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store',
+        'Retry-After': String(result.retryAfter),
+      })
+    : {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store',
+        'Retry-After': String(result.retryAfter),
+      },
   body: JSON.stringify({
     message: 'Muitas requisições. Tente novamente em alguns minutos.',
   }),
