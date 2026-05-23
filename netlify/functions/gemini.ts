@@ -1,6 +1,6 @@
 import { GoogleGenAI, type Content, type GroundingChunk, type GroundingMetadata } from '@google/genai';
 import { type Handler, type HandlerEvent } from '@netlify/functions';
-import { buildRateLimitResponse, checkRateLimit, sanitizeExternalUrl } from './security';
+import { buildCorsHeaders, buildOptionsResponse, buildRateLimitResponse, checkRateLimit, sanitizeExternalUrl } from './security';
 
 interface GroundingSource {
     uri: string;
@@ -294,9 +294,13 @@ const runModelWithFallbacks = async (ai: GoogleGenAI, contents: Content[]) => {
 };
 
 const handler: Handler = async (event: HandlerEvent) => {
-    const geminiKey = resolveGeminiApiKey();
-    const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
+    const headers = buildCorsHeaders(event, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
 
+    if (event.httpMethod === 'OPTIONS') {
+        return buildOptionsResponse(event);
+    }
+
+    const geminiKey = resolveGeminiApiKey();
     if (!geminiKey) {
         return {
             statusCode: 500,
@@ -315,9 +319,10 @@ const handler: Handler = async (event: HandlerEvent) => {
         namespace: 'gemini',
         limit: 25,
         windowSeconds: 600,
+        failClosed: true,
     });
     if (!rateLimit.allowed) {
-        return buildRateLimitResponse(rateLimit);
+        return buildRateLimitResponse(rateLimit, event);
     }
 
     const startTime = Date.now();
