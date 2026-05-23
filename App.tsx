@@ -25,6 +25,7 @@ import CitySelectionModal from './components/common/CitySelectionModal';
 import OnboardingModal from './components/common/OnboardingModal';
 import { ThemeProvider, useTheme } from './components/context/ThemeContext';
 import ZenMode from './components/weather/ZenMode';
+import { requestFullscreen } from './services/fullscreenService';
 import type { BackupImportOptions } from './services/settingsService';
 
 // Rain animation component defined locally
@@ -455,33 +456,40 @@ const App: React.FC = () => {
   useEffect(() => {
       const metaThemeColor = document.querySelector('meta[name="theme-color"]');
       if (metaThemeColor) {
-          metaThemeColor.setAttribute('content', '#0f172a');
+          metaThemeColor.setAttribute('content', '#111827');
       }
   }, [settings.performanceMode]);
+
+  useEffect(() => {
+      if (!settings.startFullscreen) return;
+
+      const enterFullscreen = async () => {
+          if (document.fullscreenElement) return;
+
+          const activated = await requestFullscreen();
+          if (activated) {
+              window.removeEventListener('pointerdown', enterFullscreen);
+              window.removeEventListener('keydown', enterFullscreen);
+              window.removeEventListener('touchend', enterFullscreen);
+          }
+      };
+
+      window.addEventListener('pointerdown', enterFullscreen);
+      window.addEventListener('keydown', enterFullscreen);
+      window.addEventListener('touchend', enterFullscreen);
+
+      return () => {
+          window.removeEventListener('pointerdown', enterFullscreen);
+          window.removeEventListener('keydown', enterFullscreen);
+          window.removeEventListener('touchend', enterFullscreen);
+      };
+  }, [settings.startFullscreen]);
 
   useEffect(() => {
       const initApp = () => {
           const savedSettings = getSettings();
           setSettings(savedSettings);
           setPreferredDataSource(savedSettings.weatherSource);
-
-          if (savedSettings.startFullscreen) {
-             const enterFullscreen = async () => {
-                 if (!document.fullscreenElement) {
-                     try {
-                        await document.documentElement.requestFullscreen();
-                        window.removeEventListener('click', enterFullscreen);
-                        window.removeEventListener('touchend', enterFullscreen);
-                        window.removeEventListener('keydown', enterFullscreen);
-                     } catch (e) {
-                        console.log("Auto-fullscreen deferred.", e);
-                     }
-                 }
-             };
-             window.addEventListener('click', enterFullscreen);
-             window.addEventListener('touchend', enterFullscreen);
-             window.addEventListener('keydown', enterFullscreen);
-          }
 
           if (savedSettings.startupBehavior === 'custom_section' && savedSettings.startupSection) {
               setView(savedSettings.startupSection);

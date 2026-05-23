@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import type { AppSettings, View, DataSource, AppTheme, TransparencyMode, ClockDisplayMode, BackgroundMode, MapTheme, BorderEffectMode, LayoutDensity, DesktopLayout, UnitSystem, ForecastComplexity, ForecastDetailView, ZenModeStyle, ZenModeBackground, ZenModeSound } from '../../types';
 import { getSettings, resetSettings, resetCache, resetAllData, exportAppData } from '../../services/settingsService';
+import { isFullscreenActive, isFullscreenSupported, toggleFullscreen } from '../../services/fullscreenService';
 import { useTheme } from '../context/ThemeContext';
 import { 
     XIcon, LightbulbIcon, SparklesIcon, ChevronLeftIcon, GaugeIcon, 
@@ -61,12 +62,16 @@ const SettingsView: React.FC<SettingsViewProps> = ({
     const [pixCopied, setPixCopied] = useState(false);
     
     const { classes, density, isPerformanceMode, cardClass, glassClass } = useTheme();
-    const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
+    const [isFullscreen, setIsFullscreen] = useState(isFullscreenActive());
 
     useEffect(() => {
-        const handleFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+        const handleFsChange = () => setIsFullscreen(isFullscreenActive());
         document.addEventListener('fullscreenchange', handleFsChange);
-        return () => document.removeEventListener('fullscreenchange', handleFsChange);
+        document.addEventListener('webkitfullscreenchange' as any, handleFsChange);
+        return () => {
+            document.removeEventListener('fullscreenchange', handleFsChange);
+            document.removeEventListener('webkitfullscreenchange' as any, handleFsChange);
+        };
     }, []);
 
     useEffect(() => {
@@ -91,11 +96,17 @@ const SettingsView: React.FC<SettingsViewProps> = ({
         onSettingsChanged(newSettings);
     };
 
-    const toggleFullscreen = () => {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch(err => {});
-        } else {
-            if (document.exitFullscreen) document.exitFullscreen();
+    const handleToggleFullscreen = async () => {
+        if (!isFullscreenSupported()) {
+            setFeedbackMessage("Este navegador não suporta tela cheia.");
+            setTimeout(() => setFeedbackMessage(null), 3000);
+            return;
+        }
+
+        const changed = await toggleFullscreen();
+        if (!changed) {
+            setFeedbackMessage("Não foi possível entrar em tela cheia.");
+            setTimeout(() => setFeedbackMessage(null), 3000);
         }
     };
 
@@ -333,7 +344,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                 <div className={density.settingsGap}>
                     <div className="flex items-center justify-between">
                         <span className={`${density.text} text-white font-medium`}>Modo Tela Cheia</span>
-                        <button onClick={toggleFullscreen} className={`px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg ${isFullscreen ? 'bg-red-500/20 text-red-300' : 'bg-white/10 text-white'}`}>{isFullscreen ? 'Sair' : 'Ativar'}</button>
+                        <button onClick={handleToggleFullscreen} className={`px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg ${isFullscreen ? 'bg-red-500/20 text-red-300' : 'bg-white/10 text-white'}`}>{isFullscreen ? 'Sair' : 'Ativar'}</button>
                     </div>
                     <div className="flex items-center justify-between pt-4 border-t border-white/5">
                         <span className={`${density.text} text-white font-medium`}>Iniciar em tela cheia</span>
