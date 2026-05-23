@@ -161,7 +161,7 @@ const sanitizeChatHistory = (value: unknown): ChatMessage[] => {
     if (!Array.isArray(value)) return [];
 
     return value
-        .map((entry, index) => {
+        .map((entry, index): ChatMessage | null => {
             if (!isRecord(entry)) return null;
 
             const role = entry.role === 'user' || entry.role === 'model' ? entry.role : null;
