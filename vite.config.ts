@@ -18,12 +18,23 @@ export default defineConfig(({ mode }) => {
         {
           name: 'post-build',
           writeBundle() {
-            // Copia o service worker para a pasta dist
+            // Copia os arquivos PWA que precisam ficar disponíveis na raiz publicada.
+            const pwaAssets = [
+              'sw.js',
+              'manifest.json',
+              'favicon.svg',
+              'pwa-icon.svg',
+              'pwa-icon-192.png',
+              'pwa-icon-512.png',
+            ];
+
             try {
-              copyFileSync('sw.js', 'dist/sw.js');
-              console.log('✅ Service Worker copiado para dist/');
+              for (const asset of pwaAssets) {
+                copyFileSync(asset, `dist/${asset}`);
+              }
+              console.log('✅ Arquivos PWA copiados para dist/');
             } catch (err) {
-              console.error('❌ Erro ao copiar sw.js:', err);
+              console.error('❌ Erro ao copiar arquivos PWA:', err);
             }
           }
         }

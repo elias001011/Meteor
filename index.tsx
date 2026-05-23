@@ -8,54 +8,38 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 };
 
+type PwaInstallState = {
+  canInstall: boolean;
+  installed: boolean;
+  supported: boolean;
+};
+
 declare global {
   interface Window {
     meteorInstallPwa?: () => Promise<boolean>;
-    meteorCanInstallPwa?: boolean;
+    meteorGetPwaInstallState?: () => PwaInstallState;
   }
 }
 
 let deferredInstallPrompt: BeforeInstallPromptEvent | null = null;
 
-const installButtonBaseClass = [
-  'mt-3',
-  'px-4',
-  'py-2',
-  'rounded-xl',
-  'text-sm',
-  'font-bold',
-  'transition-all',
-  'border',
-].join(' ');
-
 const isPwaStandalone = () =>
   window.matchMedia('(display-mode: standalone)').matches ||
   (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
 
+const getPwaInstallState = (): PwaInstallState => ({
+  canInstall: Boolean(deferredInstallPrompt),
+  installed: isPwaStandalone(),
+  supported: 'serviceWorker' in navigator && window.isSecureContext,
+});
+
 const dispatchPwaInstallState = () => {
   window.dispatchEvent(new CustomEvent('meteor:pwa-install-state', {
-    detail: {
-      canInstall: Boolean(deferredInstallPrompt),
-      installed: isPwaStandalone(),
-    },
+    detail: getPwaInstallState(),
   }));
 };
 
-const updatePwaInstallButtonState = (button: HTMLButtonElement, label?: string) => {
-  const installed = isPwaStandalone();
-  const canInstall = Boolean(deferredInstallPrompt);
-
-  button.textContent = label || (installed ? 'Instalado' : canInstall ? 'Instalar' : 'Instalação indisponível');
-  button.disabled = installed || !canInstall;
-  button.className = [
-    installButtonBaseClass,
-    canInstall && !installed
-      ? 'bg-cyan-500/20 text-cyan-200 border-cyan-400/30 hover:bg-cyan-500/30 active:scale-95'
-      : 'bg-white/5 text-gray-500 border-white/10 cursor-not-allowed',
-  ].join(' ');
-};
-
-window.meteorCanInstallPwa = false;
+window.meteorGetPwaInstallState = getPwaInstallState;
 window.meteorInstallPwa = async () => {
   if (isPwaStandalone()) {
     return true;
@@ -67,7 +51,6 @@ window.meteorInstallPwa = async () => {
 
   const promptEvent = deferredInstallPrompt;
   deferredInstallPrompt = null;
-  window.meteorCanInstallPwa = false;
   dispatchPwaInstallState();
 
   await promptEvent.prompt();
@@ -80,61 +63,13 @@ window.meteorInstallPwa = async () => {
 window.addEventListener('beforeinstallprompt', (event) => {
   event.preventDefault();
   deferredInstallPrompt = event as BeforeInstallPromptEvent;
-  window.meteorCanInstallPwa = true;
   dispatchPwaInstallState();
 });
 
 window.addEventListener('appinstalled', () => {
   deferredInstallPrompt = null;
-  window.meteorCanInstallPwa = false;
   dispatchPwaInstallState();
 });
-
-const enhancePwaSettingsCard = () => {
-  if (isPwaStandalone()) return;
-
-  const title = Array.from(document.querySelectorAll('h4')).find((element) =>
-    element.textContent?.trim() === 'Instale o Meteor'
-  );
-
-  const card = title?.closest('div.relative.overflow-hidden') as HTMLElement | null;
-  const textContainer = title?.parentElement as HTMLElement | null;
-
-  if (!card || !textContainer) {
-    return;
-  }
-
-  const existingButton = card.querySelector('[data-meteor-pwa-install]') as HTMLButtonElement | null;
-  if (existingButton) {
-    updatePwaInstallButtonState(existingButton);
-    return;
-  }
-
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.dataset.meteorPwaInstall = 'true';
-  updatePwaInstallButtonState(button);
-
-  button.addEventListener('click', async () => {
-    if (!window.meteorInstallPwa) return;
-    updatePwaInstallButtonState(button, 'Abrindo instalação...');
-    button.disabled = true;
-    const installed = await window.meteorInstallPwa();
-    updatePwaInstallButtonState(button, installed ? 'Instalado' : undefined);
-  });
-
-  textContainer.appendChild(button);
-};
-
-const startPwaSettingsEnhancer = () => {
-  const update = () => requestAnimationFrame(enhancePwaSettingsCard);
-  update();
-
-  const observer = new MutationObserver(update);
-  observer.observe(document.body, { childList: true, subtree: true });
-
-  window.addEventListener('meteor:pwa-install-state', update);
-};
 
 // Register service worker for PWA functionality
 // We only attempt to register if it's supported. 
@@ -176,5 +111,3 @@ root.render(
     <App />
   </React.StrictMode>
 );
-
-startPwaSettingsEnhancer();

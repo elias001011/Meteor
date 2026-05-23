@@ -21,6 +21,30 @@ interface SettingsViewProps {
 
 type SettingsTab = 'general' | 'visual' | 'ai' | 'data' | 'about';
 
+type PwaInstallState = {
+    canInstall: boolean;
+    installed: boolean;
+    supported: boolean;
+};
+
+type PwaWindow = Window & {
+    meteorInstallPwa?: () => Promise<boolean>;
+    meteorGetPwaInstallState?: () => PwaInstallState;
+};
+
+const isRunningAsPwa = () =>
+    window.matchMedia('(display-mode: standalone)').matches ||
+    (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+
+const getCurrentPwaInstallState = (): PwaInstallState => {
+    const pwaWindow = window as PwaWindow;
+    return pwaWindow.meteorGetPwaInstallState?.() ?? {
+        canInstall: false,
+        installed: isRunningAsPwa(),
+        supported: 'serviceWorker' in navigator && window.isSecureContext,
+    };
+};
+
 const SettingsView: React.FC<SettingsViewProps> = ({ 
     settings, 
     onSettingsChanged, 
@@ -32,6 +56,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({
     const [activeTab, setActiveTab] = useState<SettingsTab>('general');
     const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
     const [showPwaBanner, setShowPwaBanner] = useState(true);
+    const [pwaInstallState, setPwaInstallState] = useState<PwaInstallState>(() => getCurrentPwaInstallState());
+    const [isPwaInstallPending, setIsPwaInstallPending] = useState(false);
     const [pixCopied, setPixCopied] = useState(false);
     
     const { classes, density, isPerformanceMode, cardClass, glassClass } = useTheme();
@@ -41,6 +67,23 @@ const SettingsView: React.FC<SettingsViewProps> = ({
         const handleFsChange = () => setIsFullscreen(!!document.fullscreenElement);
         document.addEventListener('fullscreenchange', handleFsChange);
         return () => document.removeEventListener('fullscreenchange', handleFsChange);
+    }, []);
+
+    useEffect(() => {
+        const displayModeQuery = window.matchMedia('(display-mode: standalone)');
+        const updatePwaState = (event?: Event) => {
+            const detail = (event as CustomEvent<PwaInstallState> | undefined)?.detail;
+            setPwaInstallState(detail ?? getCurrentPwaInstallState());
+        };
+
+        updatePwaState();
+        window.addEventListener('meteor:pwa-install-state', updatePwaState);
+        displayModeQuery.addEventListener?.('change', updatePwaState);
+
+        return () => {
+            window.removeEventListener('meteor:pwa-install-state', updatePwaState);
+            displayModeQuery.removeEventListener?.('change', updatePwaState);
+        };
     }, []);
 
     const handleSave = (updatedSettings: Partial<AppSettings>) => {
@@ -78,6 +121,36 @@ const SettingsView: React.FC<SettingsViewProps> = ({
         setPixCopied(true);
         setTimeout(() => setPixCopied(false), 2000);
     };
+
+    const handlePwaInstall = async () => {
+        const pwaWindow = window as PwaWindow;
+        if (pwaInstallState.installed) return;
+
+        if (!pwaInstallState.canInstall || !pwaWindow.meteorInstallPwa) {
+            setFeedbackMessage("Instalação indisponível neste navegador.");
+            setTimeout(() => setFeedbackMessage(null), 3000);
+            return;
+        }
+
+        setIsPwaInstallPending(true);
+        try {
+            const installed = await pwaWindow.meteorInstallPwa();
+            setPwaInstallState(getCurrentPwaInstallState());
+            setFeedbackMessage(installed ? "Instalação iniciada." : "Instalação cancelada.");
+            setTimeout(() => setFeedbackMessage(null), 3000);
+        } finally {
+            setIsPwaInstallPending(false);
+        }
+    };
+
+    const pwaButtonDisabled = pwaInstallState.installed || !pwaInstallState.canInstall || isPwaInstallPending;
+    const pwaButtonLabel = pwaInstallState.installed
+        ? 'Instalado'
+        : isPwaInstallPending
+            ? 'Abrindo...'
+            : pwaInstallState.canInstall
+                ? 'Instalar app'
+                : 'Instalação indisponível';
     
     const themes: { id: AppTheme, name: string, color: string }[] = [
         { id: 'cyan', name: 'Padrão', color: 'bg-cyan-500' },
@@ -168,11 +241,26 @@ const SettingsView: React.FC<SettingsViewProps> = ({
     const renderGeneral = () => (
         <div className={`space-y-6 animate-enter`}>
             {/* 1. Instale o Meteor */}
-            {showPwaBanner && !window.matchMedia('(display-mode: standalone)').matches && (
+            {showPwaBanner && !pwaInstallState.installed && (
                 <div className={`relative overflow-hidden backdrop-blur-md border ${classes.borderFaded} ${density.padding} bg-gray-900/60 rounded-3xl flex items-start justify-between gap-4 shadow-lg group`}>
                     <div className="flex gap-4 relative z-10">
                         <div className={`p-3 rounded-full h-fit ${classes.bg}/20 shadow-inner`}><LightbulbIcon className={`w-6 h-6 ${classes.text}`} /></div>
-                        <div><h4 className="font-bold text-white text-lg">Instale o Meteor</h4><p className="text-sm text-gray-200 mt-1">Instale como App para melhor experiência.</p></div>
+                        <div>
+                            <h4 className="font-bold text-white text-lg">Instale o Meteor</h4>
+                            <p className="text-sm text-gray-200 mt-1">Instale como App para melhor experiência.</p>
+                            <button
+                                type="button"
+                                onClick={handlePwaInstall}
+                                disabled={pwaButtonDisabled}
+                                className={`mt-3 px-4 py-2 rounded-xl text-sm font-bold border transition-all ${
+                                    !pwaButtonDisabled
+                                        ? `${classes.bg} text-white border-white/10 hover:brightness-110 active:scale-95`
+                                        : 'bg-white/5 text-gray-500 border-white/10 cursor-not-allowed'
+                                }`}
+                            >
+                                {pwaButtonLabel}
+                            </button>
+                        </div>
                     </div>
                     <button onClick={() => setShowPwaBanner(false)} className="text-gray-400 hover:text-white"><XIcon className="w-5 h-5" /></button>
                 </div>

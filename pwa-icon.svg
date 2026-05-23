@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Meteor">
-  <rect width="512" height="512" rx="112" fill="#020617"/>
-  <circle cx="256" cy="256" r="176" fill="#07111f" stroke="#0e7490" stroke-width="10" opacity="0.95"/>
-  <g fill="none" stroke="#22d3ee" stroke-linecap="round" stroke-linejoin="round">
+  <rect width="512" height="512" fill="#ffffff"/>
+  <circle cx="256" cy="256" r="176" fill="#ffffff" stroke="#0891b2" stroke-width="12"/>
+  <g fill="none" stroke="#0891b2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M256 104v70" stroke-width="28"/>
     <path d="M256 338v70" stroke-width="28"/>
     <path d="M104 256h70" stroke-width="28"/>
@@ -10,8 +10,8 @@
     <path d="m314 314 50 50" stroke-width="24"/>
     <path d="m364 148-50 50" stroke-width="24"/>
     <path d="m198 314-50 50" stroke-width="24"/>
-    <path d="M228 246c13-31 57-31 70 0 8 19 2 41-14 54-16 13-40 13-56 0-16-13-22-35-14-54Z" fill="#22d3ee" fill-opacity="0.16" stroke-width="24"/>
-    <path d="M178 208c-28-62 50-112 92-62" stroke-width="20" opacity="0.7"/>
-    <path d="M334 304c28 62-50 112-92 62" stroke-width="20" opacity="0.7"/>
+    <path d="M228 246c13-31 57-31 70 0 8 19 2 41-14 54-16 13-40 13-56 0-16-13-22-35-14-54Z" fill="#0891b2" fill-opacity="0.14" stroke-width="24"/>
+    <path d="M178 208c-28-62 50-112 92-62" stroke-width="20" opacity="0.75"/>
+    <path d="M334 304c28 62-50 112-92 62" stroke-width="20" opacity="0.75"/>
   </g>
 </svg>

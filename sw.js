@@ -1,9 +1,11 @@
-const CACHE_NAME = 'meteor-cache-v6-pwa';
+const CACHE_NAME = 'meteor-cache-v7-pwa';
 const APP_SHELL_URLS = [
   '/',
   '/index.html',
   '/favicon.svg',
   '/pwa-icon.svg',
+  '/pwa-icon-192.png',
+  '/pwa-icon-512.png',
   '/manifest.json',
 ];
 
