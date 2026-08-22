@@ -490,7 +490,13 @@ const App: React.FC = () => {
     setCurrentCoords(coords);
     if(cityInfo) setCurrentCityInfo(cityInfo);
 
-    localStorage.setItem('last_coords', JSON.stringify(coords));
+    // Persist only a deliberately selected city center. Precise device
+    // geolocation remains in memory for the current session.
+    if (cityInfo) {
+      localStorage.setItem('last_coords', JSON.stringify(coords));
+    } else {
+      localStorage.removeItem('last_coords');
+    }
 
     try {
       const data = await fetchAllWeatherData(coords.lat, coords.lon, cityInfo, source);

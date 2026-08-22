@@ -7,6 +7,7 @@ import { useTheme } from '../context/ThemeContext';
 interface SearchBarProps {
   onCitySelect: (city: CitySearchResult) => void;
   onGeolocate: () => void;
+  showGeolocate?: boolean;
 }
 
 const quickCities: CitySearchResult[] = [
@@ -15,7 +16,7 @@ const quickCities: CitySearchResult[] = [
   { name: 'Rio de Janeiro', country: 'BR', state: 'Rio de Janeiro', lat: -22.9068, lon: -43.1729 },
 ];
 
-const SearchBar: React.FC<SearchBarProps> = ({ onCitySelect, onGeolocate }) => {
+const SearchBar: React.FC<SearchBarProps> = ({ onCitySelect, onGeolocate, showGeolocate = true }) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<CitySearchResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -101,9 +102,11 @@ const SearchBar: React.FC<SearchBarProps> = ({ onCitySelect, onGeolocate }) => {
       </form>
 
       <div className="scroll-fade flex gap-2 overflow-x-auto pb-1" aria-label="Atalhos de localização">
-        <button type="button" onClick={onGeolocate} className="flex flex-none items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.045] px-3 py-1.5 text-xs font-semibold text-slate-300 hover:bg-white/[0.08]">
-          <MapPinIcon className={`h-3.5 w-3.5 ${classes.text}`} /> Minha localização
-        </button>
+        {showGeolocate && (
+          <button type="button" onClick={onGeolocate} className="flex flex-none items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.045] px-3 py-1.5 text-xs font-semibold text-slate-300 hover:bg-white/[0.08]">
+            <MapPinIcon className={`h-3.5 w-3.5 ${classes.text}`} /> Minha localização
+          </button>
+        )}
         {quickCities.map(city => <button key={city.name} type="button" onClick={() => select(city)} className="flex-none rounded-full border border-white/[0.08] bg-white/[0.035] px-3 py-1.5 text-xs font-semibold text-slate-400 hover:bg-white/[0.08] hover:text-white">{city.name}</button>)}
       </div>
     </div>

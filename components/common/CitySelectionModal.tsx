@@ -45,20 +45,9 @@ const CitySelectionModal: React.FC<CitySelectionModalProps> = ({ isOpen, onClose
                 
                 <div className="mb-4"> 
                     <SearchBar 
-                        onCitySelect={onSelect} 
-                        onGeolocate={() => {
-                            if (navigator.geolocation) {
-                                navigator.geolocation.getCurrentPosition((pos) => {
-                                    // Mock city result for current location
-                                    onSelect({
-                                        name: "Minha Localização Atual",
-                                        country: "",
-                                        lat: pos.coords.latitude,
-                                        lon: pos.coords.longitude
-                                    });
-                                });
-                            }
-                        }} 
+                        onCitySelect={onSelect}
+                        onGeolocate={() => undefined}
+                        showGeolocate={false}
                     />
                 </div>
             </div>
