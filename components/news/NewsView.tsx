@@ -29,6 +29,15 @@ const CATEGORIES: { value: NewsCategory | ''; label: string; emoji: string }[] =
     { value: 'entertainment', label: 'Entretenimento', emoji: '🎬' },
 ];
 
+const safeExternalUrl = (value: string): string | undefined => {
+    try {
+        const url = new URL(value);
+        return url.protocol === 'https:' || url.protocol === 'http:' ? url.toString() : undefined;
+    } catch {
+        return undefined;
+    }
+};
+
 const NewsView: React.FC<NewsViewProps> = ({ onAskAIAboutNews }) => {
     const { cardClass, classes, glassClass, density } = useTheme();
     
@@ -263,7 +272,7 @@ const NewsView: React.FC<NewsViewProps> = ({ onAskAIAboutNews }) => {
                                         </button>
                                         
                                         <a
-                                            href={article.url}
+                                            href={safeExternalUrl(article.url)}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-medium transition-colors"

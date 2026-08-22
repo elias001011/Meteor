@@ -20,6 +20,35 @@ export interface NewsResponse {
 
 export type NewsCategory = 'general' | 'world' | 'nation' | 'business' | 'technology' | 'entertainment' | 'sports' | 'science' | 'health';
 
+const fetchNewsResponse = async (params: URLSearchParams): Promise<NewsResponse> => {
+    let response: Response;
+    try {
+        response = await fetch(`/.netlify/functions/news?${params.toString()}`, {
+            headers: { Accept: 'application/json' },
+            signal: AbortSignal.timeout(12_000),
+        });
+    } catch (error) {
+        if (error instanceof DOMException && (error.name === 'TimeoutError' || error.name === 'AbortError')) {
+            throw new Error('As notícias demoraram para responder. Tente novamente.');
+        }
+        throw new Error('Não foi possível conectar ao serviço de notícias.');
+    }
+
+    const data: unknown = await response.json().catch(() => null);
+    if (!response.ok) {
+        const message = typeof data === 'object' && data !== null && 'message' in data && typeof data.message === 'string'
+            ? data.message
+            : `Não foi possível carregar as notícias (erro ${response.status}).`;
+        throw new Error(message);
+    }
+
+    if (typeof data !== 'object' || data === null || !('articles' in data) || !Array.isArray(data.articles)) {
+        throw new Error('O serviço de notícias retornou uma resposta inválida.');
+    }
+
+    return data as NewsResponse;
+};
+
 /**
  * Busca as principais notícias (top headlines)
  */
@@ -29,21 +58,14 @@ export async function getTopHeadlines(
 ): Promise<NewsResponse> {
     const params = new URLSearchParams({
         endpoint: 'top-headlines',
-        max: max.toString(),
+        max: String(Math.min(Math.max(Math.floor(max), 1), 20)),
     });
     
     if (category) {
         params.append('category', category);
     }
 
-    const response = await fetch(`/.netlify/functions/news?${params.toString()}`);
-    
-    if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: 'Erro ao buscar notícias' }));
-        throw new Error(error.message || `Erro ${response.status}`);
-    }
-    
-    return response.json();
+    return fetchNewsResponse(params);
 }
 
 /**
@@ -59,18 +81,11 @@ export async function searchNews(
 
     const params = new URLSearchParams({
         endpoint: 'search',
-        q: query.trim(),
-        max: max.toString(),
+        q: query.trim().slice(0, 100),
+        max: String(Math.min(Math.max(Math.floor(max), 1), 20)),
     });
 
-    const response = await fetch(`/.netlify/functions/news?${params.toString()}`);
-    
-    if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: 'Erro ao buscar notícias' }));
-        throw new Error(error.message || `Erro ${response.status}`);
-    }
-    
-    return response.json();
+    return fetchNewsResponse(params);
 }
 
 /**
@@ -79,8 +94,9 @@ export async function searchNews(
  */
 export function formatPublishedDate(publishedAt: string): string {
     const published = new Date(publishedAt);
+    if (!Number.isFinite(published.getTime())) return 'data não informada';
     const now = new Date();
-    const diffMs = now.getTime() - published.getTime();
+    const diffMs = Math.max(0, now.getTime() - published.getTime());
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);

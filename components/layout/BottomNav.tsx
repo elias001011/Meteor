@@ -1,7 +1,6 @@
-
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { View } from '../../types';
-import { HomeIcon, MapIcon, NewspaperIcon, SettingsIcon, SparklesIcon, LightbulbIcon, BellIcon, MoreHorizontalIcon, MaximizeIcon } from '../icons';
+import { BellIcon, HomeIcon, MapIcon, MaximizeIcon, MoreHorizontalIcon, NewspaperIcon, SettingsIcon, SparklesIcon } from '../icons';
 import { useTheme } from '../context/ThemeContext';
 
 interface BottomNavProps {
@@ -10,91 +9,68 @@ interface BottomNavProps {
   onToggleZenMode: () => void;
 }
 
-interface NavItemProps {
-  icon: React.ReactNode;
+interface NavButtonProps {
+  active: boolean;
   label: string;
-  isActive: boolean;
+  icon: React.ReactNode;
   onClick: () => void;
-  className?: string;
-  activeColorClass: string;
 }
 
-const NavItem: React.FC<NavItemProps> = ({ icon, label, isActive, onClick, className = '', activeColorClass }) => (
-  <button onClick={onClick} className={`flex flex-col items-center justify-center w-16 text-center transition-all duration-200 ${isActive ? activeColorClass : 'text-gray-400 hover:text-white'} ${className}`}>
-    {icon}
-    <span className="text-[10px] mt-1 truncate font-medium">{label}</span>
-  </button>
-);
+const NavButton: React.FC<NavButtonProps> = ({ active, label, icon, onClick }) => {
+  const { classes } = useTheme();
+  return (
+    <button type="button" onClick={onClick} aria-current={active ? 'page' : undefined} className={`flex h-14 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl text-[10px] font-bold transition-colors ${active ? `${classes.text} bg-white/[0.07]` : 'text-slate-500 hover:text-slate-200'}`}>
+      {icon}<span className="max-w-full truncate px-1">{label}</span>
+    </button>
+  );
+};
 
 const BottomNav: React.FC<BottomNavProps> = ({ activeView, setView, onToggleZenMode }) => {
-  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
-  const { classes, headerClass, glassClass } = useTheme();
+  const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-
-  const handleMoreClick = (view: View) => {
-    setView(view);
-    setIsMoreMenuOpen(false);
-  }
-  
-  const handleZenClick = () => {
-      onToggleZenMode();
-      setIsMoreMenuOpen(false);
-  }
+  const { classes, isAmoled } = useTheme();
 
   useEffect(() => {
-      const handleClickOutside = (event: MouseEvent) => {
-          if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-              setIsMoreMenuOpen(false);
-          }
-      };
-      if (isMoreMenuOpen) document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isMoreMenuOpen]);
+    if (!open) return;
+    const close = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [open]);
+
+  const choose = (view: View) => { setView(view); setOpen(false); };
 
   return (
-    <div className="fixed bottom-0 inset-x-0 z-[100] px-4">
-      {isMoreMenuOpen && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[90] animate-fade-in" onClick={() => setIsMoreMenuOpen(false)} />
+    <div className="fixed inset-x-0 bottom-0 z-[100] px-2 pb-safe lg:hidden" ref={menuRef}>
+      {open && (
+        <>
+          <button type="button" className="fixed inset-0 -z-10 bg-black/55 backdrop-blur-[2px]" onClick={() => setOpen(false)} aria-label="Fechar menu" />
+          <div className={`absolute bottom-[5.25rem] right-3 w-56 rounded-3xl border border-white/10 p-2 shadow-2xl ${isAmoled ? 'bg-black' : 'bg-[#0a1525]/95 backdrop-blur-2xl'}`}>
+            <p className="px-3 pb-2 pt-1 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">Mais opções</p>
+            {[
+              { view: 'alerts' as View, label: 'Alertas meteorológicos', icon: <BellIcon className="h-5 w-5" /> },
+              { view: 'settings' as View, label: 'Ajustes', icon: <SettingsIcon className="h-5 w-5" /> },
+            ].map(item => (
+              <button key={item.view} type="button" onClick={() => choose(item.view)} className={`flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold transition-colors ${activeView === item.view ? `${classes.text} bg-white/[0.07]` : 'text-slate-300 hover:bg-white/[0.06]'}`}>
+                {item.icon}{item.label}
+              </button>
+            ))}
+            <div className="my-1 border-t border-white/[0.07]" />
+            <button type="button" onClick={() => { onToggleZenMode(); setOpen(false); }} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold text-slate-300 hover:bg-white/[0.06]">
+              <MaximizeIcon className="h-5 w-5" /> Modo Zen
+            </button>
+          </div>
+        </>
       )}
 
-      {/* Unified Nav Container using Header Class for consistency */}
-      <div className={`relative bottom-4 ${headerClass} rounded-full max-w-lg mx-auto h-16 flex justify-around items-center z-[100] px-2`}>
-        <NavItem activeColorClass={classes.text} icon={<HomeIcon className="w-6 h-6" />} label="Clima" isActive={activeView === 'weather'} onClick={() => setView('weather')} />
-        <NavItem activeColorClass={classes.text} icon={<MapIcon className="w-6 h-6" />} label="Mapa" isActive={activeView === 'map'} onClick={() => setView('map')} />
-        <NavItem activeColorClass={classes.text} icon={<SparklesIcon className="w-6 h-6" />} label="IA" isActive={activeView === 'ai'} onClick={() => setView('ai')} />
-        <NavItem activeColorClass={classes.text} icon={<LightbulbIcon className="w-6 h-6" />} label="Dicas" isActive={activeView === 'tips'} onClick={() => setView('tips')} />
-        
-        {/* Floating More Menu Container */}
-        <div className="relative flex items-center justify-center" ref={menuRef}>
-            {/* The menu needs to stay mounted to animate out, but for React simple implementation we use conditional rendering.
-                Added 'animate-fast-pop' for snappy entry as requested. Using glassClass to match context logic. */}
-            {isMoreMenuOpen && (
-                <div className={`absolute bottom-full right-0 mb-4 ${glassClass} rounded-2xl flex flex-col items-start p-2 gap-1 animate-fast-pop min-w-[160px] z-[150] shadow-2xl`}>
-                    <div className="px-3 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest border-b border-white/5 w-full mb-1">Menu</div>
-                    <NavItem activeColorClass={classes.text} icon={<NewspaperIcon className="w-5 h-5" />} label="Notícias" isActive={activeView === 'news'} onClick={() => handleMoreClick('news')} className="w-full !flex-row !justify-start gap-4 !h-11 px-3 hover:bg-white/5 rounded-xl" />
-                    <NavItem activeColorClass={classes.text} icon={<BellIcon className="w-5 h-5" />} label="Alertas" isActive={activeView === 'alerts'} onClick={() => handleMoreClick('alerts')} className="w-full !flex-row !justify-start gap-4 !h-11 px-3 hover:bg-white/5 rounded-xl" />
-                    <NavItem activeColorClass={classes.text} icon={<SettingsIcon className="w-5 h-5" />} label="Ajustes" isActive={activeView === 'settings'} onClick={() => handleMoreClick('settings')} className="w-full !flex-row !justify-start gap-4 !h-11 px-3 hover:bg-white/5 rounded-xl" />
-                    
-                    {/* Zen Mode Button - Added Separator before it */}
-                    <div className="w-full border-t border-white/5 my-1"></div>
-                    <button onClick={handleZenClick} className="w-full flex items-center gap-4 px-3 h-11 hover:bg-white/5 rounded-xl text-gray-400 hover:text-white transition-colors group">
-                        <MaximizeIcon className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                        <span className="text-[10px] font-medium">Zen Mode</span>
-                    </button>
-                </div>
-            )}
-            {/* Toggle Button: Rotates when open */}
-            <button 
-                onClick={() => setIsMoreMenuOpen(prev => !prev)} 
-                className={`flex flex-col items-center justify-center w-16 text-center transition-all duration-300 ${isMoreMenuOpen ? classes.text : 'text-gray-400 hover:text-white'}`}
-            >
-                <div className={`transition-transform duration-300 ${isMoreMenuOpen ? 'rotate-90' : 'rotate-0'}`}>
-                    <MoreHorizontalIcon className="w-6 h-6" />
-                </div>
-                <span className="text-[10px] mt-1 truncate font-medium">Mais</span>
-            </button>
-        </div>
-      </div>
+      <nav className={`mx-auto flex max-w-xl items-center gap-1 rounded-[1.5rem] border border-white/10 p-1.5 shadow-[0_18px_55px_rgba(0,0,0,0.55)] ${isAmoled ? 'bg-black' : 'bg-[#07111f]/94 backdrop-blur-2xl'}`} aria-label="Navegação principal">
+        <NavButton label="Clima" active={activeView === 'weather' || activeView === 'tips' || activeView === 'info'} onClick={() => choose('weather')} icon={<HomeIcon className="h-5 w-5" />} />
+        <NavButton label="Mapa" active={activeView === 'map'} onClick={() => choose('map')} icon={<MapIcon className="h-5 w-5" />} />
+        <NavButton label="Meteor IA" active={activeView === 'ai'} onClick={() => choose('ai')} icon={<SparklesIcon className="h-5 w-5" />} />
+        <NavButton label="Notícias" active={activeView === 'news'} onClick={() => choose('news')} icon={<NewspaperIcon className="h-5 w-5" />} />
+        <NavButton label="Mais" active={open || activeView === 'alerts' || activeView === 'settings'} onClick={() => setOpen(value => !value)} icon={<MoreHorizontalIcon className="h-5 w-5" />} />
+      </nav>
     </div>
   );
 };

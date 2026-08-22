@@ -1,143 +1,139 @@
-
-import React, { useState, useEffect } from 'react';
-import { SparklesIcon, MapIcon, FileTextIcon, ChevronLeftIcon } from '../icons';
+import React, { useEffect, useRef, useState } from 'react';
+import { ChevronLeftIcon, FileTextIcon, MapIcon, XIcon } from '../icons';
 import { useTheme } from '../context/ThemeContext';
 
 interface OnboardingModalProps {
     onClose: () => void;
 }
 
+const slides = [
+    {
+        eyebrow: 'Bem-vindo',
+        title: 'Clima sem ruído.',
+        description: 'Previsão, alertas e contexto prático reunidos em uma interface rápida para qualquer tela.',
+        icon: 'brand',
+    },
+    {
+        eyebrow: 'Explore',
+        title: 'Dados quando você precisa.',
+        description: 'Consulte mapas, compare previsões e converse com o Gemini usando o clima da cidade como contexto.',
+        icon: 'map',
+    },
+    {
+        eyebrow: 'Privacidade',
+        title: 'Você continua no controle.',
+        description: 'Preferências e histórico ficam neste dispositivo. Localização e microfone só são usados quando você solicita.',
+        icon: 'privacy',
+    },
+] as const;
+
 const OnboardingModal: React.FC<OnboardingModalProps> = ({ onClose }) => {
     const [step, setStep] = useState(0);
     const [isVisible, setIsVisible] = useState(false);
-    const { classes, glassClass } = useTheme();
+    const closeButtonRef = useRef<HTMLButtonElement>(null);
+    const { classes, isAmoled } = useTheme();
 
     useEffect(() => {
-        // Start animation on mount
-        const timer = setTimeout(() => setIsVisible(true), 100);
-        // Lock scroll
+        const timer = window.setTimeout(() => {
+            setIsVisible(true);
+            closeButtonRef.current?.focus();
+        }, 80);
         document.body.style.overflow = 'hidden';
+
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') onClose();
+        };
+        window.addEventListener('keydown', onKeyDown);
+
         return () => {
-            clearTimeout(timer);
+            window.clearTimeout(timer);
+            window.removeEventListener('keydown', onKeyDown);
             document.body.style.overflow = '';
         };
-    }, []);
+    }, [onClose]);
 
-    const handleNext = () => {
-        if (step < slides.length - 1) {
-            setStep(prev => prev + 1);
-        } else {
-            handleFinish();
-        }
-    };
-
-    const handleFinish = () => {
+    const finish = () => {
         setIsVisible(false);
-        // Allow animation to finish before unmounting
-        setTimeout(onClose, 300);
+        window.setTimeout(onClose, 180);
     };
 
-    const slides = [
-        {
-            title: "Bem-vindo ao Meteor",
-            description: "Sua nova central de inteligência climática avançada.",
-            icon: <SparklesIcon className={`w-16 h-16 ${classes.text}`} />,
-            color: classes.bg
-        },
-        {
-            title: "Poder da IA",
-            description: "Converse com o Gemini sobre o clima, peça dicas de segurança e obtenha análises em tempo real do seu ambiente.",
-            icon: <div className="relative">
-                    <div className="absolute -inset-2 bg-cyan-500/20 rounded-full blur-lg animate-pulse"></div>
-                    <SparklesIcon className="w-16 h-16 text-cyan-400 relative z-10" />
-                  </div>,
-            color: "bg-cyan-600"
-        },
-        {
-            title: "Mapas & Dados",
-            description: "Visualize camadas de chuva, vento e temperatura. Alterne entre provedores de dados para máxima precisão.",
-            icon: <MapIcon className="w-16 h-16 text-emerald-400" />,
-            color: "bg-emerald-600"
-        },
-        {
-            title: "Transparência",
-            description: "Projeto Open Source focado em privacidade. Seus dados são seus.",
-            customContent: (
-                 <div className="mt-6 p-4 bg-purple-500/10 rounded-xl border border-purple-500/20 animate-enter">
-                    <p className="text-xs text-gray-300 leading-relaxed text-center">
-                        Ao utilizar o Meteor, você concorda com os <a href="https://policies-meteor-ai.netlify.app/" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:text-cyan-300 underline decoration-cyan-500/30 transition-colors font-semibold">Termos de Uso</a> e <a href="https://policies-meteor-ai.netlify.app/" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:text-cyan-300 underline decoration-cyan-500/30 transition-colors font-semibold">Política de Privacidade</a> da plataforma.
-                    </p>
-                </div>
-            ),
-            icon: <FileTextIcon className="w-16 h-16 text-purple-400" />,
-            color: "bg-purple-600"
-        }
-    ];
+    const next = () => {
+        if (step === slides.length - 1) finish();
+        else setStep(current => current + 1);
+    };
 
-    const currentSlide = slides[step];
+    const slide = slides[step];
+
+    const icon = slide.icon === 'brand'
+        ? <img src="/favicon.svg" alt="" className="h-16 w-16" />
+        : slide.icon === 'map'
+            ? <MapIcon className={`h-14 w-14 ${classes.text}`} />
+            : <FileTextIcon className={`h-14 w-14 ${classes.text}`} />;
 
     return (
-        <div className={`fixed inset-0 z-[200] flex items-center justify-center p-4 transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
-            {/* Background Backdrop */}
-            <div className="absolute inset-0 bg-black/80 backdrop-blur-md" />
+        <div className={`fixed inset-0 z-[200] flex items-center justify-center p-4 transition-opacity duration-200 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
+            <div className="absolute inset-0 bg-[#010305]/85 backdrop-blur-xl" aria-hidden="true" />
 
-            {/* Modal Content */}
-            <div className={`relative w-full max-w-md ${glassClass} bg-gray-900/90 rounded-3xl shadow-2xl overflow-hidden transform transition-all duration-500 border border-white/10 ${isVisible ? 'scale-100 translate-y-0' : 'scale-95 translate-y-10'}`}>
-                
-                {/* Progress Bar */}
-                <div className="absolute top-0 left-0 right-0 flex h-1">
-                    {slides.map((_, idx) => (
-                        <div 
-                            key={idx} 
-                            className={`flex-1 transition-colors duration-500 ${idx <= step ? currentSlide.color : 'bg-gray-800'}`} 
-                        />
+            <section
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="onboarding-title"
+                aria-describedby="onboarding-description"
+                className={`relative w-full max-w-md overflow-hidden rounded-[2rem] border border-white/10 shadow-2xl ${isAmoled ? 'bg-black' : 'bg-[#0b1524]/95'}`}
+            >
+                <div className="flex gap-1.5 px-6 pt-5" aria-hidden="true">
+                    {slides.map((_, index) => (
+                        <span key={index} className={`h-1 flex-1 rounded-full transition-colors ${index <= step ? classes.bg : 'bg-white/10'}`} />
                     ))}
                 </div>
 
-                <div className="p-8 flex flex-col items-center text-center min-h-[420px]"> 
-                    
-                    {/* Icon Container with Animation */}
-                    <div className="flex-1 flex items-center justify-center py-6 animate-enter-pop" key={step}>
-                         <div className="p-6 rounded-full bg-white/5 border border-white/5 shadow-xl relative">
-                            {currentSlide.icon}
-                         </div>
+                <button
+                    ref={closeButtonRef}
+                    type="button"
+                    onClick={finish}
+                    className="absolute right-5 top-9 flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-400 transition hover:bg-white/10 hover:text-white"
+                    aria-label="Pular apresentação"
+                >
+                    <XIcon className="h-4 w-4" />
+                </button>
+
+                <div className="flex min-h-[430px] flex-col px-7 pb-7 pt-10 sm:px-9 sm:pb-9">
+                    <div key={step} className="animate-enter">
+                        <div className={`mb-10 flex h-24 w-24 items-center justify-center rounded-[1.75rem] border border-white/10 ${isAmoled ? 'bg-white/5' : 'bg-[radial-gradient(circle_at_35%_20%,rgba(56,189,248,0.2),rgba(255,255,255,0.035))]'}`}>
+                            {icon}
+                        </div>
+                        <p className="meteor-eyebrow mb-3">{slide.eyebrow}</p>
+                        <h2 id="onboarding-title" className="max-w-xs text-3xl font-black tracking-[-0.045em] text-white">{slide.title}</h2>
+                        <p id="onboarding-description" className="mt-4 text-sm leading-6 text-slate-400">{slide.description}</p>
+
+                        {step === slides.length - 1 && (
+                            <p className="mt-5 text-xs leading-5 text-slate-500">
+                                Ao continuar, você aceita os{' '}
+                                <a href="https://policies-meteor-ai.netlify.app/" target="_blank" rel="noopener noreferrer" className={`${classes.text} underline underline-offset-4`}>Termos e a Política de Privacidade</a>.
+                            </p>
+                        )}
                     </div>
 
-                    {/* Text Content */}
-                    <div className="space-y-4 mb-6 animate-enter w-full" key={`text-${step}`}>
-                        <h2 className="text-2xl font-bold text-white tracking-tight">{currentSlide.title}</h2>
-                        <p className="text-gray-300 leading-relaxed text-sm">
-                            {currentSlide.description}
-                        </p>
-                        {/* Render custom content safely */}
-                        {(currentSlide as any).customContent}
-                    </div>
-
-                    {/* Navigation */}
-                    <div className="w-full flex items-center justify-between mt-auto pt-2">
-                        <button 
-                            onClick={() => setStep(prev => Math.max(0, prev - 1))}
-                            className={`p-2 rounded-full hover:bg-white/10 transition-opacity ${step === 0 ? 'opacity-0 pointer-events-none' : 'opacity-100 text-gray-400'}`}
+                    <div className="mt-auto flex items-center justify-between pt-9">
+                        <button
+                            type="button"
+                            onClick={() => setStep(current => Math.max(0, current - 1))}
+                            disabled={step === 0}
+                            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 text-slate-400 transition hover:bg-white/5 hover:text-white disabled:invisible"
+                            aria-label="Voltar"
                         >
-                            <ChevronLeftIcon className="w-6 h-6" />
+                            <ChevronLeftIcon className="h-5 w-5" />
                         </button>
 
-                        <div className="flex gap-2">
-                            {slides.map((_, idx) => (
-                                <div key={idx} className={`w-2 h-2 rounded-full transition-colors duration-300 ${idx === step ? 'bg-white' : 'bg-gray-700'}`} />
-                            ))}
-                        </div>
+                        <span className="text-xs font-bold tabular-nums text-slate-600">{step + 1} / {slides.length}</span>
 
-                        <button 
-                            onClick={handleNext}
-                            className={`${currentSlide.color} hover:brightness-110 text-white px-6 py-2 rounded-full font-bold transition-all shadow-lg flex items-center gap-2`}
-                        >
+                        <button type="button" onClick={next} className={`flex h-11 items-center gap-2 rounded-full px-6 text-sm font-black text-white shadow-lg transition hover:brightness-110 ${classes.bg}`}>
                             {step === slides.length - 1 ? 'Começar' : 'Próximo'}
-                            {step !== slides.length - 1 && <ChevronLeftIcon className="w-4 h-4 rotate-180" />}
+                            {step < slides.length - 1 && <ChevronLeftIcon className="h-4 w-4 rotate-180" />}
                         </button>
                     </div>
                 </div>
-            </div>
+            </section>
         </div>
     );
 };

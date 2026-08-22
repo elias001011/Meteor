@@ -1,358 +1,153 @@
-
 import React, { useMemo } from 'react';
-import type { WeatherData, HourlyForecast, DailyForecast, AirQualityData } from '../../types';
-import { useTheme } from '../context/ThemeContext';
+import type { AirQualityData, DailyForecast, HourlyForecast, WeatherAlert, WeatherData } from '../../types';
 import { getSettings } from '../../services/settingsService';
+import { AlertTriangleIcon, LightbulbIcon, SparklesIcon } from '../icons';
+import { useTheme } from '../context/ThemeContext';
 
 interface WeatherInsightsProps {
-    current: WeatherData;
-    hourly: HourlyForecast[];
-    daily: DailyForecast[];
-    airQuality?: AirQualityData | null;
+  current: WeatherData;
+  hourly: HourlyForecast[];
+  daily: DailyForecast[];
+  airQuality?: AirQualityData | null;
+  alerts?: WeatherAlert[];
 }
 
-interface AnalysisEvent {
-    priority: number; 
-    text: string;
-    category: 'alert' | 'rain' | 'temp' | 'lifestyle' | 'air';
+type InsightSeverity = 'critical' | 'attention' | 'info' | 'good';
+
+interface Insight {
+  id: string;
+  priority: number;
+  severity: InsightSeverity;
+  title: string;
+  detail: string;
 }
 
-// Sistema de frases expansível e variável
-const FRASES = {
-    tempestade: [
-        "Tempestade em andamento. Fique em local seguro.",
-        "Raios e trovões detectados. Tire eletrônicos da tomada.",
-        "Tempestade ativa! Evite áreas abertas.",
-        "Céu carregado com atividade elétrica. Prefira ficar em casa.",
-        "Trovoada intensa no momento. Cuidado com quedas de energia.",
-        "Condições severas de tempestade. Aguarde dentro de casa.",
-        "Raios frequentes na região. Evite tocar em metais.",
-        "Tempestade elétrica ativa. Mantenha-se afastado de janelas."
-    ],
-    chuvaForte: [
-        "Dia cinza e chuvoso.",
-        "Guarda-chuva é item obrigatório hoje.",
-        "Pistas molhadas e escorregadias.",
-        "Chuva forte no momento. Reduza a velocidade.",
-        "Precipitação intensa. Visibilidade reduzida.",
-        "Água caindo forte lá fora. Leve proteção!",
-        "Chuva persistente. Ótimo dia para um bom café.",
-        "Granizo ou chuva volumosa. Cuidado ao dirigir.",
-        "Tempo instável com chuva significativa.",
-        "Dia de manter o guarda-chuva sempre à mão."
-    ],
-    vaiChover: [
-        "O tempo vai virar nas próximas horas.",
-        "Vem água por aí, prepare o guarda-chuva.",
-        "Previsão de chuva em breve. Leve proteção.",
-        "Nuvens carregadas se aproximando. Chuva à vista!",
-        "Céu nublado indica precipitação em breve.",
-        "Melhor levar o guarda-chuva, o tempo está mudando.",
-        "Chuva prevista para as próximas horas. Fique atento!",
-        "Instabilidade se aproxima. Prepare-se!"
-    ],
-    calorExtremo: [
-        "Calor infernal! Hidrate-se muito.",
-        "Sensação de forno ligado.",
-        "Onda de calor! {temp}°C de sensação. Beba água!",
-        "Temperatura extrema. Evite exposição ao sol.",
-        "Dia escaldante! Mantenha-se hidratado.",
-        "Calor intenso. Procure ambientes refrigerados.",
-        "Temperatura muito elevada. Cuidado com insolação!",
-        "Dia de muito calor. Evite atividades ao ar livre.",
-        "Sensação térmica elevada. Use protetor solar!",
-        "Calor excessivo. Beba líquidos constantemente."
-    ],
-    frioExtremo: [
-        "Frio congelante! Proteja-se.",
-        "Hoje é dia de edredom e sopa.",
-        "Temperatura muito baixa. Agasalhe-se bem.",
-        "Dia gelado! Use camadas de roupa.",
-        "Frio intenso. Não esqueça o casaco grosso!",
-        "Temperatura baixa. Proteja as extremidades.",
-        "Dia de frio cortante. Um chocolate quente cai bem!",
-        "Sensação térmica baixa. Cubra-se bem!",
-        "Frio significativo. Prefira ambientes fechados.",
-        "Dia gelado! Cuidado com resfriados."
-    ],
-    climaPerfeito: [
-        "Clima absolutamente perfeito.",
-        "O tempo está uma delícia lá fora.",
-        "Condições ideais para aproveitar o dia!",
-        "Nem quente nem frio, perfeito!",
-        "Dia agradável com temperatura ideal.",
-        "Tempo excelente para atividades ao ar livre!",
-        "Condições climáticas perfeitas hoje.",
-        "Dia lindo para aproveitar a natureza!",
-        "Temperatura de cinema. Aproveite!",
-        "Clima agradável e convidativo."
-    ],
-    manha: [
-        "Bom dia{nome}! Tempo estável.",
-        "Manhã calma lá fora.",
-        "Olá{nome}! Ótima manhã para começar.",
-        "Dia começando com tempo agradável.",
-        "Bom dia{nome}! Ótimo dia para começar bem.",
-        "Manhã tranquila com tempo favorável.",
-        "Bom dia{nome}! Que seu dia seja ótimo!",
-        "Início de dia com tempo agradável."
-    ],
-    normal: [
-        "Tudo normal no clima.",
-        "Dia tranquilo por aqui{nome}.",
-        "Condições estáveis, aproveite!",
-        "Tempo calmo e sem surpresas.",
-        "Dia sem grandes variações climáticas.",
-        "Condições normais de temperatura.",
-        "Tempo estável por enquanto.",
-        "Dia comum do ponto de vista meteorológico."
-    ],
-    noite: [
-        "Boa noite{nome}! Céu limpo.",
-        "Noite tranquila com bom tempo.",
-        "Boa noite{nome}! Tempo favorável.",
-        "Noite agradável lá fora."
-    ],
-    recomendacaoChuva: [
-        "Dirija com cautela e faróis baixos.",
-        "Evite alagamentos e áreas de risco.",
-        "Mantenha distância dos veículos à frente.",
-        "Reduza a velocidade nas curvas.",
-        "Fique atento a possíveis escorregões."
-    ],
-    recomendacaoCalor: [
-        "Beba bastante água.",
-        "Evite exposição direta ao sol.",
-        "Use roupas leves e claras.",
-        "Busque ambientes refrigerados.",
-        "Aplique protetor solar regularmente."
-    ],
-    recomendacaoFrio: [
-        "Agasalhe-se bem antes de sair.",
-        "Prefira bebidas quentes.",
-        "Proteja mãos e pés do frio.",
-        "Evite mudanças bruscas de temperatura.",
-        "Mantenha-se em ambientes aquecidos."
-    ],
-    recomendacaoNormal: [
-        "Aproveite o dia!",
-        "Ótimo dia para atividades ao ar livre!",
-        "Aproveite para fazer exercícios.",
-        "Dia perfeito para um passeio.",
-        "Aproveite as condições favoráveis!"
-    ],
-    recomendacaoNoite: [
-        "Bom descanso!",
-        "Durma bem!",
-        "Aproveite a noite tranquila.",
-        "Boa noite de sono!"
-    ],
-    qualidadeArBoa: [
-        "Qualidade do ar está ótima.",
-        "Ar puro e agradável para respirar.",
-        "Condições excelentes de qualidade do ar."
-    ],
-    qualidadeArRuim: [
-        "Qualidade do ar prejudicada. Evite exercícios intensos.",
-        "Ar poluído. Pessoas sensíveis devem ter cuidado.",
-        "Condições ruins de qualidade do ar. Fique atento!"
-    ]
+const severityStyles: Record<InsightSeverity, { dot: string; surface: string; label: string }> = {
+  critical: { dot: 'bg-red-400', surface: 'border-red-400/25 bg-red-400/[0.08]', label: 'Urgente' },
+  attention: { dot: 'bg-amber-300', surface: 'border-amber-300/20 bg-amber-300/[0.07]', label: 'Atenção' },
+  info: { dot: 'bg-sky-300', surface: 'border-sky-300/20 bg-sky-300/[0.06]', label: 'Observe' },
+  good: { dot: 'bg-emerald-300', surface: 'border-emerald-300/20 bg-emerald-300/[0.06]', label: 'Tranquilo' },
 };
 
-const getRandomPhrase = (phrases: string[], seed: number): string => {
-    // Usa seed + data atual para variabilidade diária
-    const dayOfYear = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
-    const combinedSeed = seed + dayOfYear;
-    const index = Math.abs(combinedSeed) % phrases.length;
-    return phrases[index];
-};
+const hasWords = (value: string, words: string[]) => words.some(word => value.includes(word));
 
-const WeatherInsights: React.FC<WeatherInsightsProps> = ({ current, hourly, daily, airQuality }) => {
-    const { classes, cardClass, density, isPerformanceMode } = useTheme();
-    const settings = getSettings();
-    const config = settings.weatherInsights;
+const WeatherInsights: React.FC<WeatherInsightsProps> = ({ current, hourly, daily, airQuality, alerts = [] }) => {
+  const { cardClass, classes } = useTheme();
+  const settings = getSettings();
+  const config = settings.weatherInsights;
 
-    const { highlight, recommendation } = useMemo(() => {
-        if (!config.enabled) return { highlight: '', recommendation: '' };
+  const insights = useMemo(() => {
+    const result: Insight[] = [];
+    const now = Math.floor(Date.now() / 1000);
+    const condition = (current.condition || '').toLocaleLowerCase('pt-BR');
+    const feelsLike = current.feels_like ?? current.temperature;
+    const nextSixHours = hourly.slice(0, 6);
+    const nextThreeHours = nextSixHours.slice(0, 3);
+    const activeOfficialAlert = alerts
+      .filter(alert => (!alert.start || alert.start <= now) && (!alert.end || alert.end >= now))
+      .sort((a, b) => a.end - b.end)[0];
 
-        const events: AnalysisEvent[] = [];
-        const userName = settings.userName ? ` ${settings.userName}` : '';
-        const now = new Date();
-        const hour = now.getHours();
-        const isMorning = hour >= 5 && hour < 12;
-        const isNight = hour >= 22 || hour < 5;
-        const seed = Math.floor(current.dt);
-
-        const next3Hours = hourly.slice(0, 3);
-        const tempNow = current.temperature;
-        const feelsLike = current.feels_like || tempNow;
-        const conditionLower = (current.condition || '').toLowerCase();
-        
-        const isRainingNow = conditionLower.match(/(chuv|rain|drizzle|garoa|aguaceiro)/);
-        const isStorming = conditionLower.match(/(tempestade|trovoada|thunder|trovão)/);
-        const willRainSoon = next3Hours.some(h => (h.pop || 0) > 0.6);
-
-        // Alertas de tempestade (prioridade máxima)
-        if (isStorming) {
-            events.push({ 
-                priority: 1, 
-                category: 'alert', 
-                text: getRandomPhrase(FRASES.tempestade, seed)
-            });
-        } else if (isRainingNow) {
-            events.push({ 
-                priority: 2, 
-                category: 'rain', 
-                text: getRandomPhrase(FRASES.chuvaForte, seed)
-            });
-        } else if (willRainSoon) {
-            events.push({ 
-                priority: 2, 
-                category: 'rain', 
-                text: getRandomPhrase(FRASES.vaiChover, seed)
-            });
-        }
-
-        // Alertas de temperatura
-        if (feelsLike >= 35) {
-            events.push({ 
-                priority: 2, 
-                category: 'temp', 
-                text: getRandomPhrase(FRASES.calorExtremo, seed).replace('{temp}', Math.round(feelsLike).toString())
-            });
-        } else if (feelsLike <= 5) {
-            events.push({ 
-                priority: 2, 
-                category: 'temp', 
-                text: getRandomPhrase(FRASES.frioExtremo, seed)
-            });
-        }
-
-        // Alerta de qualidade do ar
-        if (airQuality?.aqi && airQuality.aqi >= 4) {
-            events.push({
-                priority: 3,
-                category: 'air',
-                text: getRandomPhrase(FRASES.qualidadeArRuim, seed)
-            });
-        }
-
-        // Mensagens quando não há alertas
-        if (events.length === 0) {
-            if (feelsLike >= 18 && feelsLike <= 26) {
-                events.push({ 
-                    priority: 5, 
-                    category: 'lifestyle', 
-                    text: getRandomPhrase(FRASES.climaPerfeito, seed)
-                });
-            } else if (isMorning) {
-                events.push({ 
-                    priority: 5, 
-                    category: 'lifestyle', 
-                    text: getRandomPhrase(FRASES.manha, seed).replace('{nome}', userName)
-                });
-            } else if (isNight) {
-                events.push({ 
-                    priority: 5, 
-                    category: 'lifestyle', 
-                    text: getRandomPhrase(FRASES.noite, seed).replace('{nome}', userName)
-                });
-            } else {
-                events.push({ 
-                    priority: 5, 
-                    category: 'lifestyle', 
-                    text: getRandomPhrase(FRASES.normal, seed).replace('{nome}', userName)
-                });
-            }
-        }
-
-        // Qualidade do ar boa (informação complementar)
-        if (airQuality?.aqi && airQuality.aqi <= 2 && events.length < 2) {
-            events.push({
-                priority: 6,
-                category: 'air',
-                text: getRandomPhrase(FRASES.qualidadeArBoa, seed + 100)
-            });
-        }
-
-        events.sort((a, b) => (a.priority - b.priority));
-        const finalHighlight = events[0]?.text || '';
-
-        // Recomendação contextual
-        let recPhrase = '';
-        if (isRainingNow) {
-            recPhrase = getRandomPhrase(FRASES.recomendacaoChuva, seed);
-        } else if (feelsLike > 30) {
-            recPhrase = getRandomPhrase(FRASES.recomendacaoCalor, seed);
-        } else if (feelsLike < 10) {
-            recPhrase = getRandomPhrase(FRASES.recomendacaoFrio, seed);
-        } else if (isNight) {
-            recPhrase = getRandomPhrase(FRASES.recomendacaoNoite, seed);
-        } else {
-            recPhrase = getRandomPhrase(FRASES.recomendacaoNormal, seed);
-        }
-
-        return { highlight: finalHighlight, recommendation: recPhrase };
-    }, [current.dt, settings.userName, config.enabled, airQuality?.aqi]);
-
-    if (!config.enabled) return null;
-
-    const isContainerStyle = config.style === 'container';
-    const showHighlight = (config.content === 'highlight' || config.content === 'both') && highlight;
-    const showRecommendation = (config.content === 'recommendation' || config.content === 'both') && recommendation;
-
-    if (!showHighlight && !showRecommendation) return null;
-
-    const PulseIndicator = () => {
-        if (!config.showPulse) return null;
-        const isAlert = highlight.includes("Tempestade") || 
-                       highlight.includes("Perigo") || 
-                       highlight.includes("extrema") ||
-                       highlight.includes("extremo") ||
-                       highlight.includes("intenso");
-        const pulseColor = isAlert ? "bg-red-500" : classes.bg;
-        return (
-            <span className="relative flex h-2.5 w-2.5 mr-2 self-center flex-shrink-0">
-                {!settings.reducedMotion && !isPerformanceMode && (
-                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${pulseColor} opacity-75`}></span>
-                )}
-                <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${pulseColor}`}></span>
-            </span>
-        );
-    };
-
-    if (isContainerStyle) {
-        return (
-            <div className={`rounded-3xl ${density.padding} ${cardClass} animate-enter`}>
-                <div className="flex flex-col gap-2">
-                    {showHighlight && (
-                        <h3 className={`${density.sectionTitle} font-bold text-white mb-1 flex items-baseline leading-snug`}>
-                            <PulseIndicator />
-                            <span>{highlight}</span>
-                        </h3>
-                    )}
-                    {showHighlight && showRecommendation && <div className="h-[1px] bg-white/5 w-full my-1" />}
-                    {showRecommendation && <p className={`${density.text} text-gray-400 leading-relaxed`}>{recommendation}</p>}
-                </div>
-            </div>
-        );
-    } else {
-        return (
-            <div className={`px-2 py-4 animate-enter flex flex-col gap-1`}>
-                 {showHighlight && (
-                    <h3 className={`text-xl font-bold text-white tracking-tight flex items-baseline`}>
-                         <PulseIndicator />
-                         <span>{highlight}</span>
-                    </h3>
-                )}
-                {showRecommendation && (
-                     <p className={`text-sm font-medium text-gray-300 opacity-80 ${config.showPulse ? 'pl-5' : ''}`}>
-                        {recommendation}
-                    </p>
-                )}
-            </div>
-        );
+    if (activeOfficialAlert) {
+      result.push({
+        id: 'official-alert', priority: 0, severity: 'critical', title: activeOfficialAlert.event || 'Alerta meteorológico oficial',
+        detail: `Há um aviso emitido por ${activeOfficialAlert.sender_name || 'uma fonte oficial'}. Consulte a seção Alertas e siga as orientações da autoridade responsável.`
+      });
     }
+
+    const storming = hasWords(condition, ['tempest', 'trovo', 'thunder', 'raio']);
+    const raining = hasWords(condition, ['chuv', 'rain', 'drizzle', 'garoa', 'aguaceiro']);
+    const peakRainChance = Math.max(0, ...nextThreeHours.map(item => item.pop || 0));
+    const rainSoonIndex = nextThreeHours.findIndex(item => (item.pop || 0) >= 0.55);
+    if (storming) {
+      result.push({ id: 'storm', priority: 1, severity: 'critical', title: 'Tempestade em andamento', detail: 'Prefira um local fechado, mantenha distância de áreas abertas e acompanhe os avisos oficiais.' });
+    } else if (raining && ((current.rain_1h || 0) >= 7 || current.visibility && current.visibility < 3000)) {
+      result.push({ id: 'heavy-rain', priority: 2, severity: 'attention', title: 'Chuva com impacto na mobilidade', detail: 'A visibilidade ou o volume de chuva podem dificultar o trajeto. Evite áreas alagadas e reserve mais tempo para se deslocar.' });
+    } else if (raining) {
+      result.push({ id: 'rain-now', priority: 3, severity: 'info', title: 'Chuva agora', detail: 'Leve proteção e considere superfícies molhadas no seu deslocamento.' });
+    } else if (rainSoonIndex >= 0) {
+      const minutes = rainSoonIndex * 60;
+      result.push({ id: 'rain-soon', priority: 3, severity: peakRainChance >= 0.8 ? 'attention' : 'info', title: minutes === 0 ? 'Chuva pode começar em breve' : `Chuva possível em até ${minutes + 60} min`, detail: `A maior probabilidade nas próximas horas é de ${Math.round(peakRainChance * 100)}%. Planeje atividades externas com uma alternativa coberta.` });
+    }
+
+    if (feelsLike >= 38) {
+      result.push({ id: 'heat', priority: 2, severity: 'critical', title: `Sensação térmica de ${Math.round(feelsLike)}°`, detail: 'Reduza exposição prolongada ao calor, procure sombra e mantenha água por perto.' });
+    } else if (feelsLike >= 32) {
+      result.push({ id: 'heat', priority: 4, severity: 'attention', title: 'Calor exige planejamento', detail: `A sensação chega a ${Math.round(feelsLike)}°. Prefira horários mais amenos para atividades intensas.` });
+    } else if (feelsLike <= 3) {
+      result.push({ id: 'cold', priority: 2, severity: 'critical', title: `Sensação térmica de ${Math.round(feelsLike)}°`, detail: 'Limite exposição prolongada e use roupas adequadas às condições.' });
+    } else if (feelsLike <= 9) {
+      result.push({ id: 'cold', priority: 4, severity: 'attention', title: 'Sensação de frio', detail: `A sensação está em ${Math.round(feelsLike)}°. Considere uma camada extra de roupa ao sair.` });
+    }
+
+    const uv = Math.max(current.uvi || 0, daily[0]?.uvi || 0, ...nextSixHours.map(item => item.uvi || 0));
+    if (uv >= 11) {
+      result.push({ id: 'uv', priority: 2, severity: 'critical', title: `Índice UV extremo (${Math.round(uv)})`, detail: 'Evite exposição direta nos horários de pico e adote proteção adequada ao sair.' });
+    } else if (uv >= 6) {
+      result.push({ id: 'uv', priority: 5, severity: 'attention', title: `Índice UV ${uv >= 8 ? 'muito alto' : 'alto'}`, detail: 'Sombra e proteção solar são especialmente importantes nos horários de maior radiação.' });
+    }
+
+    const wind = Math.max(current.windSpeed || 0, current.wind_gust || 0, ...nextSixHours.map(item => Math.max(item.wind_speed || 0, item.wind_gust || 0)));
+    if (wind >= 60) {
+      result.push({ id: 'wind', priority: 2, severity: 'critical', title: `Rajadas próximas de ${Math.round(wind)} km/h`, detail: 'Evite estruturas frágeis, árvores e objetos soltos. Acompanhe alertas da defesa civil.' });
+    } else if (wind >= 40) {
+      result.push({ id: 'wind', priority: 5, severity: 'attention', title: 'Vento forte', detail: `Rajadas podem chegar a ${Math.round(wind)} km/h. Proteja objetos leves em áreas externas.` });
+    }
+
+    if (typeof current.visibility === 'number' && current.visibility < 2000) {
+      result.push({ id: 'visibility', priority: 3, severity: 'attention', title: 'Visibilidade muito reduzida', detail: `Alcance estimado de ${(current.visibility / 1000).toFixed(1)} km. Redobre a atenção em deslocamentos.` });
+    } else if (typeof current.visibility === 'number' && current.visibility < 5000) {
+      result.push({ id: 'visibility', priority: 6, severity: 'info', title: 'Visibilidade reduzida', detail: `Alcance estimado de ${(current.visibility / 1000).toFixed(1)} km.` });
+    }
+
+    if (airQuality?.aqi && airQuality.aqi >= 4) {
+      result.push({ id: 'air', priority: 3, severity: airQuality.aqi >= 5 ? 'critical' : 'attention', title: 'Qualidade do ar desfavorável', detail: 'Considere reduzir atividades intensas ao ar livre, especialmente se você for sensível à poluição.' });
+    }
+
+    if (result.length === 0) {
+      const stableRange = nextSixHours.every(item => Math.abs(item.temperature - current.temperature) < 5);
+      result.push({
+        id: 'stable', priority: 10, severity: 'good', title: stableRange ? 'Condições estáveis nas próximas horas' : 'Sem riscos relevantes agora',
+        detail: stableRange ? 'Não há sinais de mudanças bruscas no horizonte imediato.' : 'Confira a previsão por hora antes de atividades mais longas.'
+      });
+    }
+
+    return result.sort((a, b) => a.priority - b.priority).slice(0, 3);
+  }, [current, hourly, daily, airQuality, alerts]);
+
+  if (!config.enabled) return null;
+
+  return (
+    <section className={`rounded-[1.75rem] p-5 sm:p-6 ${cardClass}`} aria-labelledby="smart-summary-title">
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <div>
+          <p className="meteor-eyebrow mb-1 flex items-center gap-1.5"><SparklesIcon className={`h-3.5 w-3.5 ${classes.text}`} /> Análise local</p>
+          <h3 id="smart-summary-title" className="text-xl font-extrabold tracking-tight text-white">Resumo inteligente</h3>
+        </div>
+        <div className={`rounded-full ${classes.bg}/15 p-2 ${classes.text}`} aria-hidden="true"><LightbulbIcon className="h-5 w-5" /></div>
+      </div>
+
+      <div className="space-y-2.5">
+        {insights.map(insight => {
+          const style = severityStyles[insight.severity];
+          return (
+            <article key={insight.id} className={`rounded-2xl border p-3.5 ${style.surface}`}>
+              <div className="flex items-start gap-3">
+                <span className={`mt-1.5 h-2.5 w-2.5 flex-none rounded-full ${style.dot}`} aria-hidden="true" />
+                <div>
+                  <p className="mb-0.5 text-[10px] font-extrabold uppercase tracking-[0.13em] text-white/45">{style.label}</p>
+                  <h4 className="text-sm font-bold text-white">{insight.title}</h4>
+                  <p className="mt-1 text-sm leading-relaxed text-slate-300">{insight.detail}</p>
+                </div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+      <p className="mt-4 flex items-center gap-1.5 text-[11px] leading-relaxed text-slate-500">
+        <AlertTriangleIcon className="h-3.5 w-3.5 flex-none" /> Resumo automático baseado nos dados disponíveis; avisos oficiais têm prioridade.
+      </p>
+    </section>
+  );
 };
 
 export default WeatherInsights;

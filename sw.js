@@ -1,8 +1,9 @@
-const CACHE_NAME = 'meteor-cache-v5';
+const CACHE_NAME = 'meteor-shell-v6';
 const APP_SHELL_URLS = [
   '/',
   '/index.html',
   '/favicon.svg',
+  '/manifest.json',
 ];
 
 self.addEventListener('install', event => {

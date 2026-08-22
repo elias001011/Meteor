@@ -7,10 +7,9 @@ import { useTheme } from '../context/ThemeContext';
 interface ChangelogModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSelect: (city: any) => void;
 }
 
-const ChangelogModal: React.FC<any> = ({ isOpen, onClose }) => {
+const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose }) => {
     const { glassClass, classes } = useTheme();
 
     useEffect(() => {
@@ -28,6 +27,17 @@ const ChangelogModal: React.FC<any> = ({ isOpen, onClose }) => {
 
     const versions = [
         {
+            version: "6.0.0",
+            title: "Meteor revitalizado",
+            changes: [
+                "Dashboard reconstruído para desktop e celular, com navegação mais simples e tema AMOLED real.",
+                "Resumo inteligente e alertas locais agora consideram chuva, tempestade, sensação térmica, UV, qualidade do ar, vento e visibilidade.",
+                "Gemini ganhou contexto climático ampliado, prazos de resposta, fallback controlado e fontes mais seguras.",
+                "Clima, notícias, imagens e cache ficaram mais resilientes, com atribuição do Unsplash e fallback visual.",
+                "Novo contrato de API compartilhado com o aplicativo Android e carregamento sob demanda para abrir mais rápido."
+            ]
+        },
+        {
             version: "5.8.0",
             title: "IA Nativa e Busca Automática",
             changes: [
@@ -36,16 +46,6 @@ const ChangelogModal: React.FC<any> = ({ isOpen, onClose }) => {
                 "Remoção total do botão de busca manual.",
                 "Clima atual do app usado como contexto quando o usuário não informa localização.",
                 "Melhorias de segurança e redução de superfície de ataque."
-            ]
-        },
-        {
-            version: "5.3.0",
-            title: "Remoção de Notificações Push",
-            changes: [
-                "Sistema de notificações push removido temporariamente.",
-                "Otimização: Notícias só carregam quando a aba é aberta.",
-                "Correções no histórico de chat: Melhorias na persistência de conversas.",
-                "Estabilidade geral: Correções de bugs menores."
             ]
         },
         {

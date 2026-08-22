@@ -1,294 +1,111 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import type { WeatherData, WeatherAlert } from '../../types';
+import React, { useMemo } from 'react';
+import type { DailyForecast, WeatherAlert, WeatherData } from '../../types';
+import { AlertTriangleIcon, InfoIcon } from '../icons';
 import { useTheme } from '../context/ThemeContext';
-import { AlertTriangleIcon, BellIcon, InfoIcon } from '../icons';
 
 interface AlertsViewProps {
-    currentWeather?: WeatherData | null;
-    dailyForecast?: any[];
-    apiAlerts?: WeatherAlert[];
+  currentWeather?: WeatherData | null;
+  dailyForecast?: DailyForecast[];
+  apiAlerts?: WeatherAlert[];
 }
 
-interface LocalAlert {
-    id: string;
-    type: 'storm' | 'rain' | 'heat' | 'cold' | 'wind' | 'uv' | 'frost';
-    level: 'critical' | 'warning' | 'caution';
-    title: string;
-    message: string;
-    timestamp: number;
-    expiresAt: number;
+type Level = 'critical' | 'warning' | 'caution';
+
+interface DisplayAlert {
+  id: string;
+  level: Level;
+  title: string;
+  message: string;
+  expiresAt?: number;
+  source: string;
 }
 
-const generateLocalAlerts = (weather: WeatherData | null | undefined, dailyForecast?: any[]): LocalAlert[] => {
-    if (!weather) return [];
-    
-    const alerts: LocalAlert[] = [];
-    const now = Date.now();
-    const oneHour = 60 * 60 * 1000;
-    
-    const condition = weather.condition?.toLowerCase() || '';
-    const temp = weather.temperature;
-    const feelsLike = weather.feels_like ?? temp;
-    const windSpeed = weather.windSpeed;
-    
-    let uvi = weather.uvi;
-    if ((uvi === undefined || uvi === null) && dailyForecast && dailyForecast.length > 0) {
-        uvi = dailyForecast[0].uvi;
-    }
-    
-    // Tempestade
-    if (condition.includes('tempestade') || condition.includes('trovoada') || condition.includes('thunderstorm')) {
-        alerts.push({
-            id: 'storm-current',
-            type: 'storm',
-            level: 'critical',
-            title: 'Tempestade em Andamento',
-            message: 'Raios e trovões detectados na sua região. Fique em local fechado e evite áreas abertas.',
-            timestamp: now,
-            expiresAt: now + oneHour
-        });
-    }
-    else if (condition.includes('chuva forte') || condition.includes('heavy rain') || condition.includes('chuva intensa')) {
-        alerts.push({
-            id: 'rain-heavy',
-            type: 'rain',
-            level: 'warning',
-            title: 'Chuva Intensa',
-            message: 'Precipitação intensa pode causar alagamentos. Evite sair e não estacione em áreas baixas.',
-            timestamp: now,
-            expiresAt: now + oneHour
-        });
-    }
-    
-    // Calor extremo
-    if (feelsLike >= 38) {
-        alerts.push({
-            id: 'heat-extreme',
-            type: 'heat',
-            level: 'critical',
-            title: 'Onda de Calor',
-            message: `Sensação térmica de ${Math.round(feelsLike)}°C. Risco de insolação. Evite sol das 10h às 16h, beba muita água.`,
-            timestamp: now,
-            expiresAt: now + oneHour * 6
-        });
-    } else if (feelsLike >= 35) {
-        alerts.push({
-            id: 'heat-high',
-            type: 'heat',
-            level: 'warning',
-            title: 'Calor Intenso',
-            message: `Sensação de ${Math.round(feelsLike)}°C. Hidrate-se constantemente e busque ambientes refrigerados.`,
-            timestamp: now,
-            expiresAt: now + oneHour * 4
-        });
-    }
-    
-    // Frio extremo
-    if (feelsLike <= 3) {
-        alerts.push({
-            id: 'cold-extreme',
-            type: 'cold',
-            level: 'critical',
-            title: 'Frio Intenso',
-            message: `Sensação de ${Math.round(feelsLike)}°C. Risco de hipotermia. Agasalhe-se bem e evite exposição prolongada.`,
-            timestamp: now,
-            expiresAt: now + oneHour * 6
-        });
-    } else if (feelsLike <= 8) {
-        alerts.push({
-            id: 'cold-high',
-            type: 'cold',
-            level: 'caution',
-            title: 'Temperatura Baixa',
-            message: 'Frio significativo. Use várias camadas de roupa ao sair.',
-            timestamp: now,
-            expiresAt: now + oneHour * 4
-        });
-    }
-    
-    // UV Extremo
-    if (uvi !== undefined && uvi >= 11) {
-        alerts.push({
-            id: 'uv-extreme',
-            type: 'uv',
-            level: 'critical',
-            title: 'Índice UV Extremo',
-            message: 'Nível máximo de radiação UV. Evite exposição ao sol. Proteção FPS 50+ obrigatória se precisar sair.',
-            timestamp: now,
-            expiresAt: now + oneHour * 4
-        });
-    } else if (uvi !== undefined && uvi >= 8) {
-        alerts.push({
-            id: 'uv-high',
-            type: 'uv',
-            level: 'warning',
-            title: 'Índice UV Muito Alto',
-            message: 'Proteção solar essencial. Limite a exposição entre 10h e 16h.',
-            timestamp: now,
-            expiresAt: now + oneHour * 4
-        });
-    }
-    
-    // Ventania
-    if (windSpeed >= 60) {
-        alerts.push({
-            id: 'wind-extreme',
-            type: 'wind',
-            level: 'critical',
-            title: 'Ventania',
-            message: `Ventos de ${Math.round(windSpeed)} km/h. Perigo de queda de árvores e estruturas. Fique em local seguro.`,
-            timestamp: now,
-            expiresAt: now + oneHour * 2
-        });
-    } else if (windSpeed >= 40) {
-        alerts.push({
-            id: 'wind-high',
-            type: 'wind',
-            level: 'warning',
-            title: 'Vento Forte',
-            message: 'Rajadas intensas podem derrubar objetos. Evite ficar perto de placas e árvores.',
-            timestamp: now,
-            expiresAt: now + oneHour * 2
-        });
-    }
-    
-    return alerts;
+const localAlerts = (weather?: WeatherData | null, daily: DailyForecast[] = []): DisplayAlert[] => {
+  if (!weather) return [];
+  const result: DisplayAlert[] = [];
+  const condition = (weather.condition || '').toLocaleLowerCase('pt-BR');
+  const feels = weather.feels_like ?? weather.temperature;
+  const uv = Math.max(weather.uvi || 0, daily[0]?.uvi || 0);
+  const gust = Math.max(weather.windSpeed || 0, weather.wind_gust || 0, daily[0]?.wind_gust || 0);
+
+  if (/(tempest|trovo|thunder|raio)/.test(condition)) {
+    result.push({ id: 'storm', level: 'critical', title: 'Tempestade em andamento', message: 'Procure um local fechado, evite áreas abertas e acompanhe as orientações das autoridades locais.', source: 'Análise das condições atuais' });
+  } else if (/(chuva forte|chuva intensa|heavy rain)/.test(condition) || (weather.rain_1h || 0) >= 7) {
+    result.push({ id: 'rain', level: 'warning', title: 'Chuva intensa', message: 'Há risco de baixa visibilidade e acúmulo de água. Não atravesse áreas alagadas.', source: 'Análise das condições atuais' });
+  }
+  if (feels >= 38) result.push({ id: 'heat', level: 'warning', title: 'Calor intenso', message: `A sensação térmica está em ${Math.round(feels)}°. Reduza exposição prolongada, busque sombra e mantenha água por perto.`, source: 'Análise das condições atuais' });
+  if (feels <= 3) result.push({ id: 'cold', level: 'warning', title: 'Frio intenso', message: `A sensação térmica está em ${Math.round(feels)}°. Use roupas adequadas e limite exposição prolongada.`, source: 'Análise das condições atuais' });
+  if (uv >= 11) result.push({ id: 'uv', level: 'critical', title: 'Índice UV extremo', message: 'Evite exposição direta nos horários de pico e use proteção adequada ao sair.', source: 'Análise da previsão' });
+  else if (uv >= 8) result.push({ id: 'uv', level: 'caution', title: 'Índice UV muito alto', message: 'Sombra e proteção solar são especialmente importantes nos horários de maior radiação.', source: 'Análise da previsão' });
+  if (gust >= 60) result.push({ id: 'wind', level: 'critical', title: 'Rajadas muito fortes', message: `Rajadas podem chegar a ${Math.round(gust)} km/h. Evite árvores, estruturas frágeis e objetos soltos.`, source: 'Análise da previsão' });
+  else if (gust >= 40) result.push({ id: 'wind', level: 'caution', title: 'Vento forte', message: `Rajadas podem chegar a ${Math.round(gust)} km/h. Proteja objetos leves em áreas externas.`, source: 'Análise da previsão' });
+  if (typeof weather.visibility === 'number' && weather.visibility < 2000) result.push({ id: 'visibility', level: 'warning', title: 'Visibilidade muito reduzida', message: `Alcance estimado de ${(weather.visibility / 1000).toFixed(1)} km. Redobre a atenção em deslocamentos.`, source: 'Análise das condições atuais' });
+  return result;
 };
 
-const getAlertStyles = (level: string) => {
-    switch (level) {
-        case 'critical':
-            return { bg: 'bg-red-500/20 border-red-500/50', icon: 'text-red-400', pulse: 'bg-red-500' };
-        case 'warning':
-            return { bg: 'bg-orange-500/20 border-orange-500/50', icon: 'text-orange-400', pulse: 'bg-orange-500' };
-        case 'caution':
-            return { bg: 'bg-yellow-500/20 border-yellow-500/50', icon: 'text-yellow-400', pulse: 'bg-yellow-500' };
-        default:
-            return { bg: 'bg-blue-500/20 border-blue-500/50', icon: 'text-blue-400', pulse: 'bg-blue-500' };
-    }
+const styles: Record<Level, { surface: string; icon: string; badge: string; label: string }> = {
+  critical: { surface: 'border-red-400/25 bg-red-400/[0.07]', icon: 'text-red-300 bg-red-400/10', badge: 'bg-red-400/15 text-red-200', label: 'Urgente' },
+  warning: { surface: 'border-orange-300/20 bg-orange-300/[0.06]', icon: 'text-orange-200 bg-orange-300/10', badge: 'bg-orange-300/15 text-orange-100', label: 'Alerta' },
+  caution: { surface: 'border-amber-200/15 bg-amber-200/[0.05]', icon: 'text-amber-200 bg-amber-200/10', badge: 'bg-amber-200/15 text-amber-100', label: 'Atenção' },
 };
 
-const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast, apiAlerts }) => {
-    const { cardClass } = useTheme();
+const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast = [], apiAlerts = [] }) => {
+  const { cardClass } = useTheme();
+  const alerts = useMemo<DisplayAlert[]>(() => {
+    const official = apiAlerts.map((alert, index) => ({
+      id: `official-${index}`, level: 'critical' as Level, title: alert.event || 'Aviso meteorológico oficial',
+      message: alert.description, expiresAt: alert.end ? alert.end * 1000 : undefined,
+      source: alert.sender_name ? `Aviso oficial · ${alert.sender_name}` : 'Aviso oficial'
+    }));
+    return [...official, ...localAlerts(currentWeather, dailyForecast)];
+  }, [currentWeather, dailyForecast, apiAlerts]);
 
-    const localAlerts = useMemo(() => generateLocalAlerts(currentWeather, dailyForecast), [currentWeather, dailyForecast]);
-
-    const activeLocalAlerts = localAlerts.filter(alert => Date.now() <= alert.expiresAt);
-    const allAlerts = [...activeLocalAlerts];
-    
-    if (apiAlerts && apiAlerts.length > 0) {
-        apiAlerts.forEach((apiAlert, index) => {
-            allAlerts.push({
-                id: `api-${index}`,
-                type: 'storm',
-                level: 'warning',
-                title: apiAlert.event,
-                message: apiAlert.description,
-                timestamp: apiAlert.start * 1000,
-                expiresAt: apiAlert.end * 1000
-            });
-        });
-    }
-
-    return (
-        <div className="h-full overflow-y-auto pb-24 pt-16 lg:pb-6">
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-6">
-                
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-xl bg-red-500/20">
-                            <BellIcon className="w-6 h-6 text-red-400" />
-                        </div>
-                        <div>
-                            <h2 className="text-2xl font-bold text-white">Alertas</h2>
-                            <p className="text-sm text-gray-400">Monitoramento meteorológico ativo</p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Alertas Ativos */}
-                {allAlerts.length > 0 ? (
-                    <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-sm font-medium text-gray-300">Alertas Ativos ({allAlerts.length})</h3>
-                            <span className="text-xs text-gray-500">Atualizado agora</span>
-                        </div>
-                        
-                        {allAlerts.map(alert => {
-                            const styles = getAlertStyles(alert.level);
-                            return (
-                                <div key={alert.id} className={`${styles.bg} border rounded-2xl p-4 animate-enter`}>
-                                    <div className="flex items-start gap-3">
-                                        <div className="relative flex-shrink-0 mt-1">
-                                            <span className="relative flex h-3 w-3">
-                                                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${styles.pulse} opacity-75`}></span>
-                                                <span className={`relative inline-flex rounded-full h-3 w-3 ${styles.pulse}`}></span>
-                                            </span>
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <h4 className="font-bold text-white">{alert.title}</h4>
-                                                <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${
-                                                    alert.level === 'critical' ? 'bg-red-500 text-white' :
-                                                    alert.level === 'warning' ? 'bg-orange-500 text-white' :
-                                                    'bg-yellow-500 text-black'
-                                                }`}>
-                                                    {alert.level === 'critical' ? 'Crítico' : 
-                                                     alert.level === 'warning' ? 'Alerta' : 'Atenção'}
-                                                </span>
-                                            </div>
-                                            <p className="text-gray-200 text-sm leading-relaxed">{alert.message}</p>
-                                            <p className="text-xs text-gray-400 mt-2">
-                                                Expira em: {new Date(alert.expiresAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                ) : (
-                    <div className={`${cardClass} rounded-3xl p-8 text-center`}>
-                        <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <InfoIcon className="w-8 h-8 text-emerald-400" />
-                        </div>
-                        <h3 className="text-lg font-semibold text-white mb-2">Nenhum Alerta Ativo</h3>
-                        <p className="text-gray-400 text-sm">
-                            Não há alertas meteorológicos para sua região no momento.
-                        </p>
-                    </div>
-                )}
-
-                {/* O que monitoramos */}
-                <div className={`${cardClass} rounded-2xl p-5`}>
-                    <h4 className="font-semibold text-white mb-4 flex items-center gap-2">
-                        <AlertTriangleIcon className="w-4 h-4 text-yellow-400" />
-                        O que monitoramos
-                    </h4>
-                    <div className="grid grid-cols-2 gap-3">
-                        {[
-                            { label: 'Tempestades', color: 'text-red-400' },
-                            { label: 'Calor Extremo', color: 'text-orange-400' },
-                            { label: 'Frio Intenso', color: 'text-cyan-400' },
-                            { label: 'Índice UV', color: 'text-purple-400' },
-                            { label: 'Ventos Fortes', color: 'text-blue-400' },
-                            { label: 'Chuvas Intensas', color: 'text-indigo-400' },
-                        ].map((item, i) => (
-                            <div key={i} className="flex items-center gap-2">
-                                <span className={`w-2 h-2 rounded-full ${item.color.replace('text', 'bg')}`}></span>
-                                <span className="text-sm text-gray-300">{item.label}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                <div className="text-center text-xs text-gray-500 pt-2">
-                    Alertas gerados automaticamente. Consulte fontes oficiais em emergências.
-                </div>
-            </div>
+  return (
+    <div className="mx-auto max-w-5xl space-y-5 px-4 py-6 sm:px-6 lg:py-8">
+      <header className="flex items-start gap-4">
+        <div className="rounded-2xl bg-red-400/10 p-3 text-red-300"><AlertTriangleIcon className="h-6 w-6" /></div>
+        <div>
+          <p className="meteor-eyebrow mb-1">Condições que merecem atenção</p>
+          <h2 className="text-3xl font-black tracking-[-0.04em] text-white">Alertas meteorológicos</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">Avisos oficiais aparecem primeiro. As demais sinalizações são geradas localmente a partir dos dados meteorológicos disponíveis.</p>
         </div>
-    );
+      </header>
+
+      {alerts.length ? (
+        <div className="space-y-3">
+          {alerts.map(alert => {
+            const style = styles[alert.level];
+            return (
+              <article key={alert.id} className={`rounded-[1.5rem] border p-4 sm:p-5 ${style.surface}`}>
+                <div className="flex items-start gap-3.5">
+                  <div className={`rounded-xl p-2.5 ${style.icon}`}><AlertTriangleIcon className="h-5 w-5" /></div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-extrabold text-white">{alert.title}</h3>
+                      <span className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] ${style.badge}`}>{style.label}</span>
+                    </div>
+                    <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-slate-300">{alert.message}</p>
+                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] font-medium text-slate-500">
+                      <span>{alert.source}</span>
+                      {alert.expiresAt && <span>Válido até {new Date(alert.expiresAt).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>}
+                    </div>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      ) : (
+        <section className={`rounded-[2rem] p-8 text-center sm:p-12 ${cardClass}`}>
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-400/10 text-emerald-300"><InfoIcon className="h-7 w-7" /></div>
+          <h3 className="text-xl font-extrabold text-white">Nenhum alerta ativo</h3>
+          <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-400">Os dados atuais não indicam condições relevantes para esta localidade. Continue acompanhando se o tempo mudar.</p>
+        </section>
+      )}
+
+      <p className="text-center text-[11px] leading-relaxed text-slate-600">Em uma emergência, siga os canais oficiais da sua região. Esta tela não substitui avisos da Defesa Civil.</p>
+    </div>
+  );
 };
 
 export default AlertsView;

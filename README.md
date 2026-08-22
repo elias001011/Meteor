@@ -1,247 +1,152 @@
-# Meteor ☄️
+# Meteor
 
-![Version](https://img.shields.io/badge/version-5.8.0-purple.svg)
+![Version](https://img.shields.io/badge/version-6.0.0-ff6b3d.svg)
 ![React](https://img.shields.io/badge/React-19-61dafb.svg)
-![Vite](https://img.shields.io/badge/Vite-7-646cff.svg)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6.svg)
-![Tailwind](https://img.shields.io/badge/Tailwind-3-38bdf8.svg)
-![Netlify](https://img.shields.io/badge/Netlify-Functions-00c7b7.svg)
+![Flutter](https://img.shields.io/badge/Flutter-3.47-54c5f8.svg)
+![Node](https://img.shields.io/badge/Node-22-5fa04e.svg)
 
-**Meteor** é uma aplicação web progressiva de inteligência climática. O app combina previsão do tempo, mapas meteorológicos, notícias e uma assistente de IA contextual para entregar uma experiência visual, rápida e local-first.
+Meteor é um painel de inteligência climática com uma experiência web responsiva
+e um aplicativo Android nativo. A versão 6 reconstrói a interface, melhora os
+insights locais, endurece o backend e separa com clareza o que pertence à web do
+que pertence ao Android.
 
-A arquitetura principal segue o padrão **BFF (Backend-for-Frontend)** com Netlify Functions. O navegador nunca chama diretamente as APIs sensíveis: ele chama endpoints internos em `/.netlify/functions/*`, e as Functions acessam OpenWeather, GNews, Unsplash e Gemini usando variáveis de ambiente no servidor.
+- Aplicação web: <https://meteor-ai.netlify.app>
+- Código estável web/BFF: branch `main`
+- Aplicativo Flutter e releases Android: branch `android`
 
-> Projeto desenvolvido por **Elias Nunes**.
+## O que existe hoje
 
----
+### Web
 
-## Visão geral
+- clima atual, previsão horária e diária, qualidade do ar e alertas oficiais;
+- painel responsivo, modo Zen, tema escuro e modo AMOLED;
+- fotos meteorológicas do Unsplash com crédito e fallback para Picsum Photos;
+- mapa Leaflet com camadas meteorológicas;
+- notícias com cache e fallback controlado;
+- assistente Meteor AI com contexto climático e grounding do Google quando
+  necessário;
+- resumo inteligente determinístico para riscos de chuva, tempestade, calor,
+  frio, UV, vento, visibilidade e qualidade do ar;
+- PWA apenas para cache do shell. A web não solicita nem oferece notificações
+  push, e-mail ou SMS.
 
-Meteor foi criado para ser um painel climático moderno, com foco em:
+### Android
 
-- consulta de clima atual e previsão;
-- mapas com camadas meteorológicas;
-- alertas e detalhes avançados;
-- notícias relacionadas;
-- assistente de IA especializada em clima;
-- funcionamento local-first, sem login obrigatório.
+O app oficial fica em `mobile/` na branch `android` e usa Flutter, Material 3 e
+Material You. Inclui Home em cards, mapa, notícias, IA, configurações, tema AMOLED
+preto real, cache local, localização somente enquanto o app está em uso e push
+nativo opcional via Firebase Cloud Messaging.
 
-O app mais recente pode ser acessado em: **https://meteor-ai.netlify.app**
-
----
-
-## Funcionalidades
-
-### Clima e previsão
-
-- Clima atual com temperatura, sensação térmica, umidade, vento, pressão, UV e condição geral.
-- Previsão horária e diária.
-- Alertas meteorológicos quando disponíveis.
-- Qualidade do ar e dados complementares.
-- Fallback entre provedores quando a API principal falha ou atinge limites.
-
-### Mapas
-
-- Mapa interativo com Leaflet.
-- Mapa base claro/escuro usando OpenStreetMap/CARTO.
-- Camadas climáticas via OpenWeather Maps:
-  - temperatura;
-  - vento;
-  - nuvens;
-  - precipitação;
-  - pressão;
-  - relevo, quando a chave/plano da OpenWeather permite.
-- As camadas são carregadas como tiles PNG por `z/x/y`, proxied por Netlify Function.
-
-### Meteor AI
-
-- Assistente baseada no Google Gemini.
-- Recebe contexto do app, como clima atual, localização exibida e horário local.
-- Usa Google Search grounding nativo quando a pergunta depende de informação recente ou verificável.
-- Renderização controlada em React, sem HTML bruto da IA.
-
-### Notícias
-
-- Integração com GNews via Function server-side.
-- Fallback entre chaves quando configurado.
-- Sanitização de URLs externas antes de devolver links/imagens ao frontend.
-
-### PWA e experiência visual
-
-- Tema dinâmico baseado no clima.
-- Modo Zen.
-- Cache básico de shell/assets via Service Worker.
-- O Service Worker não intercepta Netlify Functions, para evitar quebrar tiles do mapa e chamadas de API.
-
----
-
-## Stack
-
-- **Frontend:** React 19, TypeScript, Vite 7.
-- **Estilo:** Tailwind CSS.
-- **Mapas:** Leaflet, OpenStreetMap, CARTO, OpenWeather Maps.
-- **Backend serverless:** Netlify Functions.
-- **IA:** `@google/genai`.
-- **Storage local:** LocalStorage.
-- **Rate limit server-side:** Netlify Blobs.
-
----
+O Android nunca recebe chaves de OpenWeather, Gemini, GNews ou Unsplash. Ele
+consome o mesmo BFF server-side da web. A configuração pública do Firebase é
+separada das credenciais privadas de Firebase Admin e de assinatura do APK.
 
 ## Arquitetura
 
-```txt
-Frontend React
-  ↓
-services/*
-  ↓
-/.netlify/functions/*
-  ↓
-APIs externas com chaves protegidas no servidor
+```text
+Web React ───────────────┐
+                        ├─> Netlify Functions/BFF ─> provedores externos
+Flutter Android ────────┘
+        │
+        └─> Firebase Auth anônimo + App Check + FCM
 ```
 
-Principais Functions:
+Endpoints principais:
 
-```txt
-netlify/functions/weather.ts
-  Proxy climático, geocoding, previsão, tiles de mapa e fallback de fontes.
+- `weather`: geocoding, clima, previsões, AQI, mapas e imagens;
+- `news`: notícias sanitizadas e cacheadas;
+- `gemini`: assistente climática com limites, timeout, fallback e grounding;
+- `mobile-installation`: registro/opt-out autenticado do dispositivo Android;
+- `mobile-push-scheduled`: avaliação horária e deduplicada de alertas móveis.
 
-netlify/functions/gemini.ts
-  Orquestra a IA climática com contexto do app e grounding do Gemini.
+O contrato atual está em [`docs/api-v1.md`](docs/api-v1.md). A implantação de
+push está documentada em
+[`docs/mobile-push-backend.md`](docs/mobile-push-backend.md).
 
-netlify/functions/news.ts
-  Busca notícias na GNews, sanitiza retorno e aplica fallback de chave.
+## Desenvolvimento web e BFF
 
-netlify/functions/security.ts
-  Helpers compartilhados de rate limit, sanitização de URL e texto seguro.
+Pré-requisitos: Node.js 22 e npm 9 ou posterior.
+
+```bash
+npm ci
+npm run check
+npx netlify dev
 ```
 
----
+`npm run check` executa typecheck, testes de contrato/segurança e build de
+produção. Para a aplicação local conseguir chamar as Functions, prefira
+`netlify dev` a executar somente o Vite.
+
+### Variáveis server-side
+
+Configure no Netlify, nunca em código ou em variáveis expostas pelo Vite:
+
+```env
+CLIMA_API=...
+GEMINI_API=...
+GNEWS_API=...
+GNEWS_2=...                         # fallback opcional
+UNSPLASH_ACCESS_KEY=...             # grafia preferida
+METEOR_ALLOWED_ORIGINS=...          # opcional, separado por vírgulas
+FIREBASE_SERVICE_ACCOUNT_JSON=...   # somente para o backend móvel
+AWS_LAMBDA_JS_RUNTIME=nodejs22.x
+```
+
+`UNSPLASH_ACESS_KEY` continua aceito temporariamente para compatibilidade com o
+nome legado, mas deve ser migrado para `UNSPLASH_ACCESS_KEY`.
+
+Não são usados pela nova arquitetura: `FIREBASE_SERVER_KEY`, `FCM_VAPID_KEY`,
+`VAPID_*`, `RESEND_API`, `EMAIL_FROM`, `NOTIFICATION_SECRET`, `SEARCH_API`,
+`SEARCH_ID`, `WINDY_API`, `GROQ_API_KEY` e `OPENROUTER_API`. Depois de confirmar
+que nenhum deploy externo depende delas, revogue e remova essas variáveis.
+
+## Desenvolvimento Android
+
+Na branch `android`:
+
+```bash
+cd mobile
+flutter pub get
+dart format --output=none --set-exit-if-changed lib test
+flutter analyze
+flutter test
+flutter build apk --debug
+```
+
+O app funciona sem Firebase quando compilado sem
+`--dart-define=METEOR_FIREBASE_ENABLED=true`; apenas o push fica desabilitado.
+As etapas humanas de Firebase, App Check, assinatura e GitHub Releases estão em
+[`mobile/FIREBASE_SETUP.md`](https://github.com/elias001011/Meteor/blob/android/mobile/FIREBASE_SETUP.md)
+e [`mobile/README.md`](https://github.com/elias001011/Meteor/blob/android/mobile/README.md).
+
+## Branches e releases
+
+- `main`: web, BFF e backend móvel;
+- `android`: deriva de `main` e adiciona `mobile/` e o workflow de release.
+
+Não existe mais uma branch de desenvolvimento permanente. CI roda nas duas
+branches. Uma tag `android-vX.Y.Z`, criada a partir da branch `android` e com
+versão idêntica ao `pubspec.yaml`, produz APK universal, APKs por ABI, AAB,
+checksums SHA-256 e proveniência de build. A assinatura depende do environment
+protegido `android-release` no GitHub.
 
 ## Segurança e privacidade
 
-### O que já está protegido
+- segredos de provedores ficam apenas nas Netlify Functions;
+- requisições recebem validação, limite de tamanho, timeout e respostas
+  sanitizadas;
+- links externos passam por validação antes de chegar à UI;
+- o app Android usa Auth anônimo e App Check antes de registrar um token FCM;
+- localização móvel é aproximada no servidor, não há histórico de trajetos e o
+  opt-out remove imediatamente a instalação registrada;
+- nunca são versionados keystore, senhas, service account ou
+  `google-services.json` de produção.
 
-- Chaves de API ficam em variáveis de ambiente no Netlify, não no bundle do navegador.
-- Functions validam método HTTP, parâmetros e tamanho de entrada em pontos críticos.
-- IA e notícias possuem rate limit por IP usando Netlify Blobs.
-- Links e imagens externas das notícias passam por sanitização de URL.
-- CSP configurada no `netlify.toml` para reduzir superfície de XSS.
-- Service Worker não intercepta `/.netlify/functions/`, evitando respostas erradas para tiles/API.
-
-### Dados locais
-
-Meteor não usa login nem sincronização em nuvem. Dados como preferências, cache e histórico podem ser armazenados no navegador via LocalStorage. Isso melhora a experiência, mas significa que os dados ficam no dispositivo do usuário.
-
-### Limitações conhecidas
-
-- O app não possui autenticação de usuário; endpoints públicos dependem de rate limit e validação.
-- Tiles de mapa podem consumir cota da OpenWeather se o app for muito acessado.
-- A camada de relevo depende do acesso/plano disponível na chave OpenWeather.
-
----
-
-## Variáveis de ambiente
-
-Crie um `.env` local ou configure as variáveis no painel da Netlify:
-
-```env
-# Google Gemini
-GEMINI_API=sua_chave_gemini
-
-# OpenWeatherMap
-CLIMA_API=sua_chave_openweather
-
-# GNews
-GNEWS_API=sua_chave_gnews
-GNEWS_2=sua_chave_gnews_fallback_opcional
-
-# Unsplash, opcional
-UNSPLASH_ACESS_KEY=sua_chave_unsplash
-```
-
-> Observação: a IA não precisa de uma chave separada para busca. O projeto usa o grounding nativo do Gemini quando disponível.
-
----
-
-## Rodando localmente
-
-### Pré-requisitos
-
-- Node.js 22+ recomendado.
-- npm.
-- Netlify CLI.
-
-```bash
-npm install -g netlify-cli
-```
-
-### Instalação
-
-```bash
-git clone https://github.com/elias001011/Meteor.git
-cd Meteor
-npm install
-```
-
-### Desenvolvimento
-
-Use o Netlify CLI para que as Functions funcionem localmente:
-
-```bash
-netlify dev
-```
-
-O app normalmente ficará disponível em:
-
-```txt
-http://localhost:8888
-```
-
-### Build
-
-```bash
-npm run build
-```
-
----
-
-## Estrutura do projeto
-
-```txt
-components/
-  ai/           Interface e renderização da IA
-  map/          Mapa Leaflet e camadas climáticas
-  weather/      Componentes de clima e previsão
-  news/         Interface de notícias
-
-services/
-  weatherService.ts
-  geminiService.ts
-  newsService.ts
-  settingsService.ts
-  chatHistoryService.ts
-
-netlify/functions/
-  weather.ts
-  gemini.ts
-  news.ts
-  security.ts
-
-public/
-  sw.js
-```
-
----
-
-## Branches
-
-- `main`: versão estável/produção.
-- `dev`: branch de desenvolvimento.
-- `brackup-dev-6.0`: backup histórico da antiga `dev` antes da sincronização com `main`.
-- `android`: mantida intacta para fluxo mobile.
-
----
+Consulte [`SECURITY.md`](SECURITY.md) para comunicar uma vulnerabilidade. Antes
+de distribuir o app Android ao público, ainda é obrigatório publicar uma política
+de privacidade e preencher a declaração Data Safety conforme os serviços
+realmente habilitados.
 
 ## Licença
 
-Distribuído sob licença MIT.
+Distribuído sob a licença MIT.

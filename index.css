@@ -2,98 +2,145 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  background-color: #111827;
+:root {
+  color-scheme: dark;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  background: #030609;
 }
 
-.leaflet-popup-content-wrapper,
-.leaflet-popup-tip {
-  box-sizing: content-box !important;
-  background-color: rgba(17, 24, 39, 0.95) !important;
-  backdrop-filter: blur(10px);
-  color: white !important;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
+* { box-sizing: border-box; }
 
 html {
+  min-width: 320px;
+  min-height: 100%;
+  background: #030609;
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 
-html::-webkit-scrollbar {
-  display: none;
+html::-webkit-scrollbar { display: none; }
+
+body {
+  min-width: 320px;
+  min-height: 100dvh;
+  margin: 0;
+  background: #030609;
+  color: #f8fafc;
+  overscroll-behavior-y: none;
 }
 
-html.show-scrollbars {
-  scrollbar-width: auto;
-  -ms-overflow-style: auto;
+button, input, select, textarea { font: inherit; }
+button, a { -webkit-tap-highlight-color: transparent; }
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #67e8f9;
+  outline-offset: 3px;
 }
 
-html.show-scrollbars ::-webkit-scrollbar {
-  display: block;
-  width: 6px;
+::selection { color: white; background: rgba(8, 145, 178, 0.72); }
+
+.meteor-shell { isolation: isolate; }
+
+.meteor-shell::before {
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 88% 4%, rgba(56, 189, 248, 0.09), transparent 25rem),
+    radial-gradient(circle at 4% 86%, rgba(14, 116, 144, 0.08), transparent 28rem);
 }
 
-html.show-scrollbars ::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
+.meteor-card {
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: linear-gradient(145deg, rgba(22, 35, 54, 0.92), rgba(8, 16, 29, 0.94));
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.22);
 }
+
+.meteor-card-soft {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.meteor-eyebrow {
+  color: #94a3b8;
+  font-size: 0.7rem;
+  font-weight: 750;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.scroll-fade { mask-image: linear-gradient(to right, black calc(100% - 2rem), transparent); }
+
+.leaflet-container { background: #0b1220 !important; font-family: inherit !important; }
+
+.leaflet-control-zoom a,
+.leaflet-control-layers,
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  box-sizing: content-box !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background-color: rgba(7, 15, 27, 0.95) !important;
+  color: white !important;
+}
+
+html.show-scrollbars { scrollbar-width: auto; -ms-overflow-style: auto; }
+html.show-scrollbars ::-webkit-scrollbar { display: block; width: 7px; height: 7px; }
+html.show-scrollbars ::-webkit-scrollbar-thumb { border-radius: 999px; background: rgba(148, 163, 184, 0.28); }
 
 .raindrop {
   position: absolute;
   bottom: 100%;
   width: 1px;
   height: 60px;
-  background: linear-gradient(to top, rgba(56, 189, 248, 0) 0%, rgba(186, 230, 253, 0.4) 100%);
   animation: fall linear infinite;
 }
 
 @keyframes fall {
-  from { transform: translateY(0vh); }
-  to { transform: translateY(110vh); }
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-16px, 110vh, 0); }
 }
 
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(15px); }
+  from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes popIn {
-  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  from { opacity: 0; transform: scale(0.97) translateY(6px); }
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.animate-enter { animation: fadeInUp 0.42s cubic-bezier(0.2, 1, 0.3, 1) both; }
+.animate-enter-pop, .animate-fast-pop { animation: popIn 0.2s cubic-bezier(0.2, 1, 0.3, 1) both; }
+.animate-fade-in { animation: fadeIn 0.25s ease-out both; }
+
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  scroll-behavior: auto !important;
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
 }
 
-@keyframes fastPop {
-  from { opacity: 0; transform: scale(0.9) translateY(4px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
+.pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 0.75rem); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
 
-.animate-enter {
-  animation: fadeInUp 0.5s cubic-bezier(0.2, 1, 0.3, 1) forwards;
-}
-
-.animate-enter-pop {
-  animation: popIn 0.25s cubic-bezier(0.2, 1, 0.3, 1) forwards;
-}
-
-.animate-fast-pop {
-  animation: fastPop 0.15s ease-out forwards;
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out forwards;
-}
-
-.reduce-motion *:not(.raindrop) {
-  animation-duration: 0.001s !important;
-  transition-duration: 0.001s !important;
-}
-
-.pb-safe {
-  padding-bottom: env(safe-area-inset-bottom, 20px);
-}
+@media (max-width: 640px) { .meteor-shell::before { opacity: 0.65; } }

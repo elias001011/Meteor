@@ -1,0 +1,47 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    target-branch: main
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/Sao_Paulo
+    open-pull-requests-limit: 5
+    groups:
+      production-patches:
+        dependency-type: production
+        update-types: [patch]
+      development-patches:
+        dependency-type: development
+        update-types: [patch]
+    labels: [dependencies, web]
+
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: main
+    schedule:
+      interval: monthly
+    labels: [dependencies, ci]
+
+  - package-ecosystem: pub
+    directory: /mobile
+    target-branch: android
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:30"
+      timezone: America/Sao_Paulo
+    open-pull-requests-limit: 5
+    groups:
+      flutter-patches:
+        update-types: [patch]
+    labels: [dependencies, android]
+
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: android
+    schedule:
+      interval: monthly
+    labels: [dependencies, android, ci]

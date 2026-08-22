@@ -4,9 +4,9 @@ import React, { useState, useEffect } from 'react';
 import type { AppSettings, View, DataSource, AppTheme, TransparencyMode, ClockDisplayMode, BackgroundMode, MapTheme, BorderEffectMode, LayoutDensity, DesktopLayout, UnitSystem, ForecastComplexity, ForecastDetailView, ZenModeStyle, ZenModeBackground, ZenModeSound } from '../../types';
 import { getSettings, resetSettings, resetCache, resetAllData, exportAppData } from '../../services/settingsService';
 import { useTheme } from '../context/ThemeContext';
-import { 
-    XIcon, LightbulbIcon, SparklesIcon, ChevronLeftIcon, GaugeIcon, 
-    HeartIcon, GithubIcon, FileTextIcon, GlobeIcon, SettingsIcon, 
+import {
+    LightbulbIcon, SparklesIcon, ChevronLeftIcon, GaugeIcon,
+    HeartIcon, GithubIcon, FileTextIcon, GlobeIcon, SettingsIcon,
     DatabaseIcon, AlertTriangleIcon, MapIcon, HomeIcon, EyeIcon, MaximizeIcon
 } from '../icons';
 
@@ -31,7 +31,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({
 }) => {
     const [activeTab, setActiveTab] = useState<SettingsTab>('general');
     const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
-    const [showPwaBanner, setShowPwaBanner] = useState(true);
     const [pixCopied, setPixCopied] = useState(false);
     
     const { classes, density, isPerformanceMode, cardClass, glassClass } = useTheme();
@@ -90,7 +89,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({
 
     const backgroundOptions: { id: BackgroundMode, label: string }[] = [
         { id: 'gradient', label: 'Gradiente' },
-        { id: 'solid', label: 'Sólido' }
+        { id: 'solid', label: 'Sólido' },
+        { id: 'amoled', label: 'Preto AMOLED' }
     ];
 
     const borderEffectOptions: { id: BorderEffectMode, label: string }[] = [
@@ -167,18 +167,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
 
     const renderGeneral = () => (
         <div className={`space-y-6 animate-enter`}>
-            {/* 1. Instale o Meteor */}
-            {showPwaBanner && !window.matchMedia('(display-mode: standalone)').matches && (
-                <div className={`relative overflow-hidden backdrop-blur-md border ${classes.borderFaded} ${density.padding} bg-gray-900/60 rounded-3xl flex items-start justify-between gap-4 shadow-lg group`}>
-                    <div className="flex gap-4 relative z-10">
-                        <div className={`p-3 rounded-full h-fit ${classes.bg}/20 shadow-inner`}><LightbulbIcon className={`w-6 h-6 ${classes.text}`} /></div>
-                        <div><h4 className="font-bold text-white text-lg">Instale o Meteor</h4><p className="text-sm text-gray-200 mt-1">Instale como App para melhor experiência.</p></div>
-                    </div>
-                    <button onClick={() => setShowPwaBanner(false)} className="text-gray-400 hover:text-white"><XIcon className="w-5 h-5" /></button>
-                </div>
-            )}
-
-            {/* 2. Modo Desempenho (Renamed) */}
+            {/* Modo Desempenho */}
             <section className={`${cardClass} rounded-3xl ${density.padding} border-l-4`} style={{ borderLeftColor: classes.hex }}>
                  <div className="flex items-center justify-between">
                     <div className="flex flex-col gap-0.5">
@@ -216,8 +205,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                 <option value="map" className={optionClass}>Mapa</option>
                                 <option value="ai" className={optionClass}>IA (Chat)</option>
                                 <option value="news" className={optionClass}>Notícias</option>
-                                <option value="tips" className={optionClass}>Dicas</option>
-                                <option value="info" className={optionClass}>Informações</option>
+                                <option value="alerts" className={optionClass}>Alertas meteorológicos</option>
+                                <option value="settings" className={optionClass}>Ajustes</option>
                             </select>
                         </div>
                     )}
@@ -432,10 +421,10 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                 <h3 className={`text-lg font-bold ${classes.text} mb-4`}>Efeitos e Layout</h3>
                 <div className={density.settingsGap}>
                     {/* Background & Border */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                         <div>
                             <label className="text-xs text-gray-400 block mb-2">Estilo do Fundo</label>
-                            <div className="flex bg-black/20 rounded-xl p-1 border border-white/5">
+                            <div className="grid grid-cols-3 bg-black/20 rounded-xl p-1 border border-white/5">
                                 {backgroundOptions.map((opt) => (<button key={opt.id} onClick={() => handleSave({ backgroundMode: opt.id })} className={`flex-1 py-2.5 rounded-lg text-xs font-medium ${settings.backgroundMode === opt.id ? 'bg-white/10 text-white' : 'text-gray-400'}`}>{opt.label}</button>))}
                             </div>
                         </div>

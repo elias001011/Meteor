@@ -11,6 +11,15 @@ interface MessageBubbleProps {
   onRegenerate?: () => void;
 }
 
+const safeExternalUrl = (value: string): string | undefined => {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.toString() : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
 const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, onRegenerate }) => {
   const isModel = message.role === 'model';
   const isLoading = isModel && message.text.trim().length === 0;
@@ -175,18 +184,20 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, onRegene
           <div className="mt-3 ml-1">
             <p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-2">Fontes</p>
             <div className="flex flex-wrap gap-2">
-              {message.sources.map((source, index) => (
-                <a 
-                  key={index} 
-                  href={source.uri} 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
+              {message.sources.map((source, index) => {
+                const safeUrl = safeExternalUrl(source.uri);
+                if (!safeUrl) return null;
+                return <a
+                  key={index}
+                  href={safeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className={`text-xs ${classes.text} bg-gray-800/50 border border-gray-700 hover:bg-gray-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5 max-w-full truncate transition-all hover:border-gray-500`}
                 >
                   <LinkIcon className="w-3 h-3 flex-shrink-0" />
-                  <span className="truncate max-w-[200px]">{source.title || new URL(source.uri).hostname}</span>
+                  <span className="truncate max-w-[200px]">{source.title || new URL(safeUrl).hostname}</span>
                 </a>
-              ))}
+              })}
             </div>
           </div>
         )}

@@ -13,6 +13,13 @@ export interface WeatherData {
   humidity: number;
   pressure: number;
   imageUrl: string;
+  imageFallbackUrl?: string;
+  imageAttribution?: {
+    source: 'unsplash' | 'picsum';
+    photographer?: string;
+    photographerUrl?: string;
+    photoUrl?: string;
+  };
   timezoneOffset: number;
   uvi?: number;
   sunrise: number;
@@ -146,7 +153,7 @@ export type StartupBehavior = 'last_location' | 'idle' | 'specific_location' | '
 export type AppTheme = 'cyan' | 'blue' | 'purple' | 'emerald' | 'rose' | 'amber';
 export type TransparencyMode = 'off' | 'subtle' | 'balanced' | 'glass' | 'transparent';
 export type ClockDisplayMode = 'always' | 'different_zone' | 'never';
-export type BackgroundMode = 'gradient' | 'solid';
+export type BackgroundMode = 'gradient' | 'solid' | 'amoled';
 export type MapTheme = 'light' | 'dark';
 export type BorderEffectMode = 'none' | 'top' | 'bottom';
 export type LayoutDensity = 'comfortable' | 'compact';

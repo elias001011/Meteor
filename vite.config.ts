@@ -18,12 +18,14 @@ export default defineConfig(({ mode }) => {
         {
           name: 'post-build',
           writeBundle() {
-            // Copia o service worker para a pasta dist
+            // Estes arquivos precisam manter URLs estáveis na raiz publicada.
             try {
-              copyFileSync('sw.js', 'dist/sw.js');
-              console.log('✅ Service Worker copiado para dist/');
+              for (const asset of ['sw.js', 'manifest.json', 'favicon.svg']) {
+                copyFileSync(asset, `dist/${asset}`);
+              }
+              console.log('✅ Shell PWA copiado para dist/');
             } catch (err) {
-              console.error('❌ Erro ao copiar sw.js:', err);
+              console.error('❌ Erro ao copiar o shell PWA:', err);
             }
           }
         }

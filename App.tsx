@@ -1,22 +1,14 @@
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { lazy, Suspense, useState, useCallback, useEffect, useRef } from 'react';
 import WeatherView from './components/weather/WeatherView';
-import AiView from './components/ai/AiView';
-import MapView from './components/map/MapView';
-import NewsView from './components/news/NewsView';
 import BottomNav from './components/layout/BottomNav';
 import Header from './components/layout/Header';
 import type { ChatMessage, View, CitySearchResult, AllWeatherData, DataSource, AppSettings, AppTheme } from './types';
 import { generateChatResponse } from './services/geminiService';
 import { fetchAllWeatherData } from './services/weatherService';
 import { getSettings, saveSettings, importAppData } from './services/settingsService';
-import DesktopWeather from './components/weather/DesktopWeather';
-import TipsView from './components/tips/TipsView';
-import AlertsView from './components/alerts/AlertsView';
 import MobileAiControls from './components/ai/MobileAiControls';
-import SettingsView from './components/settings/SettingsView';
-import PlaceholderView from './components/common/PlaceholderView';
-import { Content } from '@google/genai';
+import type { Content } from '@google/genai';
 import ErrorPopup from './components/common/ErrorPopup';
 import DataSourceModal from './components/common/DataSourceModal';
 import ImportModal from './components/settings/ImportModal';
@@ -26,6 +18,18 @@ import OnboardingModal from './components/common/OnboardingModal';
 import { ThemeProvider, useTheme } from './components/context/ThemeContext';
 import ZenMode from './components/weather/ZenMode';
 import type { BackupImportOptions } from './services/settingsService';
+
+const AiView = lazy(() => import('./components/ai/AiView'));
+const MapView = lazy(() => import('./components/map/MapView'));
+const NewsView = lazy(() => import('./components/news/NewsView'));
+const AlertsView = lazy(() => import('./components/alerts/AlertsView'));
+const SettingsView = lazy(() => import('./components/settings/SettingsView'));
+
+const ViewFallback = () => (
+    <div className="flex min-h-[55dvh] items-center justify-center" role="status" aria-label="Carregando seção">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/15 border-t-cyan-300" />
+    </div>
+);
 
 // Rain animation component defined locally
 const RainAnimation: React.FC<{ intensity: 'low' | 'high' }> = ({ intensity }) => {
@@ -153,19 +157,8 @@ const AppContent: React.FC<{
     const showRain = settings.rainAnimation.enabled && isRaining;
     const rainIntensity = isPerformanceMode ? 'low' : settings.rainAnimation.intensity;
 
-    const getDesktopGrid = () => {
-        const layout = settings.desktopLayout || '40-60';
-        switch (layout) {
-            case '25-75': return { left: 'lg:col-span-3', right: 'lg:col-span-9' };
-            case '50-50': return { left: 'lg:col-span-6', right: 'lg:col-span-6' };
-            case '40-60': default: return { left: 'lg:col-span-5', right: 'lg:col-span-7' };
-        }
-    };
-    
-    const gridCols = getDesktopGrid();
-
     return (
-        <div className={`relative text-white min-h-screen font-sans flex flex-col h-screen overflow-hidden transition-colors duration-500 ${appBackgroundClass}`}>
+        <div className={`meteor-shell relative min-h-[100dvh] overflow-x-hidden font-sans text-white transition-colors duration-500 ${appBackgroundClass}`}>
             
             {/* Zen Mode Overlay */}
             {props.isZenMode && weatherInfo.weatherData && (
@@ -194,85 +187,28 @@ const AppContent: React.FC<{
                 onSourceChange={props.handleDataSourceChange}
             />
 
-            <main className="relative z-10 flex-1 h-full overflow-hidden">
-                <div className="hidden lg:block h-full overflow-y-auto pt-16">
-                    {view === 'weather' && (
-                        <div className={`grid grid-cols-1 lg:grid-cols-12 gap-6 p-6 h-full ${animationClass}`}>
-                            <div className={`${gridCols.left} overflow-y-auto pr-2 space-y-6`}>
-                                <DesktopWeather {...weatherProps} />
-                            </div>
-                            <div className={`${gridCols.right} h-full rounded-3xl overflow-hidden shadow-2xl border border-white/10`}>
-                                <MapView key={settings.desktopLayout} lat={props.currentCoords?.lat} lon={props.currentCoords?.lon} theme={settings.mapTheme} />
-                            </div>
+            <main className="relative z-10 min-h-[100dvh] pt-20 pb-24 lg:pb-0">
+                {view === 'weather' && <div className={animationClass}><WeatherView {...weatherProps} /></div>}
+                <Suspense fallback={<ViewFallback />}>
+                    {view === 'ai' && <div className={`h-[calc(100dvh-5rem)] ${animationClass}`}><AiView {...aiViewProps} /></div>}
+                    {view === 'map' && (
+                        <div className={`mx-auto h-[calc(100dvh-6rem)] max-w-[1480px] overflow-hidden rounded-t-[2rem] border-x border-t border-white/10 lg:h-[calc(100dvh-5rem)] lg:rounded-[2rem] lg:border ${animationClass}`}>
+                            <MapView lat={props.currentCoords?.lat} lon={props.currentCoords?.lon} theme={settings.mapTheme} />
                         </div>
                     )}
-                    {view === 'ai' && <div className={`h-full ${animationClass}`}><AiView {...aiViewProps} /></div>}
-                    {view === 'map' && <div className={`h-full ${animationClass}`}><MapView lat={props.currentCoords?.lat} lon={props.currentCoords?.lon} theme={settings.mapTheme} /></div>}
-                    {view === 'news' && (
-                        <div className={`h-full overflow-hidden ${animationClass}`}>
-                            <NewsView onAskAIAboutNews={props.handleNewsAskAI} />
+                    {view === 'news' && <div className={`h-[calc(100dvh-5rem)] ${animationClass}`}><NewsView onAskAIAboutNews={props.handleNewsAskAI} /></div>}
+                    {view === 'settings' && (
+                        <div className={animationClass}>
+                            <SettingsView settings={settings} onSettingsChanged={props.handleSettingsChange} onClearHistory={props.handleClearChatHistory} onOpenImport={props.onOpenImport} onOpenChangelog={props.onOpenChangelog} onOpenCitySelection={props.onOpenSettingsCity} />
                         </div>
                     )}
-                    {view === 'settings' && <div className={animationClass}>
-                        <SettingsView 
-                            settings={settings} 
-                            onSettingsChanged={props.handleSettingsChange} 
-                            onClearHistory={props.handleClearChatHistory} 
-                            onOpenImport={props.onOpenImport}
-                            onOpenChangelog={props.onOpenChangelog}
-                            onOpenCitySelection={props.onOpenSettingsCity}
-                        />
-                    </div>}
-    {view === 'tips' && <div className={`h-full overflow-hidden ${animationClass}`}><TipsView /></div>}
-    {view === 'info' && <div className={`h-full overflow-hidden ${animationClass}`}><PlaceholderView title="Informações" /></div>}
-    {view === 'alerts' && (
-        <div className={`h-full overflow-hidden ${animationClass}`}>
-            <AlertsView 
-                                currentWeather={weatherInfo.weatherData}
-                                dailyForecast={weatherInfo.dailyForecast}
-                                apiAlerts={weatherInfo.alerts}
-                            />
+                    {view === 'alerts' && (
+                        <div className={animationClass}>
+                            <AlertsView currentWeather={weatherInfo.weatherData} dailyForecast={weatherInfo.dailyForecast} apiAlerts={weatherInfo.alerts} />
                         </div>
                     )}
-                </div>
-
-                <div className="lg:hidden h-full">
-                    <div className={`${view === 'weather' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24 pt-16 ${animationClass}`}>
-                        <WeatherView {...weatherProps} />
-                    </div>
-                    <div className={`${view === 'ai' ? 'block' : 'hidden'} h-full pt-16 ${animationClass}`}>
-                        <AiView {...aiViewProps} />
-                    </div>
-                    <div className={`${view === 'map' ? 'block' : 'hidden'} h-full pb-24 pt-16 ${animationClass}`}>
-                        <MapView lat={props.currentCoords?.lat} lon={props.currentCoords?.lon} theme={settings.mapTheme} />
-                    </div>
-                    <div className={`${view === 'news' ? 'block' : 'hidden'} h-full overflow-hidden pb-24 pt-16 ${animationClass}`}>
-                        <NewsView onAskAIAboutNews={props.handleNewsAskAI} />
-                    </div>
-                    <div className={`${view === 'settings' ? 'block' : 'hidden'} h-full overflow-y-auto pb-24 pt-16 ${animationClass}`}>
-                        <SettingsView 
-                            settings={settings} 
-                            onSettingsChanged={props.handleSettingsChange} 
-                            onClearHistory={props.handleClearChatHistory}
-                            onOpenImport={props.onOpenImport}
-                            onOpenChangelog={props.onOpenChangelog}
-                            onOpenCitySelection={props.onOpenSettingsCity}
-                        />
-                    </div>
-                    <div className={`${view === 'tips' ? 'block' : 'hidden'} h-full overflow-hidden pb-24 pt-16 ${animationClass}`}>
-                        <TipsView />
-                    </div>
-                    <div className={`${view === 'info' ? 'block' : 'hidden'} h-full overflow-hidden pb-24 pt-16 ${animationClass}`}>
-                        <PlaceholderView title="Informações" />
-                    </div>
-                    <div className={`${view === 'alerts' ? 'block' : 'hidden'} h-full overflow-hidden pb-24 pt-16 ${animationClass}`}>
-                        <AlertsView 
-                            currentWeather={weatherInfo.weatherData}
-                            dailyForecast={weatherInfo.dailyForecast}
-                            apiAlerts={weatherInfo.alerts}
-                        />
-                    </div>
-                </div>
+                </Suspense>
+                {(view === 'tips' || view === 'info') && <div className={animationClass}><WeatherView {...weatherProps} /></div>}
             </main>
 
             <div className="lg:hidden">

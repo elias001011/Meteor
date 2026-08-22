@@ -1,31 +1,38 @@
+# Política de segurança
 
-# Política de Segurança
+## Versões suportadas
 
-## Versões Suportadas
+| Linha | Suporte | Escopo |
+| --- | --- | --- |
+| 6.x | Sim | Web/BFF em `main` e Android em `android` |
+| 5.x e anteriores | Não | Legado; não recebe correções |
 
-Atualmente o projeto se encontra na versão **5.8.0**. Todas as novas atualizações substituem as versões anteriores.
+## Comunicando uma vulnerabilidade
 
-| Versão | Suportada | Notas |
-| ------- | --------- | ----- |
-| 5.8.0   | ✅        | Versão atual (IA com Gemini 3.1 Flash-Lite, Google Search grounding nativo, backup local em arquivo, sem login). |
-| 5.3.0   | ❌        | Histórico anterior. |
-| 4.3.0   | ❌        | Obsoleto. |
-| 4.2.0   | ❌        | Obsoleto. |
-| 4.1.0   | ❌        | Obsoleto. |
-| 4.0.0   | ❌        | Obsoleto. |
+Não abra uma issue pública nem inclua credenciais, tokens, dados pessoais ou
+passos de exploração em discussões públicas.
 
+Use o recurso **Report a vulnerability** na aba Security do GitHub. Se ele não
+estiver disponível, escreva para **elias.juriatti@outlook.com** com uma descrição
+do impacto, versão/commit afetado e uma reprodução mínima. Não envie segredos
+reais; use valores revogados ou redigidos.
 
-## Reportando uma Vulnerabilidade
+O recebimento será confirmado assim que possível. A correção e a divulgação
+coordenada dependem da gravidade e da capacidade de reproduzir o problema.
 
-Se você encontrar uma vulnerabilidade neste projeto, por favor entre em contato pelo e-mail:
+## Modelo de segurança
 
-**elias.juriatti@outlook.com**
+- APIs de terceiros e Firebase Admin são acessados somente no BFF server-side.
+- A web não implementa push, e-mail ou SMS e não recebe credenciais desses
+  sistemas.
+- O Android registra notificações com Firebase Auth anônimo e App Check; tokens
+  FCM não aparecem nas respostas nem nos logs.
+- Entradas, URLs e corpos têm validação e limites; chamadas externas têm timeout
+  e respostas de erro sanitizadas.
+- CI executa typecheck, testes, build, auditoria de dependências e CodeQL.
+- Credenciais de assinatura Android pertencem a um GitHub Environment protegido
+  e jamais ao histórico Git.
 
-Nós analisaremos o problema e responderemos o mais rápido possível.  
-**Por favor, não abra issues públicas para vulnerabilidades de segurança.**
-
-### Medidas de Segurança Implementadas:
-1. **Backend-for-Frontend (BFF):** Todas as requisições para APIs de terceiros (OpenWeather, Gemini e Google Search grounding) são feitas através de Netlify Functions.
-2. **Sanitização de Inputs:** Filtros aplicados em prompts de IA para prevenir injeções maliciosas.
-3. **Backup Validado:** Importação de arquivo JSON com validação de formato, limites de tamanho e filtragem de campos permitidos.
-4. **Cabeçalhos de Segurança:** O deploy inclui políticas de navegador mais restritivas para reduzir risco de XSS e clickjacking.
+Se uma credencial for encontrada, considere-a comprometida: revogue-a primeiro,
+substitua consumidores, remova-a do histórico e solicite a purga de refs/caches
+ao GitHub quando necessário.

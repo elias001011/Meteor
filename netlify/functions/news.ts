@@ -1,33 +1,114 @@
-import { type Handler, type HandlerEvent } from "@netlify/functions";
-import { buildRateLimitResponse, checkRateLimit, safeText, sanitizeExternalUrl } from "./security";
+import { type Handler, type HandlerEvent } from '@netlify/functions';
+import {
+    buildRateLimitResponse,
+    checkRateLimit,
+    errorResponse,
+    fetchWithTimeout,
+    jsonResponse,
+    preflightResponse,
+    safeErrorName,
+    safeText,
+    sanitizeExternalUrl,
+} from './security';
 
-const BASE_URL = "https://gnews.io/api/v4";
-const VALID_CATEGORIES = ['general', 'world', 'nation', 'business', 'technology', 'entertainment', 'sports', 'science', 'health'];
-const DEFAULT_HEADERS = {
-    'Content-Type': 'application/json',
-    'Cache-Control': 'no-store',
+const BASE_URL = 'https://gnews.io/api/v4';
+const VALID_CATEGORIES = new Set([
+    'general', 'world', 'nation', 'business', 'technology',
+    'entertainment', 'sports', 'science', 'health',
+]);
+const ALLOWED_METHODS = ['GET', 'OPTIONS'];
+
+const clampMax = (value: unknown, fallback = 10, maxAllowed = 20): number => {
+    const parsed = typeof value === 'string' ? Number.parseInt(value, 10) : fallback;
+    return Number.isFinite(parsed) ? Math.min(Math.max(parsed, 1), maxAllowed) : fallback;
 };
 
-const clampMax = (value: string | undefined, fallback: number, maxAllowed: number): string => {
-    const parsed = Number.parseInt(value || String(fallback), 10);
-    if (!Number.isFinite(parsed)) return String(fallback);
-    return String(Math.min(Math.max(parsed, 1), maxAllowed));
+const sanitizeLocale = (value: unknown, fallback = ''): string => {
+    const candidate = safeText(value, 2).toLowerCase();
+    return /^[a-z]{2}$/.test(candidate) ? candidate : fallback;
+};
+
+const parsePublishedAt = (value: unknown): string => {
+    const candidate = safeText(value, 80);
+    if (!candidate || !Number.isFinite(Date.parse(candidate))) return '';
+    return new Date(candidate).toISOString();
+};
+
+export const sanitizeArticles = (value: unknown) => {
+    if (!Array.isArray(value)) return [];
+
+    return value.slice(0, 20).map((article) => {
+        if (typeof article !== 'object' || article === null || Array.isArray(article)) return null;
+        const item = article as Record<string, unknown>;
+        const source = typeof item.source === 'object' && item.source !== null && !Array.isArray(item.source)
+            ? item.source as Record<string, unknown>
+            : {};
+        const url = sanitizeExternalUrl(item.url);
+        const title = safeText(item.title, 220);
+        if (!url || !title) return null;
+
+        return {
+            title,
+            description: safeText(item.description, 500),
+            content: safeText(item.content, 1_200),
+            url,
+            image: sanitizeExternalUrl(item.image),
+            publishedAt: parsePublishedAt(item.publishedAt),
+            source: {
+                name: safeText(source.name, 120) || 'Fonte não informada',
+                url: sanitizeExternalUrl(source.url) || '',
+            },
+        };
+    }).filter((article): article is NonNullable<typeof article> => article !== null);
+};
+
+const shouldTryAnotherKey = (status: number): boolean => (
+    status === 401 || status === 403 || status === 429 || status >= 500
+);
+
+const fetchNews = async (
+    endpoint: string,
+    params: URLSearchParams,
+    keys: string[]
+): Promise<Response> => {
+    let lastResponse: Response | null = null;
+    let lastError: unknown = null;
+
+    for (const key of keys) {
+        try {
+            const keyedParams = new URLSearchParams(params);
+            keyedParams.set('apikey', key);
+            const response = await fetchWithTimeout(`${BASE_URL}/${endpoint}?${keyedParams.toString()}`, {
+                headers: { Accept: 'application/json' },
+            }, 9_000);
+            lastResponse = response;
+
+            if (response.ok || !shouldTryAnotherKey(response.status)) return response;
+        } catch (error) {
+            lastError = error;
+        }
+    }
+
+    if (!lastResponse) throw lastError instanceof Error ? lastError : new Error('News upstream unavailable');
+    return lastResponse;
 };
 
 const handler: Handler = async (event: HandlerEvent) => {
-    const PRIMARY_KEY = process.env.GNEWS_API;
-    const FALLBACK_KEY = process.env.GNEWS_2;
-
-    if (!PRIMARY_KEY && !FALLBACK_KEY) {
-        return { 
-            statusCode: 500,
-            headers: DEFAULT_HEADERS,
-            body: JSON.stringify({ message: "API keys not configured" }) 
-        };
+    if (event.httpMethod === 'OPTIONS') return preflightResponse(event, ALLOWED_METHODS);
+    if (event.httpMethod !== 'GET') {
+        return errorResponse(event, 405, 'METHOD_NOT_ALLOWED', 'Método não permitido.', {
+            methods: ALLOWED_METHODS,
+            headers: { Allow: ALLOWED_METHODS.join(', ') },
+        });
     }
 
-    if (event.httpMethod !== 'GET') {
-        return { statusCode: 405, headers: DEFAULT_HEADERS, body: JSON.stringify({ message: 'Method Not Allowed' }) };
+    const keys = [...new Set([process.env.GNEWS_API, process.env.GNEWS_2]
+        .map((key) => safeText(key, 256))
+        .filter(Boolean))];
+    if (keys.length === 0) {
+        return errorResponse(event, 503, 'NEWS_NOT_CONFIGURED', 'O serviço de notícias está temporariamente indisponível.', {
+            methods: ALLOWED_METHODS,
+        });
     }
 
     const rateLimit = await checkRateLimit(event, {
@@ -35,127 +116,76 @@ const handler: Handler = async (event: HandlerEvent) => {
         limit: 80,
         windowSeconds: 600,
     });
-    if (!rateLimit.allowed) {
-        return buildRateLimitResponse(rateLimit);
+    if (!rateLimit.allowed) return buildRateLimitResponse(event, rateLimit, ALLOWED_METHODS);
+
+    const query = event.queryStringParameters || {};
+    const endpoint = query.endpoint;
+    const params = new URLSearchParams();
+
+    if (endpoint === 'top-headlines') {
+        params.set('lang', sanitizeLocale(query.lang, 'pt'));
+        params.set('country', sanitizeLocale(query.country, 'br'));
+        params.set('max', String(clampMax(query.max)));
+
+        const category = safeText(query.category, 24).toLowerCase();
+        if (category && !VALID_CATEGORIES.has(category)) {
+            return errorResponse(event, 400, 'INVALID_CATEGORY', 'Categoria de notícias inválida.', {
+                methods: ALLOWED_METHODS,
+            });
+        }
+        if (category) params.set('category', category);
+    } else if (endpoint === 'search') {
+        const searchQuery = safeText(query.q, 100);
+        if (searchQuery.length < 2) {
+            return errorResponse(event, 400, 'INVALID_SEARCH_QUERY', 'Informe ao menos 2 caracteres para buscar notícias.', {
+                methods: ALLOWED_METHODS,
+            });
+        }
+
+        params.set('q', searchQuery);
+        params.set('lang', sanitizeLocale(query.lang, 'pt'));
+        params.set('max', String(clampMax(query.max)));
+        const country = sanitizeLocale(query.country);
+        if (country) params.set('country', country);
+    } else {
+        return errorResponse(event, 400, 'INVALID_ENDPOINT', 'Endpoint de notícias inválido.', {
+            methods: ALLOWED_METHODS,
+        });
     }
 
     try {
-        const { endpoint, q, category, lang, country, max } = event.queryStringParameters || {};
-        
-        const defaultLang = 'pt';
-        const defaultCountry = 'br';
-        const defaultMax = '10';
-
-        let params = new URLSearchParams();
-        
-        switch (endpoint) {
-            case 'top-headlines': {
-                params.set('lang', safeText(lang, 2) || defaultLang);
-                params.set('country', safeText(country, 2) || defaultCountry);
-                params.set('max', clampMax(max, Number(defaultMax), 20));
-                
-                if (category && VALID_CATEGORIES.includes(category)) {
-                    params.set('category', category);
-                }
-                break;
-            }
-            
-            case 'search': {
-                const query = safeText(q, 100);
-                if (!query || query.length < 2) {
-                    return { 
-                        statusCode: 400,
-                        headers: DEFAULT_HEADERS,
-                        body: JSON.stringify({ message: "Search query required (min 2 chars)" }) 
-                    };
-                }
-                
-                params.set('q', query);
-                params.set('lang', safeText(lang, 2) || defaultLang);
-                params.set('max', clampMax(max, Number(defaultMax), 20));
-                
-                const safeCountry = safeText(country, 2);
-                if (safeCountry) {
-                    params.set('country', safeCountry);
-                }
-                break;
-            }
-            
-            default:
-                return { 
-                    statusCode: 400,
-                    headers: DEFAULT_HEADERS,
-                    body: JSON.stringify({ message: 'Invalid endpoint' }) 
-                };
-        }
-
-        const keyToUse = PRIMARY_KEY || FALLBACK_KEY!;
-        params.set('apikey', keyToUse);
-        const apiUrl = `${BASE_URL}/${endpoint}?${params.toString()}`;
-        
-        console.log('[News] Trying primary API...');
-        let response = await fetch(apiUrl, { 
-            headers: { 'Accept': 'application/json' },
-            signal: AbortSignal.timeout(10000)
-        });
-        console.log('[News] Primary response:', response.status);
-
-        if ((response.status === 403 || response.status === 429) && PRIMARY_KEY && FALLBACK_KEY) {
-            console.log('[News] Primary failed, trying fallback...');
-            params.set('apikey', FALLBACK_KEY);
-            const fallbackUrl = `${BASE_URL}/${endpoint}?${params.toString()}`;
-            response = await fetch(fallbackUrl, { 
-                headers: { 'Accept': 'application/json' },
-                signal: AbortSignal.timeout(10000)
-            });
-            console.log('[News] Fallback response:', response.status);
-        }
-
+        const response = await fetchNews(endpoint, params, keys);
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-            return {
-                statusCode: response.status,
-                headers: DEFAULT_HEADERS,
-                body: JSON.stringify({ message: safeText(errorData.message, 180) || "Error fetching news" }),
-            };
+            console.warn(`[News] Upstream returned ${response.status}.`);
+            return errorResponse(event, 503, 'NEWS_UPSTREAM_UNAVAILABLE', 'Não foi possível carregar as notícias agora. Tente novamente em instantes.', {
+                methods: ALLOWED_METHODS,
+                headers: { 'Retry-After': response.status === 429 ? '60' : '15' },
+            });
         }
 
-        const data = await response.json();
-        
-        const sanitizedArticles = (Array.isArray(data.articles) ? data.articles : []).map((article: any) => ({
-            title: safeText(article.title, 220) || 'No title',
-            description: safeText(article.description, 500),
-            content: safeText(article.content, 1200),
-            url: sanitizeExternalUrl(article.url),
-            image: sanitizeExternalUrl(article.image),
-            publishedAt: safeText(article.publishedAt, 80),
-            source: {
-                name: safeText(article.source?.name, 120) || 'Unknown source',
-                url: sanitizeExternalUrl(article.source?.url) || '',
-            },
-        })).filter((article: any) => article.url);
+        const data: unknown = await response.json();
+        const record = typeof data === 'object' && data !== null && !Array.isArray(data)
+            ? data as Record<string, unknown>
+            : {};
+        const articles = sanitizeArticles(record.articles);
+        const totalArticles = typeof record.totalArticles === 'number' && Number.isFinite(record.totalArticles)
+            ? Math.max(articles.length, Math.floor(record.totalArticles))
+            : articles.length;
 
-        return {
-            statusCode: 200,
-            headers: { 
-                'Content-Type': 'application/json',
-                'Cache-Control': 'public, max-age=300',
+        return jsonResponse(event, 200, { totalArticles, articles }, {
+            methods: ALLOWED_METHODS,
+            cacheControl: 'public, max-age=120, s-maxage=300, stale-while-revalidate=600',
+            headers: {
+                'X-RateLimit-Limit': String(rateLimit.limit),
+                'X-RateLimit-Remaining': String(rateLimit.remaining),
             },
-            body: JSON.stringify({
-                totalArticles: typeof data.totalArticles === 'number' ? data.totalArticles : sanitizedArticles.length,
-                articles: sanitizedArticles,
-            }),
-        };
-
+        });
     } catch (error) {
-        console.error("[News] Error:", error);
-        return {
-            statusCode: 500,
-            headers: DEFAULT_HEADERS,
-            body: JSON.stringify({ 
-                message: error instanceof Error ? safeText(error.message, 180) : "Internal error" 
-            }),
-        };
+        console.error(`[News] Request failed (${safeErrorName(error)}).`);
+        return errorResponse(event, 503, 'NEWS_UPSTREAM_UNAVAILABLE', 'Não foi possível carregar as notícias agora. Tente novamente em instantes.', {
+            methods: ALLOWED_METHODS,
+            headers: { 'Retry-After': '15' },
+        });
     }
 };
 

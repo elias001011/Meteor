@@ -23,14 +23,19 @@ const isRecord = (value: unknown): value is Record<string, unknown> => (
 
 const clampString = (value: unknown, maxLength: number): string => {
     if (typeof value !== 'string') return '';
-    return value.slice(0, maxLength);
+    return value
+        .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')
+        .trim()
+        .slice(0, maxLength);
 };
 
 const sanitizeHistory = (history: unknown): Content[] => {
     if (!Array.isArray(history)) return [];
 
-    return history
-        .slice(-20)
+    let remainingCharacters = 18_000;
+    const sanitized = history
+        .slice(-16)
+        .reverse()
         .map((entry): Content | null => {
             if (!isRecord(entry)) return null;
 
@@ -39,17 +44,23 @@ const sanitizeHistory = (history: unknown): Content[] => {
             const text = typeof entry.text === 'string'
                 ? entry.text
                 : typeof parts?.[0] === 'object' && parts?.[0] !== null && typeof (parts[0] as Record<string, unknown>).text === 'string'
-                    ? clampString((parts[0] as Record<string, unknown>).text, 4000)
+                    ? clampString((parts[0] as Record<string, unknown>).text, 3000)
                     : '';
 
             if (!role || !text) return null;
 
+            const limitedText = text.slice(0, Math.min(3_000, remainingCharacters));
+            if (!limitedText) return null;
+            remainingCharacters -= limitedText.length;
+
             return {
                 role,
-                parts: [{ text: text.slice(0, 4000) }],
+                parts: [{ text: limitedText }],
             } satisfies Content;
         })
         .filter((entry): entry is Content => entry !== null);
+
+    return sanitized.reverse();
 };
 
 const sanitizeWeatherContext = (weatherContext: unknown): Partial<AllWeatherData> | null => {
@@ -63,25 +74,42 @@ export async function generateChatResponse({
     timeContext,
     userInstructions,
 }: GeminiChatRequest): Promise<GeminiChatResponse> {
+    const sanitizedPrompt = clampString(prompt, 6000);
+    if (!sanitizedPrompt) {
+        throw new Error('Escreva uma pergunta para a assistente.');
+    }
+
     const response = await fetch('/.netlify/functions/gemini', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(32_000),
         body: JSON.stringify({
-            prompt: clampString(prompt, 8000).trim(),
+            prompt: sanitizedPrompt,
             history: sanitizeHistory(history),
             weatherContext: sanitizeWeatherContext(weatherContext),
             timeContext: clampString(timeContext, 120),
-            userInstructions: clampString(userInstructions, 500),
+            userInstructions: clampString(userInstructions, 400),
         }),
+    }).catch((error) => {
+        if (error instanceof DOMException && (error.name === 'TimeoutError' || error.name === 'AbortError')) {
+            throw new Error('A resposta demorou mais que o esperado. Tente novamente.');
+        }
+        throw new Error('Não foi possível conectar à assistente. Verifique sua conexão.');
     });
 
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
+        const retryAfter = Number.parseInt(response.headers.get('Retry-After') || '', 10);
+        if (response.status === 429) {
+            throw new Error(Number.isFinite(retryAfter)
+                ? `Limite temporário atingido. Tente novamente em ${retryAfter} segundos.`
+                : 'Limite temporário atingido. Aguarde um momento e tente novamente.');
+        }
         throw new Error(
             typeof data?.message === 'string' && data.message.trim()
                 ? data.message
-                : 'O modelo falhou. Tente novamente mais tarde'
+                : 'A assistente está indisponível no momento. Tente novamente em instantes.'
         );
     }
 

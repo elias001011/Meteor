@@ -37,6 +37,7 @@ interface ThemeContextProps {
     miniClass: string;
     appBackgroundClass: string;
     isPerformanceMode: boolean;
+    isAmoled: boolean;
     density: DensityClasses;
 }
 
@@ -64,6 +65,7 @@ const ThemeContext = createContext<ThemeContextProps>({
     miniClass: '',
     appBackgroundClass: '',
     isPerformanceMode: false,
+    isAmoled: false,
     density: DENSITY_DEFINITIONS.comfortable
 });
 
@@ -93,59 +95,64 @@ export const ThemeProvider: React.FC<{
     
     const getFinalStyle = useMemo(() => (scopeType: keyof GlassScope) => {
         // Base structure: Background + Border + Shadow
-        const baseBorder = 'border border-white/10';
-        const shadow = 'shadow-lg';
+        const baseBorder = backgroundMode === 'amoled' ? 'border border-white/10' : 'border border-white/[0.08]';
+        const shadow = backgroundMode === 'amoled' ? 'shadow-none' : 'shadow-[0_18px_60px_rgba(0,0,0,0.22)]';
+        const solidSurface = backgroundMode === 'amoled' ? 'bg-black' : 'bg-[#111b2b]';
 
         // 1. PERFORMANCE MODE: Always Solid, No Blur, No Transparency
         if (performanceMode) {
-             return `bg-gray-900 ${baseBorder} ${shadow}`;
+             return `${solidSurface} ${baseBorder} ${shadow}`;
         }
 
         // 2. SCOPE DISABLED: If this specific element shouldn't have glass/transparency
         if (!glassScope[scopeType]) {
-            return `bg-gray-900 ${baseBorder} ${shadow}`;
+            return `${solidSurface} ${baseBorder} ${shadow}`;
         }
 
         // 3. TRANSPARENCY MODES - RECALIBRATED FOR REAL VISIBILITY
         switch (transparencyMode) {
             case 'off': 
                 // Solid: 100% Opacity
-                return `bg-gray-900 ${baseBorder} ${shadow}`;
+                return `${solidSurface} ${baseBorder} ${shadow}`;
             
             case 'subtle': 
                 // Subtle: 85% Opacity (Enough to see contrast, but very dark)
-                return `bg-gray-900/85 ${baseBorder} ${shadow}`;
+                return `${backgroundMode === 'amoled' ? 'bg-black' : 'bg-[#111b2b]/90'} ${baseBorder} ${shadow}`;
             
             case 'balanced': 
                 // Balanced: 60% Opacity (Distinctly transparent, no blur)
-                return `bg-gray-900/60 ${baseBorder} ${shadow}`;
+                return `${backgroundMode === 'amoled' ? 'bg-black' : 'bg-[#111b2b]/72'} ${baseBorder} ${shadow}`;
             
             case 'transparent': 
                 // Legacy Transparent: 40% Opacity (Very transparent, no blur)
-                return `bg-gray-900/40 ${baseBorder} ${shadow}`;
+                return `${backgroundMode === 'amoled' ? 'bg-black' : 'bg-[#111b2b]/56'} ${baseBorder} ${shadow}`;
 
             case 'glass': 
                 // Glass: Low Opacity (30%) + Heavy Blur. 
                 // This allows the rain to be seen "through" the card, blurred.
                 // Added backdrop-saturate to pop colors behind the glass.
-                return `bg-gray-900/30 backdrop-blur-md backdrop-saturate-150 ${baseBorder} shadow-2xl`;
+                return `${backgroundMode === 'amoled' ? 'bg-black' : 'bg-[#0b1424]/68 backdrop-blur-xl backdrop-saturate-150'} ${baseBorder} ${shadow}`;
             
             default:
-                return `bg-gray-900 ${baseBorder} ${shadow}`;
+                return `${solidSurface} ${baseBorder} ${shadow}`;
         }
 
-    }, [transparencyMode, glassScope, performanceMode]);
+    }, [transparencyMode, glassScope, performanceMode, backgroundMode]);
 
     const headerClass = getFinalStyle('header').replace('border ', 'border-b ').replace('shadow-lg', '');
     const cardClass = getFinalStyle('cards');
     const glassClass = getFinalStyle('overlays'); // Used for modals, dropdowns
     
     // Mini widgets always keep a bit of transparency/blur for contrast against the cards
-    const miniClass = `bg-white/10 border border-white/10 backdrop-blur-md`; 
+    const miniClass = backgroundMode === 'amoled'
+        ? 'bg-black/80 border border-white/15'
+        : 'bg-black/25 border border-white/15 backdrop-blur-md';
 
-    const appBackgroundClass = backgroundMode === 'solid' 
-        ? 'bg-gray-950' 
-        : 'bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-800 via-gray-900 to-black bg-fixed';
+    const appBackgroundClass = backgroundMode === 'amoled'
+        ? 'bg-black'
+        : backgroundMode === 'solid'
+            ? 'bg-[#07111f]'
+            : 'bg-[radial-gradient(circle_at_15%_0%,_#15395b_0%,_#0a1728_32%,_#050a12_72%,_#030609_100%)] bg-fixed';
 
     useEffect(() => {
         if (reducedMotion || performanceMode) {
@@ -165,7 +172,8 @@ export const ThemeProvider: React.FC<{
             headerClass, 
             miniClass, 
             appBackgroundClass, 
-            isPerformanceMode: performanceMode, 
+            isPerformanceMode: performanceMode,
+            isAmoled: backgroundMode === 'amoled',
             density: currentDensity 
         }}>
             {children}
