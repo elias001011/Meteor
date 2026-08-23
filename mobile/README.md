@@ -5,13 +5,14 @@ Brasil e Android 8.0 (API 26) ou mais recente.
 
 ## O que já existe
 
-- Hoje: foto contextual, crédito do Unsplash, resumo inteligente, alertas
-  oficiais, detalhes e previsões horária/diária.
-- Busca de cidade e geolocalização somente em primeiro plano.
+- Hoje: foto contextual alta, crédito do Unsplash, resumo inteligente separado
+  dos alertas, métricas detalhadas, qualidade do ar e gráficos horários/diários.
+- Várias localidades com troca por gesto, busca e geolocalização somente em
+  primeiro plano.
 - Mapa com OpenStreetMap e camadas meteorológicas servidas pelo BFF.
 - Chat Gemini com histórico local, contexto da previsão e fontes externas.
 - Notícias por categoria/pesquisa com atalho para análise pela IA.
-- Tema do sistema, claro, escuro e AMOLED com preto real.
+- Tema do sistema, Material You, claro, escuro e AMOLED com preto real.
 - Cache local da previsão/notícias, cidade, preferências e conversa.
 - Estrutura FCM opcional com canais Android, roteamento ao tocar e preferências.
 

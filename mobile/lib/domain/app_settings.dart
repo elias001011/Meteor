@@ -10,8 +10,14 @@ class NotificationPreferences {
     this.temperature = false,
     this.uv = false,
     this.wind = false,
+    this.dailySummaryHour = 7,
+    this.quietHoursEnabled = true,
     this.quietStartHour = 22,
     this.quietEndHour = 7,
+    this.coldThresholdC = 5,
+    this.heatThresholdC = 35,
+    this.uvThreshold = 8,
+    this.windThresholdKmh = 60,
   });
 
   factory NotificationPreferences.fromJson(Json json) =>
@@ -22,8 +28,14 @@ class NotificationPreferences {
         temperature: json['temperature'] == true,
         uv: json['uv'] == true,
         wind: json['wind'] == true,
+        dailySummaryHour: _hour(json['dailySummaryHour'], 7),
+        quietHoursEnabled: json['quietHoursEnabled'] != false,
         quietStartHour: (json['quietStartHour'] as num?)?.toInt() ?? 22,
         quietEndHour: (json['quietEndHour'] as num?)?.toInt() ?? 7,
+        coldThresholdC: (json['coldThresholdC'] as num?)?.toDouble() ?? 5,
+        heatThresholdC: (json['heatThresholdC'] as num?)?.toDouble() ?? 35,
+        uvThreshold: (json['uvThreshold'] as num?)?.toDouble() ?? 8,
+        windThresholdKmh: (json['windThresholdKmh'] as num?)?.toDouble() ?? 60,
       );
 
   final bool severeAlerts;
@@ -32,8 +44,14 @@ class NotificationPreferences {
   final bool temperature;
   final bool uv;
   final bool wind;
+  final int dailySummaryHour;
+  final bool quietHoursEnabled;
   final int quietStartHour;
   final int quietEndHour;
+  final double coldThresholdC;
+  final double heatThresholdC;
+  final double uvThreshold;
+  final double windThresholdKmh;
 
   NotificationPreferences copyWith({
     bool? severeAlerts,
@@ -42,6 +60,14 @@ class NotificationPreferences {
     bool? temperature,
     bool? uv,
     bool? wind,
+    int? dailySummaryHour,
+    bool? quietHoursEnabled,
+    int? quietStartHour,
+    int? quietEndHour,
+    double? coldThresholdC,
+    double? heatThresholdC,
+    double? uvThreshold,
+    double? windThresholdKmh,
   }) => NotificationPreferences(
     severeAlerts: severeAlerts ?? this.severeAlerts,
     rainSoon: rainSoon ?? this.rainSoon,
@@ -49,8 +75,14 @@ class NotificationPreferences {
     temperature: temperature ?? this.temperature,
     uv: uv ?? this.uv,
     wind: wind ?? this.wind,
-    quietStartHour: quietStartHour,
-    quietEndHour: quietEndHour,
+    dailySummaryHour: dailySummaryHour ?? this.dailySummaryHour,
+    quietHoursEnabled: quietHoursEnabled ?? this.quietHoursEnabled,
+    quietStartHour: quietStartHour ?? this.quietStartHour,
+    quietEndHour: quietEndHour ?? this.quietEndHour,
+    coldThresholdC: coldThresholdC ?? this.coldThresholdC,
+    heatThresholdC: heatThresholdC ?? this.heatThresholdC,
+    uvThreshold: uvThreshold ?? this.uvThreshold,
+    windThresholdKmh: windThresholdKmh ?? this.windThresholdKmh,
   );
 
   Json toJson() => {
@@ -60,9 +92,20 @@ class NotificationPreferences {
     'temperature': temperature,
     'uv': uv,
     'wind': wind,
+    'dailySummaryHour': dailySummaryHour,
+    'quietHoursEnabled': quietHoursEnabled,
     'quietStartHour': quietStartHour,
     'quietEndHour': quietEndHour,
+    'coldThresholdC': coldThresholdC,
+    'heatThresholdC': heatThresholdC,
+    'uvThreshold': uvThreshold,
+    'windThresholdKmh': windThresholdKmh,
   };
+}
+
+int _hour(Object? value, int fallback) {
+  final hour = value is num ? value.toInt() : fallback;
+  return hour.clamp(0, 23);
 }
 
 class AppSettings {

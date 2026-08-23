@@ -54,6 +54,9 @@ class CityLocation {
     'lat': latitude,
     'lon': longitude,
   };
+
+  String get storageKey =>
+      '${latitude.toStringAsFixed(3)},${longitude.toStringAsFixed(3)}';
 }
 
 class ImageAttribution {
@@ -103,6 +106,8 @@ class CurrentWeather {
     this.windGust,
     this.rainLastHour,
     this.dewPoint,
+    this.cloudCover,
+    this.windDirection,
   });
 
   factory CurrentWeather.fromJson(Json json) {
@@ -134,6 +139,10 @@ class CurrentWeather {
       windGust: json['wind_gust'] == null ? null : _number(json['wind_gust']),
       rainLastHour: json['rain_1h'] == null ? null : _number(json['rain_1h']),
       dewPoint: json['dew_point'] == null ? null : _number(json['dew_point']),
+      cloudCover: json['clouds'] == null ? null : _number(json['clouds']),
+      windDirection: json['wind_deg'] == null
+          ? null
+          : _number(json['wind_deg']),
     );
   }
 
@@ -152,6 +161,8 @@ class CurrentWeather {
   final double? windGust;
   final double? rainLastHour;
   final double? dewPoint;
+  final double? cloudCover;
+  final double? windDirection;
   final int sunrise;
   final int sunset;
   final String imageUrl;
@@ -172,6 +183,12 @@ class ForecastItem {
     this.windSpeed,
     this.windGust,
     this.uvIndex,
+    this.sunrise,
+    this.sunset,
+    this.precipitation,
+    this.cloudCover,
+    this.pressure,
+    this.dewPoint,
   });
 
   factory ForecastItem.fromJson(Json json) => ForecastItem(
@@ -188,6 +205,14 @@ class ForecastItem {
     windSpeed: json['wind_speed'] == null ? null : _number(json['wind_speed']),
     windGust: json['wind_gust'] == null ? null : _number(json['wind_gust']),
     uvIndex: json['uvi'] == null ? null : _number(json['uvi']),
+    sunrise: json['sunrise'] == null ? null : _integer(json['sunrise']),
+    sunset: json['sunset'] == null ? null : _integer(json['sunset']),
+    precipitation: json['precipitation'] == null
+        ? null
+        : _number(json['precipitation']),
+    cloudCover: json['clouds'] == null ? null : _number(json['clouds']),
+    pressure: json['pressure'] == null ? null : _number(json['pressure']),
+    dewPoint: json['dew_point'] == null ? null : _number(json['dew_point']),
   );
 
   final int timestamp;
@@ -201,6 +226,12 @@ class ForecastItem {
   final double? windSpeed;
   final double? windGust;
   final double? uvIndex;
+  final int? sunrise;
+  final int? sunset;
+  final double? precipitation;
+  final double? cloudCover;
+  final double? pressure;
+  final double? dewPoint;
 }
 
 class WeatherAlert {
@@ -233,18 +264,42 @@ class WeatherAlert {
 }
 
 class AirQuality {
-  const AirQuality({required this.index, required this.pm25});
+  const AirQuality({
+    required this.index,
+    required this.pm25,
+    this.pm10,
+    this.ozone,
+    this.nitrogenDioxide,
+    this.sulphurDioxide,
+    this.carbonMonoxide,
+  });
 
   factory AirQuality.fromJson(Json json) {
     final components = _json(json['components']);
     return AirQuality(
       index: json['aqi'] == null ? null : _integer(json['aqi']),
       pm25: components['pm2_5'] == null ? null : _number(components['pm2_5']),
+      pm10: components['pm10'] == null ? null : _number(components['pm10']),
+      ozone: components['o3'] == null ? null : _number(components['o3']),
+      nitrogenDioxide: components['no2'] == null
+          ? null
+          : _number(components['no2']),
+      sulphurDioxide: components['so2'] == null
+          ? null
+          : _number(components['so2']),
+      carbonMonoxide: components['co'] == null
+          ? null
+          : _number(components['co']),
     );
   }
 
   final int? index;
   final double? pm25;
+  final double? pm10;
+  final double? ozone;
+  final double? nitrogenDioxide;
+  final double? sulphurDioxide;
+  final double? carbonMonoxide;
 }
 
 class WeatherBundle {
@@ -296,6 +351,10 @@ class WeatherBundle {
       'condition': current.condition,
       'humidity': current.humidity,
       'windSpeed': current.windSpeed,
+      'wind_gust': current.windGust,
+      'pressure': current.pressure,
+      'visibility': current.visibility,
+      'dew_point': current.dewPoint,
       'uvi': current.uvIndex,
     },
     'hourlyForecast': hourly
@@ -306,6 +365,9 @@ class WeatherBundle {
             'temperature': item.temperature,
             'description': item.description,
             'pop': item.rainProbability,
+            'feels_like': item.feelsLike,
+            'humidity': item.humidity,
+            'wind_speed': item.windSpeed,
           },
         )
         .toList(),
@@ -325,6 +387,13 @@ class WeatherBundle {
     'alerts': alerts
         .map((item) => {'event': item.event, 'description': item.description})
         .toList(),
+    if (airQuality != null)
+      'airQuality': {
+        'index': airQuality!.index,
+        'pm2_5': airQuality!.pm25,
+        'pm10': airQuality!.pm10,
+        'o3': airQuality!.ozone,
+      },
     'dataSource': dataSource,
   };
 }

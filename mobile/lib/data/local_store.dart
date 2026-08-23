@@ -12,6 +12,8 @@ class LocalStore {
 
   static const _settingsKey = 'meteor.settings.v1';
   static const _locationKey = 'meteor.location.v1';
+  static const _locationsKey = 'meteor.locations.v2';
+  static const _selectedLocationKey = 'meteor.locations.selected.v2';
   static const _weatherKey = 'meteor.weather.v1';
   static const _weatherTimestampKey = 'meteor.weather.timestamp.v1';
   static const _newsKey = 'meteor.news.v1';
@@ -39,6 +41,40 @@ class LocalStore {
 
   Future<void> saveLocation(CityLocation location) =>
       _writeJson(_locationKey, location.toJson());
+
+  List<CityLocation> readLocations() {
+    final value = _readJson(_locationsKey);
+    if (value is List) {
+      final locations = value
+          .whereType<Map>()
+          .map((item) => CityLocation.fromJson(Map<String, dynamic>.from(item)))
+          .where(
+            (item) => item.latitude.abs() <= 90 && item.longitude.abs() <= 180,
+          )
+          .toList();
+      if (locations.isNotEmpty) return locations;
+    }
+    final legacy = readLocation();
+    return legacy == null ? const [] : [legacy];
+  }
+
+  int readSelectedLocationIndex() =>
+      _preferences.getInt(_selectedLocationKey) ?? 0;
+
+  Future<void> saveLocations(
+    List<CityLocation> locations,
+    int selectedIndex,
+  ) async {
+    await Future.wait([
+      _writeJson(
+        _locationsKey,
+        locations.map((location) => location.toJson()).toList(),
+      ),
+      _preferences.setInt(_selectedLocationKey, selectedIndex),
+      if (locations.isNotEmpty)
+        saveLocation(locations[selectedIndex.clamp(0, locations.length - 1)]),
+    ]);
+  }
 
   CachedJson? readWeather() => _readCached(_weatherKey, _weatherTimestampKey);
 
