@@ -35,6 +35,7 @@ class AppController extends ChangeNotifier {
   final MobileInstallationClient _installationClient =
       MobileInstallationClient();
   StreamSubscription<String>? _tokenRefreshSubscription;
+  Timer? _pushSyncDebounce;
 
   AppSettings settings = const AppSettings();
   CityLocation location = const CityLocation(
@@ -43,6 +44,17 @@ class AppController extends ChangeNotifier {
     latitude: -23.5505,
     longitude: -46.6333,
   );
+  List<CityLocation> locations = const [
+    CityLocation(
+      name: 'São Paulo',
+      country: 'BR',
+      latitude: -23.5505,
+      longitude: -46.6333,
+    ),
+  ];
+  int selectedLocationIndex = 0;
+  final Map<String, WeatherBundle> _weatherByLocation = {};
+  int _weatherRequestSerial = 0;
   WeatherBundle? weather;
   List<NewsArticle> news = const [];
   List<ChatMessage> chat = const [];
@@ -58,8 +70,15 @@ class AppController extends ChangeNotifier {
 
   Future<void> initialize() async {
     settings = store.readSettings();
-    location = store.readLocation() ?? location;
+    final savedLocations = store.readLocations();
+    if (savedLocations.isNotEmpty) locations = savedLocations;
+    selectedLocationIndex = store.readSelectedLocationIndex().clamp(
+      0,
+      locations.length - 1,
+    );
+    location = locations[selectedLocationIndex];
     weather = weatherRepository.readCache();
+    if (weather != null) _weatherByLocation[location.storageKey] = weather!;
     chat = store.readChat();
     notifyListeners();
     await notifications.initialize();
@@ -72,6 +91,8 @@ class AppController extends ChangeNotifier {
 
   Future<void> refreshWeather({CityLocation? nextLocation}) async {
     final target = nextLocation ?? location;
+    final targetIndex = selectedLocationIndex;
+    final requestSerial = ++_weatherRequestSerial;
     weatherState = LoadState.loading;
     weatherError = null;
     notifyListeners();
@@ -79,7 +100,14 @@ class AppController extends ChangeNotifier {
       final result = await weatherRepository.refresh(
         target,
         allowCacheFallback: nextLocation == null,
+        shouldPersist: () =>
+            requestSerial == _weatherRequestSerial &&
+            targetIndex == selectedLocationIndex,
       );
+      if (requestSerial != _weatherRequestSerial ||
+          targetIndex != selectedLocationIndex) {
+        return;
+      }
       weather = result;
       location = CityLocation(
         name: result.current.city,
@@ -87,14 +115,84 @@ class AppController extends ChangeNotifier {
         latitude: target.latitude,
         longitude: target.longitude,
       );
-      await store.saveLocation(location);
+      locations = [
+        ...locations.take(targetIndex),
+        location,
+        ...locations.skip(targetIndex + 1),
+      ];
+      _weatherByLocation[location.storageKey] = result;
+      await store.saveLocations(locations, selectedLocationIndex);
       weatherState = LoadState.success;
       if (settings.pushEnabled) unawaited(_syncPush());
     } catch (error) {
+      if (requestSerial != _weatherRequestSerial ||
+          targetIndex != selectedLocationIndex) {
+        return;
+      }
       weatherError = _message(error, 'Não foi possível atualizar o clima.');
       weatherState = LoadState.error;
     }
     notifyListeners();
+  }
+
+  WeatherBundle? weatherForLocation(CityLocation value) =>
+      _weatherByLocation[value.storageKey];
+
+  Future<void> addLocation(CityLocation value) async {
+    final existing = locations.indexWhere(
+      (item) => item.storageKey == value.storageKey,
+    );
+    if (existing >= 0) {
+      await selectLocation(existing);
+      return;
+    }
+    locations = [...locations, value];
+    selectedLocationIndex = locations.length - 1;
+    location = value;
+    weather = null;
+    await store.saveLocations(locations, selectedLocationIndex);
+    notifyListeners();
+    await refreshWeather(nextLocation: value);
+  }
+
+  Future<void> selectLocation(int index) async {
+    if (index < 0 || index >= locations.length) return;
+    final target = locations[index];
+    selectedLocationIndex = index;
+    location = target;
+    weather = _weatherByLocation[location.storageKey];
+    await store.saveLocations(locations, selectedLocationIndex);
+    if (selectedLocationIndex != index ||
+        location.storageKey != target.storageKey) {
+      return;
+    }
+    notifyListeners();
+    await refreshWeather(nextLocation: target);
+  }
+
+  Future<void> removeLocation(int index) async {
+    if (locations.length <= 1 || index < 0 || index >= locations.length) {
+      return;
+    }
+    final removed = locations[index];
+    _weatherRequestSerial += 1;
+    if (index < selectedLocationIndex) {
+      selectedLocationIndex -= 1;
+    } else if (index == selectedLocationIndex &&
+        selectedLocationIndex == locations.length - 1) {
+      selectedLocationIndex -= 1;
+    }
+    locations = [...locations]..removeAt(index);
+    _weatherByLocation.remove(removed.storageKey);
+    selectedLocationIndex = selectedLocationIndex.clamp(
+      0,
+      locations.length - 1,
+    );
+    location = locations[selectedLocationIndex];
+    weather = _weatherByLocation[location.storageKey];
+    await store.saveLocations(locations, selectedLocationIndex);
+    notifyListeners();
+    if (weather == null) await refreshWeather();
   }
 
   Future<List<CityLocation>> searchCities(String value) async {
@@ -207,7 +305,13 @@ class AppController extends ChangeNotifier {
     settings = value;
     await store.saveSettings(value);
     notifyListeners();
-    if (value.pushEnabled && notificationChanged) unawaited(_syncPush());
+    if (value.pushEnabled && notificationChanged) {
+      _pushSyncDebounce?.cancel();
+      _pushSyncDebounce = Timer(
+        const Duration(milliseconds: 700),
+        () => unawaited(_syncPush()),
+      );
+    }
   }
 
   Future<bool> enablePush() async {
@@ -322,6 +426,7 @@ class AppController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _pushSyncDebounce?.cancel();
     _tokenRefreshSubscription?.cancel();
     unawaited(notifications.dispose());
     super.dispose();

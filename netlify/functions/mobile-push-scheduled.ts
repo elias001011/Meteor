@@ -4,7 +4,7 @@ import { Timestamp, type DocumentReference } from 'firebase-admin/firestore';
 import type { Message } from 'firebase-admin/messaging';
 import { getMobileFirebaseServices, MobileFirebaseConfigurationError } from './mobile-firebase';
 import {
-  isStoredMobileInstallation,
+  normalizeStoredMobileInstallation,
   type StoredMobileInstallation,
 } from './mobile-push-contract';
 import {
@@ -119,8 +119,11 @@ const pruneExpiredInstallations = async (nowMs: number): Promise<number> => {
     .limit(100)
     .get();
   const targets = snapshots.docs
-    .map((document) => ({ ref: document.ref, installation: document.data() }))
-    .filter((target): target is InstallationTarget => isStoredMobileInstallation(target.installation));
+    .map((document) => ({
+      ref: document.ref,
+      installation: normalizeStoredMobileInstallation(document.data()),
+    }))
+    .filter((target): target is InstallationTarget => target.installation !== null);
   let removed = 0;
   await forEachWithConcurrency(targets, 8, async (target) => {
     if (await deleteInstallationIfCurrent(target, nowMs)) removed += 1;
@@ -270,8 +273,11 @@ const runPushSchedule = async (): Promise<RunSummary> => {
     .limit(maxInstallations)
     .get();
   const targets = installationSnapshot.docs
-    .map((document) => ({ ref: document.ref, installation: document.data() }))
-    .filter((target): target is InstallationTarget => isStoredMobileInstallation(target.installation));
+    .map((document) => ({
+      ref: document.ref,
+      installation: normalizeStoredMobileInstallation(document.data()),
+    }))
+    .filter((target): target is InstallationTarget => target.installation !== null);
   summary.installations = targets.length;
 
   const groups = new Map<string, InstallationTarget[]>();

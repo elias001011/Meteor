@@ -83,11 +83,15 @@ class MobileInstallationClient {
         decoded = null;
       }
       final message = decoded is Map ? decoded['message']?.toString() : null;
+      final code = decoded is Map ? decoded['code']?.toString() : null;
       throw PushApiException(
-        message?.trim().isNotEmpty == true
+        code == 'INVALID_APP_CHECK'
+            ? 'O App Check não reconheceu esta instalação. Atualize ou reinstale o APK e confirme que builds fora da Play são aceitos no Firebase.'
+            : message?.trim().isNotEmpty == true
             ? message!
             : 'Não foi possível salvar as notificações.',
         response.statusCode,
+        code,
       );
     } on TimeoutException {
       throw const PushApiException(
@@ -105,10 +109,11 @@ class MobileInstallationClient {
 }
 
 class PushApiException implements Exception {
-  const PushApiException(this.message, [this.statusCode]);
+  const PushApiException(this.message, [this.statusCode, this.code]);
 
   final String message;
   final int? statusCode;
+  final String? code;
 
   @override
   String toString() => message;

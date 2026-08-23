@@ -120,6 +120,7 @@ export const parseTimeZone = (value: unknown): string => {
 
 const PREFERENCE_KEYS = [
   'severeAlerts', 'rainSoon', 'dailySummary', 'temperature', 'uv', 'wind',
+  'dailySummaryHour', 'quietHoursEnabled',
   'quietStartHour', 'quietEndHour', 'coldThresholdC', 'heatThresholdC',
   'uvThreshold', 'windThresholdKmh',
 ] as const;
@@ -133,6 +134,8 @@ export const parsePreferencesPatch = (value: unknown): Partial<MobileNotificatio
   for (const key of ['severeAlerts', 'rainSoon', 'dailySummary', 'temperature', 'uv', 'wind'] as const) {
     if (key in value) result[key] = booleanValue(value[key], `preferences.${key}`);
   }
+  if ('dailySummaryHour' in value) result.dailySummaryHour = integerHour(value.dailySummaryHour, 'preferences.dailySummaryHour');
+  if ('quietHoursEnabled' in value) result.quietHoursEnabled = booleanValue(value.quietHoursEnabled, 'preferences.quietHoursEnabled');
   if ('quietStartHour' in value) result.quietStartHour = integerHour(value.quietStartHour, 'preferences.quietStartHour');
   if ('quietEndHour' in value) result.quietEndHour = integerHour(value.quietEndHour, 'preferences.quietEndHour');
   if ('coldThresholdC' in value) result.coldThresholdC = numberInRange(value.coldThresholdC, -50, 20, 'preferences.coldThresholdC');
@@ -229,4 +232,17 @@ export const isStoredMobileInstallation = (value: unknown): value is StoredMobil
   } catch {
     return false;
   }
+};
+
+export const normalizeStoredMobileInstallation = (
+  value: unknown
+): StoredMobileInstallation | null => {
+  if (!isStoredMobileInstallation(value)) return null;
+  return {
+    ...value,
+    preferences: mergePreferences(
+      DEFAULT_MOBILE_NOTIFICATION_PREFERENCES,
+      parsePreferencesPatch(value.preferences)
+    ),
+  };
 };

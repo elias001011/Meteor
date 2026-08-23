@@ -1,15 +1,39 @@
+import 'dart:math' as math;
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' show DateFormat;
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../app_controller.dart';
 import '../../domain/weather_models.dart';
 import '../../services/insight_engine.dart';
+import '../../widgets/weather_condition_icon.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  PageController? _pageController;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _pageController ??= PageController(
+      initialPage: context.read<AppController>().selectedLocationIndex,
+    );
+  }
+
+  @override
+  void dispose() {
+    _pageController?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -18,54 +42,71 @@ class HomeScreen extends StatelessWidget {
     if (data == null) {
       return SafeArea(
         child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: state.weatherState == LoadState.loading
-                ? const _WeatherLoading()
-                : _EmptyWeather(
-                    message: state.weatherError,
-                    onRetry: state.refreshWeather,
-                    onSearch: () => _showCitySearch(context),
-                  ),
-          ),
+          child: state.weatherState == LoadState.loading
+              ? const _Loading()
+              : _Empty(
+                  message: state.weatherError,
+                  retry: state.refreshWeather,
+                  search: () => _showCitySearch(context),
+                ),
         ),
       );
     }
 
-    final current = data.current;
+    final heroHeight = (MediaQuery.sizeOf(context).height * .68).clamp(
+      500.0,
+      650.0,
+    );
     return RefreshIndicator(
       onRefresh: state.refreshWeather,
       child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           SliverAppBar(
-            pinned: true,
-            expandedHeight: 350,
+            expandedHeight: heroHeight,
             backgroundColor: Colors.black,
             foregroundColor: Colors.white,
-            title: Text(current.city),
+            leading: IconButton.filledTonal(
+              tooltip: 'Localidades',
+              onPressed: () => _showCitySearch(context),
+              icon: const Icon(Icons.location_on_outlined),
+            ),
             actions: [
-              IconButton(
+              IconButton.filledTonal(
                 tooltip: 'Pesquisar cidade',
                 onPressed: () => _showCitySearch(context),
                 icon: const Icon(Icons.search_rounded),
               ),
-              IconButton(
-                tooltip: 'Usar minha localização',
+              const SizedBox(width: 4),
+              IconButton.filledTonal(
+                tooltip: 'Minha localização',
                 onPressed: state.useCurrentLocation,
                 icon: const Icon(Icons.my_location_rounded),
               ),
+              const SizedBox(width: 8),
             ],
             flexibleSpace: FlexibleSpaceBar(
-              background: _WeatherHero(data: data),
+              background: _LocationsHero(
+                controller: _pageController!,
+                state: state,
+              ),
             ),
           ),
           if (state.weatherError != null || data.isStale)
             SliverToBoxAdapter(
-              child: _StatusBanner(
-                message: data.isStale
-                    ? 'Exibindo a última previsão salva. Puxe para atualizar.'
-                    : state.weatherError!,
+              child: MaterialBanner(
+                leading: const Icon(Icons.cloud_off_rounded),
+                content: Text(
+                  data.isStale
+                      ? 'Exibindo a última previsão salva.'
+                      : state.weatherError!,
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: state.refreshWeather,
+                    child: const Text('Atualizar'),
+                  ),
+                ],
               ),
             ),
           SliverToBoxAdapter(
@@ -73,52 +114,52 @@ class HomeScreen extends StatelessWidget {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 1100),
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 36),
+                  padding: const EdgeInsets.fromLTRB(16, 22, 16, 36),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _SectionHeader(
-                        title: 'Resumo inteligente',
-                        icon: Icons.auto_awesome_rounded,
+                      const _Heading(
+                        'Resumo inteligente',
+                        Icons.auto_awesome_rounded,
                       ),
                       const SizedBox(height: 10),
-                      _InsightsCard(data: data),
+                      _Insights(data),
                       if (data.alerts.isNotEmpty) ...[
-                        const SizedBox(height: 24),
-                        const _SectionHeader(
-                          title: 'Alertas oficiais',
-                          icon: Icons.warning_amber_rounded,
+                        const SizedBox(height: 20),
+                        const _Heading(
+                          'Alertas oficiais',
+                          Icons.warning_amber_rounded,
                         ),
                         const SizedBox(height: 10),
                         ...data.alerts.map(
                           (alert) => Padding(
                             padding: const EdgeInsets.only(bottom: 8),
-                            child: _OfficialAlertCard(alert: alert),
+                            child: _Alert(alert),
                           ),
                         ),
                       ],
                       const SizedBox(height: 24),
-                      const _SectionHeader(
-                        title: 'Agora',
-                        icon: Icons.grid_view_rounded,
-                      ),
+                      const _Heading('Agora', Icons.dashboard_outlined),
                       const SizedBox(height: 10),
-                      _DetailsGrid(current: current, air: data.airQuality),
+                      _CurrentGrid(data.current),
+                      if (data.airQuality != null) ...[
+                        const SizedBox(height: 10),
+                        _AirQualityCard(data.airQuality!),
+                      ],
                       const SizedBox(height: 24),
-                      const _SectionHeader(
-                        title: 'Próximas horas',
-                        icon: Icons.schedule_rounded,
-                      ),
+                      const _Heading('Próximas horas', Icons.timeline_rounded),
                       const SizedBox(height: 10),
-                      _HourlyForecast(items: data.hourly),
+                      _Hourly(data.hourly),
                       const SizedBox(height: 24),
-                      const _SectionHeader(
-                        title: 'Próximos dias',
-                        icon: Icons.calendar_month_rounded,
+                      const _Heading(
+                        'Próximos dias',
+                        Icons.calendar_month_outlined,
                       ),
                       const SizedBox(height: 10),
-                      _DailyForecast(items: data.daily),
-                      const SizedBox(height: 12),
+                      _Daily(data.daily),
+                      const SizedBox(height: 10),
+                      _SunCard(data.current),
+                      const SizedBox(height: 18),
                       Text(
                         'Dados: ${data.dataSource} • atualizado ${DateFormat.Hm('pt_BR').format(data.fetchedAt)}',
                         textAlign: TextAlign.center,
@@ -138,55 +179,120 @@ class HomeScreen extends StatelessWidget {
   }
 
   Future<void> _showCitySearch(BuildContext context) async {
+    final state = context.read<AppController>();
     final city = await showModalBottomSheet<CityLocation>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       showDragHandle: true,
       builder: (_) => ChangeNotifierProvider.value(
-        value: context.read<AppController>(),
+        value: state,
         child: const _CitySearchSheet(),
       ),
     );
-    if (city != null && context.mounted) {
-      await context.read<AppController>().refreshWeather(nextLocation: city);
+    if (city == null || !context.mounted) return;
+    await state.addLocation(city);
+    final index = state.selectedLocationIndex;
+    if (_pageController?.hasClients == true) {
+      await _pageController!.animateToPage(
+        index,
+        duration: const Duration(milliseconds: 320),
+        curve: Curves.easeOutCubic,
+      );
     }
   }
 }
 
-class _WeatherHero extends StatelessWidget {
-  const _WeatherHero({required this.data});
+class _LocationsHero extends StatelessWidget {
+  const _LocationsHero({required this.controller, required this.state});
 
-  final WeatherBundle data;
+  final PageController controller;
+  final AppController state;
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    children: [
+      PageView.builder(
+        controller: controller,
+        itemCount: state.locations.length,
+        onPageChanged: state.selectLocation,
+        itemBuilder: (_, index) {
+          final location = state.locations[index];
+          final data = index == state.selectedLocationIndex
+              ? state.weather
+              : state.weatherForLocation(location);
+          return _Hero(location: location, data: data);
+        },
+      ),
+      if (state.locations.length > 1)
+        Positioned(
+          top: MediaQuery.paddingOf(context).top + 58,
+          left: 0,
+          right: 0,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(
+              state.locations.length,
+              (index) => AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                width: index == state.selectedLocationIndex ? 18 : 6,
+                height: 6,
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                decoration: BoxDecoration(
+                  color: index == state.selectedLocationIndex
+                      ? Colors.white
+                      : Colors.white54,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ),
+        ),
+    ],
+  );
+}
+
+class _Hero extends StatelessWidget {
+  const _Hero({required this.location, required this.data});
+
+  final CityLocation location;
+  final WeatherBundle? data;
 
   @override
   Widget build(BuildContext context) {
-    final current = data.current;
+    final current = data?.current;
     return Stack(
       fit: StackFit.expand,
       children: [
-        _HeroImage(
-          url: current.imageUrl,
-          fallbackUrl: current.imageFallbackUrl,
-        ),
+        _HeroImage(current?.imageUrl ?? '', current?.imageFallbackUrl),
         const DecoratedBox(
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [Color(0x33000000), Color(0xD9000000)],
+              stops: [0, .48, 1],
+              colors: [Color(0x26000000), Color(0x18000000), Color(0xD9000000)],
             ),
           ),
         ),
         Positioned(
-          left: 22,
-          right: 22,
-          bottom: 24,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: Column(
+          left: 24,
+          right: 24,
+          bottom: 38,
+          child: current == null
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircularProgressIndicator(color: Colors.white),
+                    const SizedBox(height: 14),
+                    Text(
+                      location.name,
+                      style: const TextStyle(color: Colors.white, fontSize: 24),
+                    ),
+                  ],
+                )
+              : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -194,39 +300,54 @@ class _WeatherHero extends StatelessWidget {
                       '${current.temperature.round()}°',
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 72,
+                        fontSize: 82,
                         height: .9,
                         fontWeight: FontWeight.w300,
+                        letterSpacing: -4,
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        WeatherConditionIcon(
+                          condition: '${current.condition} ${current.icon}',
+                          size: 30,
+                        ),
+                        const SizedBox(width: 9),
+                        Expanded(
+                          child: Text(
+                            current.condition,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 23,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 9),
                     Text(
-                      current.condition,
+                      '${current.city}${current.country.isEmpty ? '' : ', ${current.country}'}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: const TextStyle(color: Colors.white, fontSize: 17),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Sensação de ${current.feelsLike.round()} °C • ${current.city}${current.country.isEmpty ? '' : ', ${current.country}'}',
+                      'Sensação de ${current.feelsLike.round()} °C',
                       style: const TextStyle(color: Colors.white70),
                     ),
                   ],
                 ),
-              ),
-              Text(current.icon, style: const TextStyle(fontSize: 50)),
-            ],
-          ),
         ),
-        if (current.imageAttribution != null)
+        if (current?.imageAttribution != null)
           Positioned(
-            right: 12,
-            bottom: 6,
-            child: _ImageCredit(attribution: current.imageAttribution!),
+            right: 10,
+            bottom: 7,
+            child: _Credit(current!.imageAttribution!),
           ),
       ],
     );
@@ -234,130 +355,127 @@ class _WeatherHero extends StatelessWidget {
 }
 
 class _HeroImage extends StatelessWidget {
-  const _HeroImage({required this.url, this.fallbackUrl});
-
+  const _HeroImage(this.url, this.fallbackUrl);
   final String url;
   final String? fallbackUrl;
 
   @override
   Widget build(BuildContext context) {
-    Widget fallback() => DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Theme.of(context).colorScheme.primary,
-            Theme.of(context).colorScheme.tertiary,
-          ],
-        ),
-      ),
-      child: const Center(
-        child: Icon(Icons.landscape_rounded, size: 72, color: Colors.white54),
+    Widget placeholder() => const ColoredBox(
+      color: Color(0xFF101726),
+      child: Center(
+        child: Icon(Icons.landscape_outlined, size: 72, color: Colors.white38),
       ),
     );
-
-    if (url.isEmpty) return fallback();
+    if (url.isEmpty) return placeholder();
     return CachedNetworkImage(
       imageUrl: url,
       fit: BoxFit.cover,
-      placeholder: (_, _) => fallback(),
-      errorWidget: (_, _, _) {
-        if (fallbackUrl?.isNotEmpty == true && fallbackUrl != url) {
-          return CachedNetworkImage(
-            imageUrl: fallbackUrl!,
-            fit: BoxFit.cover,
-            errorWidget: (_, _, _) => fallback(),
-          );
-        }
-        return fallback();
-      },
+      placeholder: (_, _) => placeholder(),
+      errorWidget: (_, _, _) => fallbackUrl?.isNotEmpty == true
+          ? CachedNetworkImage(
+              imageUrl: fallbackUrl!,
+              fit: BoxFit.cover,
+              errorWidget: (_, _, _) => placeholder(),
+            )
+          : placeholder(),
     );
   }
 }
 
-class _ImageCredit extends StatelessWidget {
-  const _ImageCredit({required this.attribution});
-
-  final ImageAttribution attribution;
+class _Credit extends StatelessWidget {
+  const _Credit(this.value);
+  final ImageAttribution value;
 
   @override
   Widget build(BuildContext context) {
-    final label = attribution.source.toLowerCase() == 'unsplash'
-        ? 'Foto: ${attribution.photographer ?? 'Unsplash'} / Unsplash'
-        : 'Imagem: ${attribution.source}';
+    final label = value.source.toLowerCase() == 'unsplash'
+        ? '${value.photographer ?? 'Unsplash'} · Unsplash'
+        : value.source;
     return InkWell(
       onTap: () {
-        final url = attribution.photoUrl ?? attribution.photographerUrl;
-        if (url != null) {
-          launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+        final uri = Uri.tryParse(value.photoUrl ?? value.photographerUrl ?? '');
+        if (uri != null && {'http', 'https'}.contains(uri.scheme)) {
+          launchUrl(uri, mode: LaunchMode.externalApplication);
         }
       },
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-        decoration: BoxDecoration(
-          color: Colors.black54,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(
-          label,
-          style: const TextStyle(color: Colors.white70, fontSize: 10),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white70,
+          fontSize: 10,
+          decoration: TextDecoration.underline,
+          decorationColor: Colors.white54,
         ),
       ),
     );
   }
 }
 
-class _InsightsCard extends StatelessWidget {
-  const _InsightsCard({required this.data});
+class _Heading extends StatelessWidget {
+  const _Heading(this.title, this.icon);
+  final String title;
+  final IconData icon;
 
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+      const SizedBox(width: 8),
+      Text(title, style: Theme.of(context).textTheme.titleLarge),
+    ],
+  );
+}
+
+class _Insights extends StatelessWidget {
+  const _Insights(this.data);
   final WeatherBundle data;
 
   @override
   Widget build(BuildContext context) {
-    final insights = InsightEngine.analyze(data);
+    final values = InsightEngine.analyze(data);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Column(
-          children: insights
-              .map(
-                (insight) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 7),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        _insightIcon(insight.severity),
-                        color: _insightColor(context, insight.severity),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              insight.title,
-                              style: Theme.of(context).textTheme.titleSmall,
-                            ),
-                            const SizedBox(height: 3),
-                            Text(
-                              insight.body,
-                              style: TextStyle(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: values.indexed.map((entry) {
+            final insight = entry.$2;
+            return Padding(
+              padding: EdgeInsets.only(top: entry.$1 == 0 ? 0 : 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    _insightIcon(insight.severity),
+                    size: entry.$1 == 0 ? 24 : 18,
+                    color: _insightColor(context, insight.severity),
                   ),
-                ),
-              )
-              .toList(),
+                  const SizedBox(width: 11),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          insight.title,
+                          style: entry.$1 == 0
+                              ? Theme.of(context).textTheme.titleMedium
+                              : Theme.of(context).textTheme.titleSmall,
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          insight.body,
+                          style: entry.$1 == 0
+                              ? null
+                              : Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
         ),
       ),
     );
@@ -379,212 +497,552 @@ class _InsightsCard extends StatelessWidget {
       };
 }
 
-class _DetailsGrid extends StatelessWidget {
-  const _DetailsGrid({required this.current, this.air});
+class _Metric {
+  const _Metric(this.icon, this.label, this.value);
+  final IconData icon;
+  final String label;
+  final String value;
+}
 
+class _CurrentGrid extends StatelessWidget {
+  const _CurrentGrid(this.current);
   final CurrentWeather current;
-  final AirQuality? air;
 
   @override
   Widget build(BuildContext context) {
-    final items = [
-      (Icons.air_rounded, 'Vento', '${current.windSpeed.round()} km/h'),
-      (Icons.water_drop_outlined, 'Umidade', '${current.humidity}%'),
-      (Icons.compress_rounded, 'Pressão', '${current.pressure.round()} hPa'),
-      (
+    final values = [
+      _Metric(
+        Icons.device_thermostat_outlined,
+        'Sensação',
+        '${current.feelsLike.round()}°',
+      ),
+      _Metric(Icons.air_rounded, 'Vento', '${current.windSpeed.round()} km/h'),
+      _Metric(Icons.water_drop_outlined, 'Umidade', '${current.humidity}%'),
+      _Metric(
+        Icons.compress_rounded,
+        'Pressão',
+        '${current.pressure.round()} hPa',
+      ),
+      _Metric(
         Icons.visibility_outlined,
         'Visibilidade',
         current.visibility == null
             ? '—'
             : '${(current.visibility! / 1000).toStringAsFixed(1)} km',
       ),
-      (
+      _Metric(
         Icons.wb_sunny_outlined,
         'Índice UV',
         current.uvIndex?.toStringAsFixed(1) ?? '—',
       ),
-      (
-        Icons.eco_outlined,
-        'Qualidade do ar',
-        air?.index == null ? 'Sem dados' : 'Nível ${air!.index}',
+      _Metric(
+        Icons.grain_rounded,
+        'Precipitação',
+        '${(current.rainLastHour ?? 0).toStringAsFixed(1)} mm',
+      ),
+      _Metric(
+        Icons.cloud_outlined,
+        'Nuvens',
+        current.cloudCover == null ? '—' : '${current.cloudCover!.round()}%',
+      ),
+      _Metric(
+        Icons.water_outlined,
+        'Ponto de orvalho',
+        current.dewPoint == null ? '—' : '${current.dewPoint!.round()}°',
+      ),
+      _Metric(
+        Icons.storm_outlined,
+        'Rajadas',
+        current.windGust == null ? '—' : '${current.windGust!.round()} km/h',
       ),
     ];
     return LayoutBuilder(
-      builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 760 ? 6 : 3;
+      builder: (_, constraints) {
+        final columns = constraints.maxWidth >= 760 ? 5 : 2;
         return GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: items.length,
+          itemCount: values.length,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columns,
             crossAxisSpacing: 8,
             mainAxisSpacing: 8,
-            childAspectRatio: columns == 6 ? 1.15 : .9,
+            childAspectRatio: columns == 2 ? 1.8 : 1.35,
           ),
-          itemBuilder: (context, index) {
-            final item = items[index];
-            return Card(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(item.$1, color: Theme.of(context).colorScheme.primary),
-                    const SizedBox(height: 8),
-                    Text(
-                      item.$2,
-                      style: Theme.of(context).textTheme.labelMedium,
+          itemBuilder: (_, index) => Card(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Row(
+                children: [
+                  Icon(
+                    values[index].icon,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(width: 11),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          values[index].label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.labelMedium
+                              ?.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
+                        ),
+                        const SizedBox(height: 2),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            values[index].value,
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 3),
-                    FittedBox(
-                      child: Text(
-                        item.$3,
-                        style: Theme.of(context).textTheme.titleSmall,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            );
-          },
+            ),
+          ),
         );
       },
     );
   }
 }
 
-class _HourlyForecast extends StatelessWidget {
-  const _HourlyForecast({required this.items});
-
-  final List<ForecastItem> items;
+class _AirQualityCard extends StatelessWidget {
+  const _AirQualityCard(this.air);
+  final AirQuality air;
 
   @override
   Widget build(BuildContext context) {
-    if (items.isEmpty) return const Text('Previsão horária indisponível.');
-    return SizedBox(
-      height: 152,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: items.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final item = items[index];
-          return Card(
-            child: SizedBox(
-              width: 96,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(DateFormat.Hm('pt_BR').format(_time(item.timestamp))),
-                    Text(item.icon, style: const TextStyle(fontSize: 27)),
-                    Text(
-                      '${(item.rainProbability * 100).round()}%',
-                      style: Theme.of(context).textTheme.labelSmall,
-                    ),
-                    Text(
-                      '${item.temperature.round()}°',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                  ],
+    final label = switch (air.index) {
+      1 => 'Boa',
+      2 => 'Razoável',
+      3 => 'Moderada',
+      4 => 'Ruim',
+      5 => 'Muito ruim',
+      _ => 'Sem classificação',
+    };
+    final values = [
+      ('PM2.5', air.pm25),
+      ('PM10', air.pm10),
+      ('O₃', air.ozone),
+      ('NO₂', air.nitrogenDioxide),
+      ('SO₂', air.sulphurDioxide),
+      ('CO', air.carbonMonoxide),
+    ].where((item) => item.$2 != null);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.air_rounded,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
-              ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Qualidade do ar',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      Text('Índice ${air.index ?? '—'} · $label'),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          );
-        },
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: values
+                  .map(
+                    (item) => Chip(
+                      label: Text('${item.$1}  ${item.$2!.toStringAsFixed(1)}'),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _DailyForecast extends StatelessWidget {
-  const _DailyForecast({required this.items});
-
+class _Hourly extends StatelessWidget {
+  const _Hourly(this.items);
   final List<ForecastItem> items;
 
   @override
-  Widget build(BuildContext context) => Card(
+  Widget build(BuildContext context) {
+    if (items.isEmpty) return const Text('Previsão horária indisponível.');
+    final visible = items.take(24).toList();
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 16, 12, 12),
+        child: SizedBox(
+          height: 246,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SizedBox(
+              width: math.max(
+                MediaQuery.sizeOf(context).width - 56,
+                visible.length * 68,
+              ),
+              child: Column(
+                children: [
+                  SizedBox(
+                    height: 112,
+                    child: CustomPaint(
+                      painter: _TemperaturePainter(
+                        visible,
+                        Theme.of(context).colorScheme.primary,
+                        Theme.of(context).colorScheme.outlineVariant,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: Row(
+                      children: visible
+                          .map(
+                            (item) => SizedBox(
+                              width: 68,
+                              child: Column(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  WeatherConditionIcon(
+                                    condition:
+                                        '${item.description} ${item.icon}',
+                                    size: 27,
+                                  ),
+                                  Text(
+                                    DateFormat.H('pt_BR')
+                                        .format(_time(item.timestamp)),
+                                  ),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(
+                                        Icons.water_drop_rounded,
+                                        size: 11,
+                                        color: Color(0xFF48A9FF),
+                                      ),
+                                      Text(
+                                        '${(item.rainProbability * 100).round()}%',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelSmall,
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TemperaturePainter extends CustomPainter {
+  const _TemperaturePainter(this.items, this.color, this.gridColor);
+  final List<ForecastItem> items;
+  final Color color;
+  final Color gridColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (items.length < 2) return;
+    final temperatures = items.map((item) => item.temperature).toList();
+    final low = temperatures.reduce(math.min) - 1;
+    final high = temperatures.reduce(math.max) + 1;
+    final range = math.max(1.0, high - low);
+    final step = size.width / items.length;
+    final points = List.generate(
+      items.length,
+      (index) => Offset(
+        step * index + step / 2,
+        size.height -
+            22 -
+            ((temperatures[index] - low) / range) * (size.height - 38),
+      ),
+    );
+    canvas.drawLine(
+      Offset(0, size.height - 20),
+      Offset(size.width, size.height - 20),
+      Paint()..color = gridColor.withValues(alpha: .5),
+    );
+    final line = Path()..moveTo(points.first.dx, points.first.dy);
+    for (final point in points.skip(1)) {
+      line.lineTo(point.dx, point.dy);
+    }
+    final fill = Path.from(line)
+      ..lineTo(points.last.dx, size.height - 20)
+      ..lineTo(points.first.dx, size.height - 20)
+      ..close();
+    canvas.drawPath(
+      fill,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [color.withValues(alpha: .3), color.withValues(alpha: .02)],
+        ).createShader(Offset.zero & size),
+    );
+    canvas.drawPath(
+      line,
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.5
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round,
+    );
+    final text = TextPainter(textDirection: TextDirection.ltr);
+    for (var index = 0; index < points.length; index++) {
+      text.text = TextSpan(
+        text: '${temperatures[index].round()}°',
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+      );
+      text.layout();
+      text.paint(
+        canvas,
+        Offset(points[index].dx - text.width / 2, points[index].dy - 19),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _TemperaturePainter oldDelegate) =>
+      oldDelegate.items != items || oldDelegate.color != color;
+}
+
+class _Daily extends StatelessWidget {
+  const _Daily(this.items);
+  final List<ForecastItem> items;
+
+  @override
+  Widget build(BuildContext context) {
+    if (items.isEmpty) return const Text('Previsão diária indisponível.');
+    final visible = items.take(7).toList();
+    final low = visible
+        .map((item) => item.minimumTemperature ?? item.temperature)
+        .reduce(math.min);
+    final high = visible.map((item) => item.temperature).reduce(math.max);
+    return Card(
+      child: Column(
+        children: visible
+            .map(
+              (item) => Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 68,
+                      child: Text(_dayLabel(_time(item.timestamp))),
+                    ),
+                    WeatherConditionIcon(
+                      condition: '${item.description} ${item.icon}',
+                      size: 26,
+                    ),
+                    const SizedBox(width: 6),
+                    SizedBox(
+                      width: 40,
+                      child: Text(
+                        '${(item.rainProbability * 100).round()}%',
+                        style: const TextStyle(
+                          color: Color(0xFF48A9FF),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                    Text('${item.minimumTemperature?.round() ?? '—'}°'),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _Range(
+                        item.minimumTemperature ?? item.temperature,
+                        item.temperature,
+                        low,
+                        high,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      width: 28,
+                      child: Text('${item.temperature.round()}°'),
+                    ),
+                  ],
+                ),
+              ),
+            )
+            .toList(),
+      ),
+    );
+  }
+}
+
+class _Range extends StatelessWidget {
+  const _Range(this.minimum, this.maximum, this.low, this.high);
+  final double minimum;
+  final double maximum;
+  final double low;
+  final double high;
+
+  @override
+  Widget build(BuildContext context) {
+    final range = math.max(1.0, high - low);
+    return SizedBox(
+      height: 6,
+      child: LayoutBuilder(
+        builder: (_, constraints) => Stack(
+          children: [
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+            Positioned(
+              left: constraints.maxWidth * ((minimum - low) / range),
+              right: constraints.maxWidth * ((high - maximum) / range),
+              top: 0,
+              bottom: 0,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF56B4FF), Color(0xFFFFC43D)],
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SunCard extends StatelessWidget {
+  const _SunCard(this.current);
+  final CurrentWeather current;
+
+  @override
+  Widget build(BuildContext context) {
+    final sunrise = _time(current.sunrise);
+    final sunset = _time(current.sunset);
+    final daylight = sunset.difference(sunrise);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Icon(
+              Icons.wb_twilight_rounded,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(width: 12),
+            _SunValue('Nascer', DateFormat.Hm('pt_BR').format(sunrise)),
+            _SunValue(
+              'Luz do dia',
+              '${daylight.inHours}h ${daylight.inMinutes.remainder(60)}min',
+            ),
+            _SunValue('Pôr', DateFormat.Hm('pt_BR').format(sunset)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SunValue extends StatelessWidget {
+  const _SunValue(this.label, this.value);
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Expanded(
     child: Column(
-      children: items.take(7).map((item) {
-        final date = _time(item.timestamp);
-        return ListTile(
-          leading: Text(item.icon, style: const TextStyle(fontSize: 26)),
-          title: Text(_dayLabel(date)),
-          subtitle: Text(
-            item.description,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          trailing: Text(
-            '${item.minimumTemperature?.round() ?? '—'}°  ${item.temperature.round()}°',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-        );
-      }).toList(),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: Theme.of(context).textTheme.labelSmall),
+        const SizedBox(height: 3),
+        FittedBox(
+          child: Text(value, style: Theme.of(context).textTheme.titleSmall),
+        ),
+      ],
     ),
   );
 }
 
-class _OfficialAlertCard extends StatelessWidget {
-  const _OfficialAlertCard({required this.alert});
-
+class _Alert extends StatelessWidget {
+  const _Alert(this.alert);
   final WeatherAlert alert;
 
   @override
-  Widget build(BuildContext context) => Card(
-    color: Theme.of(context).colorScheme.errorContainer,
-    child: ExpansionTile(
-      leading: Icon(
-        Icons.crisis_alert_rounded,
-        color: Theme.of(context).colorScheme.onErrorContainer,
+  Widget build(BuildContext context) {
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(18),
+    );
+    return Card(
+      color: Theme.of(context).colorScheme.errorContainer,
+      shape: shape,
+      clipBehavior: Clip.antiAlias,
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          shape: shape,
+          collapsedShape: shape,
+          leading: Icon(
+            Icons.crisis_alert_rounded,
+            color: Theme.of(context).colorScheme.onErrorContainer,
+          ),
+          title: Text(alert.event),
+          subtitle: Text(alert.sender),
+          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          children: [Text(alert.description)],
+        ),
       ),
-      title: Text(alert.event),
-      subtitle: Text(alert.sender),
-      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      children: [Text(alert.description)],
-    ),
-  );
+    );
+  }
 }
 
-class _StatusBanner extends StatelessWidget {
-  const _StatusBanner({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) => MaterialBanner(
-    content: Text(message),
-    leading: const Icon(Icons.cloud_off_rounded),
-    actions: [
-      TextButton(
-        onPressed: context.read<AppController>().refreshWeather,
-        child: const Text('Tentar novamente'),
-      ),
-    ],
-  );
-}
-
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, required this.icon});
-
-  final String title;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
-      const SizedBox(width: 8),
-      Text(title, style: Theme.of(context).textTheme.titleLarge),
-    ],
-  );
-}
-
-class _WeatherLoading extends StatelessWidget {
-  const _WeatherLoading();
-
+class _Loading extends StatelessWidget {
+  const _Loading();
   @override
   Widget build(BuildContext context) => const Column(
     mainAxisSize: MainAxisSize.min,
@@ -596,157 +1054,178 @@ class _WeatherLoading extends StatelessWidget {
   );
 }
 
-class _EmptyWeather extends StatelessWidget {
-  const _EmptyWeather({
-    required this.onRetry,
-    required this.onSearch,
-    this.message,
-  });
-
-  final VoidCallback onRetry;
-  final VoidCallback onSearch;
+class _Empty extends StatelessWidget {
+  const _Empty({required this.retry, required this.search, this.message});
+  final VoidCallback retry;
+  final VoidCallback search;
   final String? message;
 
   @override
-  Widget build(BuildContext context) => Column(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Icon(
-        Icons.cloud_off_rounded,
-        size: 56,
-        color: Theme.of(context).colorScheme.primary,
-      ),
-      const SizedBox(height: 16),
-      Text(
-        message ?? 'Ainda não há previsão disponível.',
-        textAlign: TextAlign.center,
-      ),
-      const SizedBox(height: 20),
-      Wrap(
-        spacing: 8,
-        children: [
-          FilledButton.icon(
-            onPressed: onRetry,
-            icon: const Icon(Icons.refresh),
-            label: const Text('Tentar novamente'),
-          ),
-          OutlinedButton.icon(
-            onPressed: onSearch,
-            icon: const Icon(Icons.search),
-            label: const Text('Pesquisar cidade'),
-          ),
-        ],
-      ),
-    ],
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.all(28),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.cloud_off_rounded, size: 56),
+        const SizedBox(height: 16),
+        Text(
+          message ?? 'Ainda não há previsão disponível.',
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 20),
+        Wrap(
+          spacing: 8,
+          children: [
+            FilledButton.icon(
+              onPressed: retry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Tentar novamente'),
+            ),
+            OutlinedButton.icon(
+              onPressed: search,
+              icon: const Icon(Icons.search),
+              label: const Text('Pesquisar cidade'),
+            ),
+          ],
+        ),
+      ],
+    ),
   );
 }
 
 class _CitySearchSheet extends StatefulWidget {
   const _CitySearchSheet();
-
   @override
   State<_CitySearchSheet> createState() => _CitySearchSheetState();
 }
 
 class _CitySearchSheetState extends State<_CitySearchSheet> {
-  final _input = TextEditingController();
-  List<CityLocation> _results = const [];
-  bool _loading = false;
-  String? _error;
+  final input = TextEditingController();
+  List<CityLocation> results = const [];
+  bool loading = false;
+  String? error;
 
   @override
   void dispose() {
-    _input.dispose();
+    input.dispose();
     super.dispose();
   }
 
-  Future<void> _search() async {
-    if (_input.text.trim().length < 2) return;
+  Future<void> search() async {
+    if (input.text.trim().length < 2) return;
     setState(() {
-      _loading = true;
-      _error = null;
+      loading = true;
+      error = null;
     });
     try {
-      final result = await context.read<AppController>().searchCities(
-        _input.text,
+      final value = await context.read<AppController>().searchCities(
+        input.text,
       );
-      if (mounted) setState(() => _results = result);
-    } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted) setState(() => results = value);
+    } catch (exception) {
+      if (mounted) setState(() => error = exception.toString());
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) setState(() => loading = false);
     }
   }
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.fromLTRB(
-      20,
-      8,
-      20,
-      MediaQuery.viewInsetsOf(context).bottom + 20,
-    ),
-    child: SizedBox(
-      height: 440,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Escolher localidade',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 14),
-          TextField(
-            controller: _input,
-            autofocus: true,
-            textInputAction: TextInputAction.search,
-            onSubmitted: (_) => _search(),
-            decoration: InputDecoration(
-              hintText: 'Cidade ou município',
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: IconButton(
-                onPressed: _search,
-                icon: const Icon(Icons.arrow_forward),
-              ),
-            ),
-          ),
-          if (_loading) const LinearProgressIndicator(),
-          if (_error != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 10),
-              child: Text(
-                _error!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-            ),
-          const SizedBox(height: 10),
-          Expanded(
-            child: _results.isEmpty && !_loading
-                ? const Center(
-                    child: Text('Digite ao menos 2 letras para pesquisar.'),
-                  )
-                : ListView.builder(
-                    itemCount: _results.length,
-                    itemBuilder: (context, index) {
-                      final city = _results[index];
-                      return ListTile(
-                        leading: const Icon(Icons.location_city_rounded),
-                        title: Text(city.name),
-                        subtitle: Text(
-                          [
-                            if (city.state != null) city.state!,
-                            city.country,
-                          ].join(', '),
-                        ),
-                        onTap: () => Navigator.pop(context, city),
-                      );
-                    },
-                  ),
-          ),
-        ],
+  Widget build(BuildContext context) {
+    final state = context.watch<AppController>();
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        20,
+        8,
+        20,
+        MediaQuery.viewInsetsOf(context).bottom + 20,
       ),
-    ),
-  );
+      child: SizedBox(
+        height: math.min(620, MediaQuery.sizeOf(context).height * .78),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Suas localidades',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 58,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: state.locations.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
+                itemBuilder: (_, index) => InputChip(
+                  avatar: Icon(
+                    index == state.selectedLocationIndex
+                        ? Icons.location_on_rounded
+                        : Icons.location_on_outlined,
+                    size: 18,
+                  ),
+                  label: Text(state.locations[index].name),
+                  selected: index == state.selectedLocationIndex,
+                  onPressed: () =>
+                      Navigator.pop(context, state.locations[index]),
+                  onDeleted: state.locations.length <= 1
+                      ? null
+                      : () => state.removeLocation(index),
+                ),
+              ),
+            ),
+            TextField(
+              controller: input,
+              textInputAction: TextInputAction.search,
+              onSubmitted: (_) => search(),
+              decoration: InputDecoration(
+                hintText: 'Adicionar cidade ou município',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: IconButton(
+                  onPressed: search,
+                  icon: const Icon(Icons.arrow_forward),
+                ),
+              ),
+            ),
+            if (loading) const LinearProgressIndicator(),
+            if (error != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  error!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: results.isEmpty && !loading
+                  ? const Center(
+                      child: Text(
+                        'Pesquise para adicionar outra localidade.\nDepois, deslize a foto inicial para alternar.',
+                        textAlign: TextAlign.center,
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: results.length,
+                      itemBuilder: (_, index) {
+                        final city = results[index];
+                        return ListTile(
+                          leading: const Icon(Icons.add_location_alt_outlined),
+                          title: Text(city.name),
+                          subtitle: Text(
+                            [
+                              if (city.state != null) city.state!,
+                              city.country,
+                            ].join(', '),
+                          ),
+                          onTap: () => Navigator.pop(context, city),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 DateTime _time(int seconds) =>
@@ -759,7 +1238,7 @@ String _dayLabel(DateTime date) {
       date.day == today.day) {
     return 'Hoje';
   }
-  return DateFormat.EEEE('pt_BR')
+  return DateFormat.E('pt_BR')
       .format(date)
-      .replaceFirstMapped(RegExp(r'^.'), (m) => m[0]!.toUpperCase());
+      .replaceFirstMapped(RegExp(r'^.'), (match) => match[0]!.toUpperCase());
 }

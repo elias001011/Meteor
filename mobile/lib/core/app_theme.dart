@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 abstract final class AppTheme {
   static const seed = Color(0xFF4767FF);
 
-  static ThemeData light() => _build(Brightness.light);
+  static ThemeData light([ColorScheme? scheme]) =>
+      _build(Brightness.light, scheme);
 
-  static ThemeData dark() => _build(Brightness.dark);
+  static ThemeData dark([ColorScheme? scheme]) =>
+      _build(Brightness.dark, scheme);
 
   static ThemeData amoled() {
     final base = _build(Brightness.dark);
@@ -32,11 +34,10 @@ abstract final class AppTheme {
     );
   }
 
-  static ThemeData _build(Brightness brightness) {
-    final scheme = ColorScheme.fromSeed(
-      seedColor: seed,
-      brightness: brightness,
-    );
+  static ThemeData _build(Brightness brightness, [ColorScheme? dynamicScheme]) {
+    final scheme =
+        dynamicScheme ??
+        ColorScheme.fromSeed(seedColor: seed, brightness: brightness);
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
@@ -47,7 +48,7 @@ abstract final class AppTheme {
         elevation: 0,
         margin: EdgeInsets.zero,
         color: scheme.surfaceContainerLow,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
@@ -66,7 +67,7 @@ abstract final class AppTheme {
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        height: 72,
+        height: 68,
         elevation: 0,
         backgroundColor: scheme.surfaceContainer,
         indicatorShape: RoundedRectangleBorder(

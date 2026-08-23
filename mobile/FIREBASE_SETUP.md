@@ -11,6 +11,9 @@ acesso humano aos consoles Firebase, Netlify e GitHub.
 3. Habilite Cloud Messaging API (HTTP v1).
 4. Habilite Firebase Authentication com o provedor **Anônimo**.
 5. Registre o app em App Check com Play Integrity e configure a validação no BFF.
+   Para APK distribuído pelo GitHub, desative a exigência `PLAY_RECOGNIZED`
+   (`allowUnrecognizedVersion=true`) e mantenha a integridade do dispositivo.
+   Para distribuição exclusiva pela Play, volte a exigir reconhecimento/licença.
 6. Adicione os SHA-256 dos keystores de debug e release se App Check exigir.
 7. Não reutilize a antiga server key; FCM HTTP v1 usa uma conta de serviço no
    backend e tokens OAuth de curta duração.
@@ -83,8 +86,9 @@ Exemplo conceitual (não contém token/segredo):
 }
 ```
 
-O servidor deve respeitar o silêncio 22:00–07:00 no fuso salvo; apenas alertas
-severos oficiais podem furá-lo.
+O servidor respeita o período silencioso configurado no fuso salvo; apenas
+alertas severos oficiais podem furá-lo. O resumo diário usa o horário escolhido
+no app e uma previsão nova buscada pelo agendador, não o cache do telefone.
 
 ## 5. Permissão e teste
 
@@ -95,6 +99,8 @@ severos oficiais podem furá-lo.
 4. Envie uma mensagem de teste e valide primeiro plano, segundo plano, app
    encerrado, cada canal e cada rota.
 5. Teste opt-out, rotação de token, modo avião e aparelhos sem Play Services.
+6. Se um APK off-Play retornar `INVALID_APP_CHECK`, confirme a opção avançada
+   acima, reinstale o APK para renovar o token e teste novamente.
 
 ## 6. Auth, App Check e Firestore
 

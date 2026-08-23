@@ -21,16 +21,6 @@ abstract final class InsightEngine {
     final condition = current.condition.toLowerCase();
     final nextHours = data.hourly.take(4);
 
-    for (final alert in data.alerts) {
-      result.add(
-        WeatherInsight(
-          title: alert.event,
-          body: _sentence(alert.description, 'Siga as orientações oficiais.'),
-          severity: InsightSeverity.severe,
-        ),
-      );
-    }
-
     if (_contains(condition, ['tempest', 'trovo', 'thunder', 'granizo'])) {
       result.add(
         const WeatherInsight(
@@ -144,10 +134,4 @@ abstract final class InsightEngine {
 
   static bool _contains(String text, List<String> terms) =>
       terms.any(text.contains);
-
-  static String _sentence(String text, String fallback) {
-    final cleaned = text.replaceAll(RegExp(r'\s+'), ' ').trim();
-    if (cleaned.isEmpty) return fallback;
-    return cleaned.length > 220 ? '${cleaned.substring(0, 217)}…' : cleaned;
-  }
 }
