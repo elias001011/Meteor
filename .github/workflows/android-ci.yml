@@ -36,11 +36,12 @@ jobs:
           cache: gradle
 
       - name: Setup Flutter
-        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
-        with:
-          flutter-version: "3.47.0"
-          channel: stable
-          cache: true
+        shell: bash
+        run: |
+          FLUTTER_VERSION="3.47.0"
+          curl -fsSL "https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_${FLUTTER_VERSION}-stable.tar.xz" -o "$RUNNER_TEMP/flutter.tar.xz"
+          tar xf "$RUNNER_TEMP/flutter.tar.xz" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
 
       - name: Install dependencies
         run: flutter pub get
@@ -104,11 +105,12 @@ jobs:
           cache: gradle
 
       - name: Setup Flutter
-        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
-        with:
-          flutter-version: "3.47.0"
-          channel: stable
-          cache: true
+        shell: bash
+        run: |
+          FLUTTER_VERSION="3.47.0"
+          curl -fsSL "https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_${FLUTTER_VERSION}-stable.tar.xz" -o "$RUNNER_TEMP/flutter.tar.xz"
+          tar xf "$RUNNER_TEMP/flutter.tar.xz" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
 
       - name: Validate and materialize release credentials
         shell: bash
