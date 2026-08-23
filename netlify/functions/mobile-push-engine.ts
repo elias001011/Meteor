@@ -5,6 +5,8 @@ export interface MobileNotificationPreferences {
   temperature: boolean;
   uv: boolean;
   wind: boolean;
+  dailySummaryHour: number;
+  quietHoursEnabled: boolean;
   quietStartHour: number;
   quietEndHour: number;
   coldThresholdC: number;
@@ -72,6 +74,8 @@ export const DEFAULT_MOBILE_NOTIFICATION_PREFERENCES: MobileNotificationPreferen
   temperature: false,
   uv: false,
   wind: false,
+  dailySummaryHour: 7,
+  quietHoursEnabled: true,
   quietStartHour: 22,
   quietEndHour: 7,
   coldThresholdC: 5,
@@ -210,7 +214,8 @@ export const decideMobilePushes = (
 ): MobilePushCandidate[] => {
   const nowSeconds = Math.floor(nowMs / 1_000);
   const local = localDateHour(nowMs, timeZone);
-  const quiet = isQuietHour(local.hour, preferences.quietStartHour, preferences.quietEndHour);
+  const quiet = preferences.quietHoursEnabled
+    && isQuietHour(local.hour, preferences.quietStartHour, preferences.quietEndHour);
   const candidates: MobilePushCandidate[] = [];
 
   if (preferences.severeAlerts) {
@@ -226,7 +231,7 @@ export const decideMobilePushes = (
     if (candidate) candidates.push(candidate);
   }
 
-  if (preferences.dailySummary && local.hour === 7) {
+  if (preferences.dailySummary && local.hour === preferences.dailySummaryHour) {
     candidates.push(dailyCandidate(snapshot, local.date, nowSeconds));
   }
 
