@@ -1,8 +1,8 @@
-# Meteor — Landing Page
+# Meteor — Landing Page (LP)
 
 Landing page oficial do Meteor. Esta branch é independente de `main` (aplicação
 web e backend) e `android` (aplicativo Flutter), para permitir um deploy próprio
-no Netlify sem misturar os produtos.
+no Netlify sem misturar os produtos. 
 
 ## Produtos
 
