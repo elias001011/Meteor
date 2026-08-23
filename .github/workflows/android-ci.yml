@@ -40,7 +40,6 @@ jobs:
         with:
           flutter-version: "3.47.0"
           channel: stable
-          cache: true
 
       - name: Install dependencies
         run: flutter pub get
@@ -108,7 +107,6 @@ jobs:
         with:
           flutter-version: "3.47.0"
           channel: stable
-          cache: true
 
       - name: Validate and materialize release credentials
         shell: bash
