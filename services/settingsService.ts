@@ -43,7 +43,6 @@ const DEFAULT_SETTINGS: AppSettings = {
     userAiInstructions: '',
     showClock: true,
     clockDisplayMode: 'different_zone', // V4.0 Request: Default changed
-    startFullscreen: false,
     weatherSource: 'auto',
     startupBehavior: 'idle',
     saveChatHistory: false,
@@ -208,9 +207,6 @@ const sanitizeSettings = (value: unknown): AppSettings => {
 
     const clockDisplayMode = readAllowedValue(value.clockDisplayMode, ALLOWED_CLOCK_VALUES);
     if (clockDisplayMode) settings.clockDisplayMode = clockDisplayMode;
-
-    const startFullscreen = readBoolean(value.startFullscreen);
-    if (startFullscreen !== undefined) settings.startFullscreen = startFullscreen;
 
     const weatherSource = readAllowedValue(value.weatherSource, ALLOWED_DATA_SOURCE_VALUES);
     if (weatherSource) settings.weatherSource = weatherSource;
