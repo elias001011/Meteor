@@ -233,3 +233,16 @@ export const isStoredMobileInstallation = (value: unknown): value is StoredMobil
     return false;
   }
 };
+
+export const normalizeStoredMobileInstallation = (
+  value: unknown
+): StoredMobileInstallation | null => {
+  if (!isStoredMobileInstallation(value)) return null;
+  return {
+    ...value,
+    preferences: mergePreferences(
+      DEFAULT_MOBILE_NOTIFICATION_PREFERENCES,
+      parsePreferencesPatch(value.preferences)
+    ),
+  };
+};

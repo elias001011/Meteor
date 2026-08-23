@@ -10,6 +10,7 @@ import {
 } from '../../netlify/functions/mobile-push-engine.js';
 import {
   MobilePayloadError,
+  normalizeStoredMobileInstallation,
   parseCreateInstallation,
   parsePatchInstallation,
 } from '../../netlify/functions/mobile-push-contract.js';
@@ -216,6 +217,39 @@ test('patch validation requires an actual change and enforces threshold ranges',
     installationId: 'cVh2Yx0abcDEFghiJKLMNO',
     preferences: { wind: true, windThresholdKmh: 80 },
   }).preferences, { wind: true, windThresholdKmh: 80 });
+});
+
+test('legacy installations receive new notification defaults when loaded', () => {
+  const legacy = normalizeStoredMobileInstallation({
+    schemaVersion: 1,
+    uid: 'anonymous-user',
+    installationId: 'cVh2Yx0abcDEFghiJKLMNO',
+    fcmToken: 'safe-fcm-token-value-with-enough-characters:APA91_test',
+    tokenHash: 'a'.repeat(64),
+    location: { latitude: -23.55, longitude: -46.63, key: '-23.55,-46.63' },
+    timeZone: 'America/Sao_Paulo',
+    preferences: {
+      severeAlerts: true,
+      rainSoon: true,
+      dailySummary: true,
+      temperature: false,
+      uv: false,
+      wind: false,
+      quietStartHour: 22,
+      quietEndHour: 7,
+      coldThresholdC: 5,
+      heatThresholdC: 35,
+      uvThreshold: 8,
+      windThresholdKmh: 60,
+    },
+    locale: 'pt-BR',
+    appVersion: '1.0.0',
+    platform: 'android',
+    enabled: true,
+  });
+
+  assert.equal(legacy?.preferences.dailySummaryHour, 7);
+  assert.equal(legacy?.preferences.quietHoursEnabled, true);
 });
 
 test('OpenWeather parser converts wind units and bounds provider data', () => {
