@@ -97,7 +97,7 @@ const fetchWithOpenMeteo = async (lat: string, lon: string) => {
         latitude: lat,
         longitude: lon,
         current: 'temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,cloud_cover,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,visibility,dew_point_2m',
-        hourly: 'temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,precipitation_probability,is_day,wind_speed_10m,wind_direction_10m,wind_gusts_10m,surface_pressure,cloud_cover,dew_point_2m',
+        hourly: 'temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,precipitation_probability,precipitation,is_day,wind_speed_10m,wind_direction_10m,wind_gusts_10m,surface_pressure,cloud_cover,dew_point_2m',
         daily: 'weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max,uv_index_max,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant',
         timezone: 'auto', // Requests correct timezone calculation from Open-Meteo
         forecast_days: '7',
@@ -170,15 +170,16 @@ const fetchWithOpenMeteo = async (lat: string, lon: string) => {
         }
     }
 
-    // Take the next 8 hours starting from current time
+    // A full day makes the native hourly chart useful without another request.
     const hourlyForecast = [];
-    for (let i = startIndex; i < startIndex + 8 && i < hourly.time.length; i++) {
+    for (let i = startIndex; i < startIndex + 24 && i < hourly.time.length; i++) {
         hourlyForecast.push({
             dt: parseOpenMeteoLocalTime(hourly.time[i], timezoneOffset),
             temperature: hourly.temperature_2m[i],
             conditionIcon: mapOpenMeteoCodeToEmoji(hourly.weather_code[i], hourly.is_day[i] === 1),
             description: mapWmoCodeToDescription(hourly.weather_code[i]),
             pop: hourly.precipitation_probability[i] / 100,
+            precipitation: hourly.precipitation[i],
             // Extended fields
             feels_like: hourly.apparent_temperature[i],
             humidity: hourly.relative_humidity_2m[i],
@@ -299,13 +300,14 @@ const fetchWithOneCall = async (lat: string, lon: string) => {
     const nowSeconds = Math.floor(Date.now() / 1000);
     const hourlyForecast = onecallApiData.hourly
         .filter((item: any) => item.dt >= nowSeconds - 3600) // Allow current hour
-        .slice(0, 8)
+        .slice(0, 24)
         .map((item: any) => ({
             dt: item.dt,
             temperature: item.temp,
             conditionIcon: mapOwmIconToEmoji(item.weather[0].icon),
             description: item.weather[0].description.charAt(0).toUpperCase() + item.weather[0].description.slice(1),
             pop: item.pop,
+            precipitation: (item.rain?.['1h'] || 0) + (item.snow?.['1h'] || 0),
             // Extended fields
             feels_like: item.feels_like,
             humidity: item.humidity,
@@ -403,12 +405,13 @@ const fetchWithFreeTier = async (lat: string, lon: string) => {
     const nowSeconds = Math.floor(Date.now() / 1000);
     const futureList = forecastApiData.list.filter((item: any) => item.dt >= nowSeconds - 3600); // Allow current 3-hour block
 
-    const hourlyForecast = futureList.slice(0, 8).map((item: any) => ({
+    const hourlyForecast = futureList.slice(0, 16).map((item: any) => ({
         dt: item.dt,
         temperature: item.main.temp,
         conditionIcon: mapOwmIconToEmoji(item.weather[0].icon),
         description: item.weather[0].description.charAt(0).toUpperCase() + item.weather[0].description.slice(1),
         pop: item.pop,
+        precipitation: (item.rain?.['3h'] || 0) + (item.snow?.['3h'] || 0),
         // Extended fields (Available in 5day/3hr forecast)
         feels_like: item.main.feels_like,
         humidity: item.main.humidity,

@@ -76,6 +76,36 @@ test('daily summary is emitted once with a stable local-date key at 07:00', () =
   assert.deepEqual(oneHourLater, []);
 });
 
+test('daily summary follows the selected hour and quiet mode can be disabled', () => {
+  const midnightInSaoPaulo = Date.parse('2026-08-22T03:00:00.000Z');
+  const summary = decideMobilePushes(
+    snapshot(),
+    {
+      ...DEFAULT_MOBILE_NOTIFICATION_PREFERENCES,
+      rainSoon: false,
+      dailySummaryHour: 0,
+      quietHoursEnabled: false,
+    },
+    'America/Sao_Paulo',
+    midnightInSaoPaulo
+  );
+  assert.equal(summary.length, 1);
+  assert.equal(summary[0].type, 'daily');
+
+  const wrongHour = decideMobilePushes(
+    snapshot(),
+    {
+      ...DEFAULT_MOBILE_NOTIFICATION_PREFERENCES,
+      rainSoon: false,
+      dailySummaryHour: 1,
+      quietHoursEnabled: false,
+    },
+    'America/Sao_Paulo',
+    midnightInSaoPaulo
+  );
+  assert.deepEqual(wrongHour, []);
+});
+
 test('rain soon considers the next three hours and applies a six-hour cooldown key', () => {
   const nowSeconds = Math.floor(NOW / 1_000);
   const candidates = decideMobilePushes(snapshot({
@@ -148,7 +178,12 @@ test('registration validation rounds coordinates and rejects unknown or unsafe f
     fcmToken: 'safe-fcm-token-value-with-enough-characters:APA91_test',
     location: { latitude: -23.55052, longitude: -46.633308 },
     timeZone: 'America/Sao_Paulo',
-    preferences: { severeAlerts: true, quietStartHour: 23 },
+    preferences: {
+      severeAlerts: true,
+      dailySummaryHour: 8,
+      quietHoursEnabled: false,
+      quietStartHour: 23,
+    },
     locale: 'pt-BR',
     appVersion: '1.0.0+1',
   });
@@ -158,6 +193,8 @@ test('registration validation rounds coordinates and rejects unknown or unsafe f
     key: '-23.55,-46.63',
   });
   assert.equal(input.preferences.quietStartHour, 23);
+  assert.equal(input.preferences.dailySummaryHour, 8);
+  assert.equal(input.preferences.quietHoursEnabled, false);
   assert.equal(input.preferences.heatThresholdC, 35);
 
   assert.throws(() => parseCreateInstallation({ ...input, secret: 'must-not-pass' }), MobilePayloadError);
