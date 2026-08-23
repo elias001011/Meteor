@@ -98,7 +98,8 @@ class AppController extends ChangeNotifier {
     final requestSerial = ++_weatherRequestSerial;
     String? imageNonce;
     if (refreshImage) {
-      final nextPage = ((_imagePageByLocation[target.storageKey] ?? 1) % 20) + 1;
+      final nextPage =
+          ((_imagePageByLocation[target.storageKey] ?? 1) % 20) + 1;
       _imagePageByLocation[target.storageKey] = nextPage;
       imageNonce = nextPage.toString();
     }
