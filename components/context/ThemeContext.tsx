@@ -94,10 +94,10 @@ export const ThemeProvider: React.FC<{
     // Base Color Strategy: Always use Gray 900 (#111827) as the base.
     
     const getFinalStyle = useMemo(() => (scopeType: keyof GlassScope) => {
-        // Base structure: Background + Border + Shadow
+        // Surfaces stay intentionally quiet. Transparency is a preference, not a visual effect layer.
         const baseBorder = backgroundMode === 'amoled' ? 'border border-white/10' : 'border border-white/[0.08]';
-        const shadow = backgroundMode === 'amoled' ? 'shadow-none' : 'shadow-[0_18px_60px_rgba(0,0,0,0.22)]';
-        const solidSurface = backgroundMode === 'amoled' ? 'bg-black' : 'bg-[#111b2b]';
+        const shadow = 'shadow-none';
+        const solidSurface = backgroundMode === 'amoled' ? 'bg-black' : 'bg-[#111419]';
 
         // 1. PERFORMANCE MODE: Always Solid, No Blur, No Transparency
         if (performanceMode) {
@@ -117,21 +117,21 @@ export const ThemeProvider: React.FC<{
             
             case 'subtle': 
                 // Subtle: 85% Opacity (Enough to see contrast, but very dark)
-                return `${backgroundMode === 'amoled' ? 'bg-black' : 'bg-[#111b2b]/90'} ${baseBorder} ${shadow}`;
+                return `${backgroundMode === 'amoled' ? 'bg-black' : 'bg-[#111419]/94'} ${baseBorder} ${shadow}`;
             
             case 'balanced': 
                 // Balanced: 60% Opacity (Distinctly transparent, no blur)
-                return `${backgroundMode === 'amoled' ? 'bg-black' : 'bg-[#111b2b]/72'} ${baseBorder} ${shadow}`;
+                return `${backgroundMode === 'amoled' ? 'bg-black' : 'bg-[#111419]/88'} ${baseBorder} ${shadow}`;
             
             case 'transparent': 
                 // Legacy Transparent: 40% Opacity (Very transparent, no blur)
-                return `${backgroundMode === 'amoled' ? 'bg-black' : 'bg-[#111b2b]/56'} ${baseBorder} ${shadow}`;
+                return `${backgroundMode === 'amoled' ? 'bg-black' : 'bg-[#111419]/82'} ${baseBorder} ${shadow}`;
 
             case 'glass': 
                 // Glass: Low Opacity (30%) + Heavy Blur. 
                 // This allows the rain to be seen "through" the card, blurred.
                 // Added backdrop-saturate to pop colors behind the glass.
-                return `${backgroundMode === 'amoled' ? 'bg-black' : 'bg-[#0b1424]/68 backdrop-blur-xl backdrop-saturate-150'} ${baseBorder} ${shadow}`;
+                return `${backgroundMode === 'amoled' ? 'bg-black' : 'bg-[#111419]/86 backdrop-blur-md'} ${baseBorder} ${shadow}`;
             
             default:
                 return `${solidSurface} ${baseBorder} ${shadow}`;
@@ -146,13 +146,13 @@ export const ThemeProvider: React.FC<{
     // Mini widgets always keep a bit of transparency/blur for contrast against the cards
     const miniClass = backgroundMode === 'amoled'
         ? 'bg-black/80 border border-white/15'
-        : 'bg-black/25 border border-white/15 backdrop-blur-md';
+        : 'bg-[#111419] border border-white/10';
 
     const appBackgroundClass = backgroundMode === 'amoled'
         ? 'bg-black'
         : backgroundMode === 'solid'
-            ? 'bg-[#07111f]'
-            : 'bg-[radial-gradient(circle_at_15%_0%,_#15395b_0%,_#0a1728_32%,_#050a12_72%,_#030609_100%)] bg-fixed';
+            ? 'bg-[#0b0d10]'
+            : 'bg-[linear-gradient(180deg,_#0d1014_0%,_#090b0e_100%)] bg-fixed';
 
     useEffect(() => {
         if (reducedMotion || performanceMode) {

@@ -194,7 +194,6 @@ export interface AppSettings {
     userAiInstructions?: string;
     showClock: boolean;
     clockDisplayMode: ClockDisplayMode;
-    startFullscreen: boolean;
     weatherSource: DataSource | 'auto';
     startupBehavior: StartupBehavior;
     specificLocation?: CitySearchResult;

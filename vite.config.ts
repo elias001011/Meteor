@@ -12,6 +12,14 @@ export default defineConfig(({ mode }) => {
       server: {
         port: 3000,
         host: '0.0.0.0',
+        proxy: {
+          // Keep local UI development functional without copying provider keys to a developer machine.
+          '/.netlify/functions': {
+            target: 'https://meteor-ai.netlify.app',
+            changeOrigin: true,
+            secure: true,
+          },
+        },
       },
       plugins: [
         react(),

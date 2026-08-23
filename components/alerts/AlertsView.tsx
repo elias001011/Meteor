@@ -43,10 +43,10 @@ const localAlerts = (weather?: WeatherData | null, daily: DailyForecast[] = []):
   return result;
 };
 
-const styles: Record<Level, { surface: string; icon: string; badge: string; label: string }> = {
-  critical: { surface: 'border-red-400/25 bg-red-400/[0.07]', icon: 'text-red-300 bg-red-400/10', badge: 'bg-red-400/15 text-red-200', label: 'Urgente' },
-  warning: { surface: 'border-orange-300/20 bg-orange-300/[0.06]', icon: 'text-orange-200 bg-orange-300/10', badge: 'bg-orange-300/15 text-orange-100', label: 'Alerta' },
-  caution: { surface: 'border-amber-200/15 bg-amber-200/[0.05]', icon: 'text-amber-200 bg-amber-200/10', badge: 'bg-amber-200/15 text-amber-100', label: 'Atenção' },
+const styles: Record<Level, { accent: string; label: string }> = {
+  critical: { accent: 'border-l-red-400 text-red-300', label: 'Urgente' },
+  warning: { accent: 'border-l-orange-300 text-orange-200', label: 'Alerta' },
+  caution: { accent: 'border-l-amber-200 text-amber-200', label: 'Atenção' },
 };
 
 const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast = [], apiAlerts = [] }) => {
@@ -62,13 +62,9 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast =
 
   return (
     <div className="mx-auto max-w-5xl space-y-5 px-4 py-6 sm:px-6 lg:py-8">
-      <header className="flex items-start gap-4">
-        <div className="rounded-2xl bg-red-400/10 p-3 text-red-300"><AlertTriangleIcon className="h-6 w-6" /></div>
-        <div>
-          <p className="meteor-eyebrow mb-1">Condições que merecem atenção</p>
-          <h2 className="text-3xl font-black tracking-[-0.04em] text-white">Alertas meteorológicos</h2>
+      <header>
+          <h2 className="text-3xl font-semibold tracking-[-0.03em] text-white">Alertas meteorológicos</h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">Avisos oficiais aparecem primeiro. As demais sinalizações são geradas localmente a partir dos dados meteorológicos disponíveis.</p>
-        </div>
       </header>
 
       {alerts.length ? (
@@ -76,13 +72,13 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast =
           {alerts.map(alert => {
             const style = styles[alert.level];
             return (
-              <article key={alert.id} className={`rounded-[1.5rem] border p-4 sm:p-5 ${style.surface}`}>
+              <article key={alert.id} className={`rounded-xl border border-white/[0.08] border-l-2 bg-[#111419] p-4 sm:p-5 ${style.accent}`}>
                 <div className="flex items-start gap-3.5">
-                  <div className={`rounded-xl p-2.5 ${style.icon}`}><AlertTriangleIcon className="h-5 w-5" /></div>
+                  <AlertTriangleIcon className="mt-0.5 h-4 w-4 flex-none" />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-extrabold text-white">{alert.title}</h3>
-                      <span className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] ${style.badge}`}>{style.label}</span>
+                      <h3 className="font-medium text-white">{alert.title}</h3>
+                      <span className="text-[10px] text-current">{style.label}</span>
                     </div>
                     <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-slate-300">{alert.message}</p>
                     <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] font-medium text-slate-500">
@@ -96,9 +92,9 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast =
           })}
         </div>
       ) : (
-        <section className={`rounded-[2rem] p-8 text-center sm:p-12 ${cardClass}`}>
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-400/10 text-emerald-300"><InfoIcon className="h-7 w-7" /></div>
-          <h3 className="text-xl font-extrabold text-white">Nenhum alerta ativo</h3>
+        <section className={`rounded-2xl p-8 text-center sm:p-12 ${cardClass}`}>
+          <InfoIcon className="mx-auto mb-4 h-6 w-6 text-emerald-300" />
+          <h3 className="text-xl font-semibold text-white">Nenhum alerta ativo</h3>
           <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-400">Os dados atuais não indicam condições relevantes para esta localidade. Continue acompanhando se o tempo mudar.</p>
         </section>
       )}

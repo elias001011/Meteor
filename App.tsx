@@ -187,12 +187,12 @@ const AppContent: React.FC<{
                 onSourceChange={props.handleDataSourceChange}
             />
 
-            <main className="relative z-10 min-h-[100dvh] pt-20 pb-24 lg:pb-0">
+            <main className="relative z-10 min-h-[100dvh] pt-16 pb-24 lg:pb-0">
                 {view === 'weather' && <div className={animationClass}><WeatherView {...weatherProps} /></div>}
                 <Suspense fallback={<ViewFallback />}>
                     {view === 'ai' && <div className={`h-[calc(100dvh-5rem)] ${animationClass}`}><AiView {...aiViewProps} /></div>}
                     {view === 'map' && (
-                        <div className={`mx-auto h-[calc(100dvh-6rem)] max-w-[1480px] overflow-hidden rounded-t-[2rem] border-x border-t border-white/10 lg:h-[calc(100dvh-5rem)] lg:rounded-[2rem] lg:border ${animationClass}`}>
+                        <div className={`mx-auto h-[calc(100dvh-5rem)] max-w-[1320px] overflow-hidden border-x border-t border-white/10 lg:h-[calc(100dvh-4rem)] lg:rounded-xl lg:border ${animationClass}`}>
                             <MapView lat={props.currentCoords?.lat} lon={props.currentCoords?.lon} theme={settings.mapTheme} />
                         </div>
                     )}
@@ -400,24 +400,6 @@ const App: React.FC = () => {
           const savedSettings = getSettings();
           setSettings(savedSettings);
           setPreferredDataSource(savedSettings.weatherSource);
-
-          if (savedSettings.startFullscreen) {
-             const enterFullscreen = async () => {
-                 if (!document.fullscreenElement) {
-                     try {
-                        await document.documentElement.requestFullscreen();
-                        window.removeEventListener('click', enterFullscreen);
-                        window.removeEventListener('touchend', enterFullscreen);
-                        window.removeEventListener('keydown', enterFullscreen);
-                     } catch (e) {
-                        console.log("Auto-fullscreen deferred.", e);
-                     }
-                 }
-             };
-             window.addEventListener('click', enterFullscreen);
-             window.addEventListener('touchend', enterFullscreen);
-             window.addEventListener('keydown', enterFullscreen);
-          }
 
           if (savedSettings.startupBehavior === 'custom_section' && savedSettings.startupSection) {
               setView(savedSettings.startupSection);

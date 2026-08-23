@@ -14,7 +14,7 @@ interface DailyForecastProps {
 }
 
 const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data, timezoneOffset = 0, unitSystem = 'metric', showDetailLabel = true }) => {
-  const { classes, cardClass, density } = useTheme();
+  const { classes, cardClass } = useTheme();
   const settings = getSettings();
   
   // Complexity Check
@@ -90,27 +90,24 @@ const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data, timezoneOf
 
   return (
     <>
-        <div className={`relative rounded-3xl ${density.padding} ${cardClass} animate-enter transition-all duration-300`}>
-        <div className="flex items-center justify-between mb-3 px-2">
-            <h3 className={`${density.sectionTitle} font-medium text-gray-300 uppercase tracking-wide m-0`}>Próximos Dias</h3>
-             {showComplexHere && showDetailLabel && (
-                <span className="text-[10px] text-cyan-400 bg-cyan-400/10 px-2 py-0.5 rounded border border-cyan-400/20">Detalhes</span>
-            )}
+        <section className={`relative rounded-2xl p-4 sm:p-5 ${cardClass} animate-enter`}>
+        <div className="mb-2 flex items-center justify-between">
+            <h3 className="m-0 text-sm font-semibold text-white">Próximos dias</h3>
         </div>
         
-        <div className="space-y-1">
+        <div>
             {data.map((item, index) => (
             <button 
                 key={index}
                 onClick={() => handleItemClick(item)}
-                className={`w-full grid items-center p-3 rounded-xl hover:bg-white/5 transition-colors group active:scale-[0.98] gap-2`}
+                className="group grid w-full items-center gap-2 rounded-lg px-1 py-3 text-sm transition-colors hover:bg-white/[0.025]"
                 style={{ gridTemplateColumns: 'minmax(60px, 1fr) 50px 50px minmax(80px, auto)' }}
             >
                 {/* Day */}
-                <span className={`font-medium text-gray-200 group-hover:text-white ${density.text} text-left truncate`}>{getDayLabel(item.dt)}</span>
+                <span className="truncate text-left font-medium text-slate-200 group-hover:text-white">{getDayLabel(item.dt)}</span>
                 
                 {/* Precip */}
-                <div className={`flex justify-center items-center gap-1 ${density.subtext} ${classes.text} font-medium`}>
+                <div className={`flex items-center justify-center gap-1 text-xs ${classes.text}`}>
                     {typeof item.pop === 'number' && item.pop > 0.05 ? (
                         <>
                             <UmbrellaIcon className="w-3 h-3" />
@@ -123,20 +120,20 @@ const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data, timezoneOf
 
                 {/* Icon */}
                 <div className="flex justify-center">
-                     <span className="text-xl transform group-hover:scale-110 transition-transform">{item.conditionIcon}</span>
+                     <span className="text-xl">{item.conditionIcon}</span>
                 </div>
                 
                 {/* Temp */}
                 <div className="flex justify-end gap-3">
-                    <span className={`font-bold text-right ${density.text}`}>{formatTemp(item.temperature)}°</span>
+                    <span className="text-right font-semibold">{formatTemp(item.temperature)}°</span>
                     {item.temperature_min !== undefined && (
-                        <span className={`font-medium text-right text-gray-500 ${density.text}`}>{formatTemp(item.temperature_min)}°</span>
+                        <span className="text-right text-slate-500">{formatTemp(item.temperature_min)}°</span>
                     )}
                 </div>
             </button>
             ))}
         </div>
-        </div>
+        </section>
 
         <ForecastDetailModal 
             isOpen={!!selectedItem} 

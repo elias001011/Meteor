@@ -49,7 +49,7 @@ const CurrentWeather: React.FC<CurrentWeatherProps> = ({ data, clockDisplayMode,
   const photoUrl = safeExternalUrl(attribution?.photoUrl);
 
   return (
-    <section className={`relative min-h-[27rem] overflow-hidden rounded-[2rem] border border-white/10 text-white shadow-[0_28px_90px_rgba(0,0,0,0.38)] sm:min-h-[31rem] ${isAmoled ? 'bg-black' : 'bg-[#0b1a2c]'}`}>
+    <section className={`relative min-h-[23rem] overflow-hidden rounded-2xl border border-white/[0.08] text-white sm:min-h-[26rem] ${isAmoled ? 'bg-black' : 'bg-[#111419]'}`}>
       <img
         key={data.imageUrl}
         src={data.imageUrl}
@@ -67,50 +67,47 @@ const CurrentWeather: React.FC<CurrentWeatherProps> = ({ data, clockDisplayMode,
           image.style.display = 'none';
         }}
       />
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(3,8,16,0.18)_0%,rgba(3,8,16,0.38)_42%,rgba(3,8,16,0.96)_100%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_12%,rgba(255,255,255,0.16),transparent_28rem)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,7,10,0.2)_0%,rgba(5,7,10,0.42)_42%,rgba(5,7,10,0.96)_100%)]" />
 
-      <div className="relative z-10 flex min-h-[27rem] flex-col justify-between p-5 sm:min-h-[31rem] sm:p-7">
+      <div className="relative z-10 flex min-h-[23rem] flex-col justify-between p-5 sm:min-h-[26rem] sm:p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-white/80">
-              <MapPinIcon className="h-4 w-4" /> Agora em
-            </p>
-            <h2 className="text-3xl font-black tracking-[-0.035em] drop-shadow-lg sm:text-4xl">{data.city}</h2>
-            <p className="mt-1 capitalize text-sm font-medium text-white/75">{data.country} · {date}</p>
+            <p className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-white/70"><MapPinIcon className="h-3.5 w-3.5" /> Agora</p>
+            <h2 className="text-2xl font-semibold tracking-[-0.025em] sm:text-3xl">{data.city}</h2>
+            <p className="mt-1 capitalize text-xs text-white/65">{data.country} · {date}</p>
           </div>
           {showClock && (
-            <div className="rounded-full border border-white/15 bg-black/30 px-3 py-1.5 text-sm font-bold backdrop-blur-md" aria-label={`Horário local ${localTime}`}>
+            <div className="rounded-lg border border-white/15 bg-black/35 px-2.5 py-1.5 text-xs font-semibold" aria-label={`Horário local ${localTime}`}>
               {localTime} <span className="font-medium text-white/55">local</span>
             </div>
           )}
         </div>
 
         <div>
-          <div className="mb-6 flex items-end justify-between gap-3">
+          <div className="mb-5 flex items-end justify-between gap-3">
             <div>
               <div className="flex items-start">
-                <span className="text-[5.6rem] font-black leading-[0.82] tracking-[-0.075em] drop-shadow-xl sm:text-[7rem]">{temp(data.temperature)}</span>
-                <span className="mt-1 text-3xl font-semibold text-white/75">°</span>
+                <span className="text-[4.5rem] font-medium leading-[0.85] tracking-[-0.07em] sm:text-[5.4rem]">{temp(data.temperature)}</span>
+                <span className="mt-1 text-2xl font-medium text-white/65">°</span>
               </div>
-              <p className="mt-4 text-xl font-bold capitalize drop-shadow-md">{data.condition}</p>
-              {typeof data.feels_like === 'number' && <p className="mt-1 text-sm font-medium text-white/65">Sensação de {temp(data.feels_like)}°</p>}
+              <p className="mt-3 text-base font-medium capitalize">{data.condition}</p>
+              {typeof data.feels_like === 'number' && <p className="mt-1 text-xs text-white/60">Sensação de {temp(data.feels_like)}°</p>}
             </div>
-            <span className="pb-2 text-5xl drop-shadow-lg sm:text-6xl" aria-hidden="true">{data.conditionIcon}</span>
+            <span className="pb-2 text-4xl sm:text-5xl" aria-hidden="true">{data.conditionIcon}</span>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            <div className="rounded-2xl border border-white/10 bg-black/25 p-3 backdrop-blur-md">
-              <p className="flex items-center gap-1.5 text-xs font-semibold text-white/60"><WindIcon className="h-4 w-4" /> Vento</p>
-              <p className="mt-1 text-base font-bold">{speed} {speedUnit}</p>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-lg bg-black/35 px-3 py-2.5">
+              <p className="flex items-center gap-1.5 text-[11px] text-white/55"><WindIcon className="h-3.5 w-3.5" /> Vento</p>
+              <p className="mt-1 text-sm font-semibold">{speed} {speedUnit}</p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-black/25 p-3 backdrop-blur-md">
-              <p className="flex items-center gap-1.5 text-xs font-semibold text-white/60"><DropletsIcon className="h-4 w-4" /> Umidade</p>
-              <p className="mt-1 text-base font-bold">{data.humidity}%</p>
+            <div className="rounded-lg bg-black/35 px-3 py-2.5">
+              <p className="flex items-center gap-1.5 text-[11px] text-white/55"><DropletsIcon className="h-3.5 w-3.5" /> Umidade</p>
+              <p className="mt-1 text-sm font-semibold">{data.humidity}%</p>
             </div>
-            <div className="col-span-2 rounded-2xl border border-white/10 bg-black/25 p-3 backdrop-blur-md sm:col-span-1">
-              <p className="text-xs font-semibold text-white/60">Pressão</p>
-              <p className="mt-1 text-base font-bold">{data.pressure} hPa</p>
+            <div className="rounded-lg bg-black/35 px-3 py-2.5">
+              <p className="text-[11px] text-white/55">Pressão</p>
+              <p className="mt-1 text-sm font-semibold">{data.pressure} hPa</p>
             </div>
           </div>
 

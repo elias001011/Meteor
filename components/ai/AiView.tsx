@@ -6,7 +6,6 @@ import ChatHistory from './ChatHistory';
 import ChatInput from './ChatInput';
 import AiWelcome from './AiWelcome';
 import ChatHistoryManager from './ChatHistoryManager';
-import { useTheme } from '../context/ThemeContext';
 import { 
     loadCurrentSession, 
     saveCurrentSession, 
@@ -28,8 +27,6 @@ interface AiViewProps {
 
 const AiView: React.FC<AiViewProps> = (props) => {
   const { messages, onSendMessage, isSending, ...chatInputProps } = props;
-  const { classes } = useTheme();
-  
   const [currentSession, setCurrentSession] = useState<ChatSession | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [hasExtractedTitle, setHasExtractedTitle] = useState(false);
@@ -166,7 +163,7 @@ const AiView: React.FC<AiViewProps> = (props) => {
         <div className="absolute top-4 right-4 z-10">
             <button
                 onClick={() => setIsHistoryOpen(true)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full ${classes.bg}/10 hover:${classes.bg}/20 border border-white/10 text-gray-300 hover:text-white transition-all`}
+                className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-[#111419] px-3 py-2 text-gray-400 transition-colors hover:text-white"
             >
                 <HistoryIcon className="w-4 h-4" />
                 <span className="text-sm font-medium hidden sm:inline">Histórico</span>
@@ -183,7 +180,7 @@ const AiView: React.FC<AiViewProps> = (props) => {
         
         {/* Input Area (Always visible unless on specific conditions, but requested to keep) */}
         <div className="hidden lg:block fixed bottom-4 left-1/2 -translate-x-1/2 w-full max-w-3xl px-4 z-20">
-            <div className="bg-gray-900/90 backdrop-blur-xl border border-gray-700/50 p-2 rounded-full shadow-2xl">
+            <div className="rounded-xl border border-white/[0.09] bg-[#111419] p-2">
                     <ChatInput 
                         onSendMessage={(text) => onSendMessage(text, false)} 
                         isSending={isSending}
