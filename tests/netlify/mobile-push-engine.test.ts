@@ -7,17 +7,17 @@ import {
   isQuietHour,
   localDateHour,
   type MobileWeatherSnapshot,
-} from './mobile-push-engine.js';
+} from '../../netlify/functions/mobile-push-engine.js';
 import {
   MobilePayloadError,
   parseCreateInstallation,
   parsePatchInstallation,
-} from './mobile-push-contract.js';
-import { parseOpenWeatherSnapshot } from './mobile-push-weather.js';
+} from '../../netlify/functions/mobile-push-contract.js';
+import { parseOpenWeatherSnapshot } from '../../netlify/functions/mobile-push-weather.js';
 import {
   getMobileFirebaseServices,
   MobileFirebaseConfigurationError,
-} from './mobile-firebase.js';
+} from '../../netlify/functions/mobile-firebase.js';
 
 const NOW = Date.parse('2026-08-22T10:00:00.000Z'); // 07:00 in São Paulo.
 
