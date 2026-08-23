@@ -1,0 +1,176 @@
+name: Android CI and Release
+
+on:
+  pull_request:
+    branches: [android]
+  push:
+    branches: [android]
+    tags: ["android-v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/android-v') }}
+
+defaults:
+  run:
+    working-directory: mobile
+
+jobs:
+  verify:
+    name: Flutter verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Java
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Setup Flutter
+        shell: bash
+        run: |
+          FLUTTER_VERSION="3.47.0"
+          curl -fsSL "https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_${FLUTTER_VERSION}-stable.tar.xz" -o "$RUNNER_TEMP/flutter.tar.xz"
+          tar xf "$RUNNER_TEMP/flutter.tar.xz" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Check formatting
+        run: dart format --output=none --set-exit-if-changed lib test
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      - name: Build unsigned debug APK
+        run: flutter build apk --debug
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: meteor-debug-${{ github.sha }}
+          path: mobile/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: Signed Android release
+    if: startsWith(github.ref, 'refs/tags/android-v')
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: android-release
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    env:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+      METEOR_BFF_URL: ${{ vars.METEOR_BFF_URL }}
+    steps:
+      - name: Checkout complete history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Verify tag and branch ancestry
+        run: |
+          git fetch origin android
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/android
+          app_version="$(awk '/^version:/ { split($2, value, "+"); print value[1] }' pubspec.yaml)"
+          test "$GITHUB_REF_NAME" = "android-v${app_version}"
+
+      - name: Setup Java
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Setup Flutter
+        shell: bash
+        run: |
+          FLUTTER_VERSION="3.47.0"
+          curl -fsSL "https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_${FLUTTER_VERSION}-stable.tar.xz" -o "$RUNNER_TEMP/flutter.tar.xz"
+          tar xf "$RUNNER_TEMP/flutter.tar.xz" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+
+      - name: Validate and materialize release credentials
+        shell: bash
+        run: |
+          test -n "$ANDROID_KEYSTORE_BASE64"
+          test -n "$ANDROID_STORE_PASSWORD"
+          test -n "$ANDROID_KEY_ALIAS"
+          test -n "$ANDROID_KEY_PASSWORD"
+          test -n "$GOOGLE_SERVICES_JSON_BASE64"
+          keystore_path="$RUNNER_TEMP/meteor-upload.jks"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$keystore_path"
+          printf '%s' "$GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > android/app/google-services.json
+          echo "ANDROID_KEYSTORE_PATH=$keystore_path" >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build signed artifacts
+        shell: bash
+        run: |
+          bff_url="${METEOR_BFF_URL:-https://meteor-ai.netlify.app/.netlify/functions}"
+          define_args=(
+            "--dart-define=METEOR_FIREBASE_ENABLED=true"
+            "--dart-define=METEOR_BFF_URL=$bff_url"
+          )
+          flutter build apk --release "${define_args[@]}"
+          universal_apk="build/app/outputs/flutter-apk/app-release.apk"
+          flutter build apk --release --split-per-abi "${define_args[@]}"
+          flutter build appbundle --release "${define_args[@]}"
+
+          release_dir="build/release"
+          mkdir -p "$release_dir"
+          version="${GITHUB_REF_NAME#android-v}"
+          cp "$universal_apk" "$release_dir/Meteor-${version}-universal.apk"
+          for apk in build/app/outputs/flutter-apk/app-*-release.apk; do
+            abi="$(basename "$apk" | sed -E 's/^app-(.+)-release\.apk$/\1/')"
+            cp "$apk" "$release_dir/Meteor-${version}-${abi}.apk"
+          done
+          cp build/app/outputs/bundle/release/app-release.aab "$release_dir/Meteor-${version}.aab"
+          (cd "$release_dir" && sha256sum ./* > SHA256SUMS.txt)
+
+      - name: Upload release bundle
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: meteor-${{ github.ref_name }}
+          path: mobile/build/release/*
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: mobile/build/release/*
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" build/release/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Meteor Android ${GITHUB_REF_NAME#android-v}" \
+            --generate-notes \
+            --verify-tag
