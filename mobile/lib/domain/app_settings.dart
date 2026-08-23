@@ -2,6 +2,18 @@ import 'weather_models.dart';
 
 enum MeteorThemeMode { system, light, dark, amoled }
 
+enum MeteorAccent {
+  indigo,
+  blue,
+  cyan,
+  teal,
+  green,
+  amber,
+  orange,
+  rose,
+  purple,
+}
+
 class NotificationPreferences {
   const NotificationPreferences({
     this.severeAlerts = true,
@@ -111,7 +123,8 @@ int _hour(Object? value, int fallback) {
 class AppSettings {
   const AppSettings({
     this.themeMode = MeteorThemeMode.system,
-    this.dynamicColor = true,
+    this.accent = MeteorAccent.indigo,
+    this.darkMap = false,
     this.aiInstructions = '',
     this.pushEnabled = false,
     this.notifications = const NotificationPreferences(),
@@ -122,7 +135,11 @@ class AppSettings {
       (mode) => mode.name == json['themeMode'],
       orElse: () => MeteorThemeMode.system,
     ),
-    dynamicColor: json['dynamicColor'] != false,
+    accent: MeteorAccent.values.firstWhere(
+      (accent) => accent.name == json['accent'],
+      orElse: () => MeteorAccent.indigo,
+    ),
+    darkMap: json['darkMap'] == true,
     aiInstructions: json['aiInstructions']?.toString() ?? '',
     pushEnabled: json['pushEnabled'] == true,
     notifications: json['notifications'] is Map
@@ -133,20 +150,23 @@ class AppSettings {
   );
 
   final MeteorThemeMode themeMode;
-  final bool dynamicColor;
+  final MeteorAccent accent;
+  final bool darkMap;
   final String aiInstructions;
   final bool pushEnabled;
   final NotificationPreferences notifications;
 
   AppSettings copyWith({
     MeteorThemeMode? themeMode,
-    bool? dynamicColor,
+    MeteorAccent? accent,
+    bool? darkMap,
     String? aiInstructions,
     bool? pushEnabled,
     NotificationPreferences? notifications,
   }) => AppSettings(
     themeMode: themeMode ?? this.themeMode,
-    dynamicColor: dynamicColor ?? this.dynamicColor,
+    accent: accent ?? this.accent,
+    darkMap: darkMap ?? this.darkMap,
     aiInstructions: aiInstructions ?? this.aiInstructions,
     pushEnabled: pushEnabled ?? this.pushEnabled,
     notifications: notifications ?? this.notifications,
@@ -154,7 +174,8 @@ class AppSettings {
 
   Json toJson() => {
     'themeMode': themeMode.name,
-    'dynamicColor': dynamicColor,
+    'accent': accent.name,
+    'darkMap': darkMap,
     'aiInstructions': aiInstructions,
     'pushEnabled': pushEnabled,
     'notifications': notifications.toJson(),

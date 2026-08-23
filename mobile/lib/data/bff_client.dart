@@ -115,7 +115,10 @@ class BffClient {
     }
   }
 
-  Future<Json> fetchWeatherJson(CityLocation location) async {
+  Future<Json> fetchWeatherJson(
+    CityLocation location, {
+    String? imageNonce,
+  }) async {
     final params = <String, String>{
       'endpoint': 'all',
       'lat': location.latitude.toString(),
@@ -126,6 +129,7 @@ class BffClient {
     if (location.country.trim().isNotEmpty) {
       params['country'] = location.country;
     }
+    if (imageNonce?.isNotEmpty == true) params['imageNonce'] = imageNonce!;
     return getJson('weather', params);
   }
 

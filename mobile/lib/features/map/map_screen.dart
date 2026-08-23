@@ -41,28 +41,40 @@ class _MapScreenState extends State<MapScreen> {
     final base = AppConfig.bffUrl.replaceAll(RegExp(r'/+$'), '');
     final overlay =
         '$base/weather?endpoint=tile&layer=$_layer&z={z}&x={x}&y={y}';
-    final dark = Theme.of(context).brightness == Brightness.dark;
+    final dark = state.settings.darkMap;
 
     return Scaffold(
       body: Stack(
         children: [
           FlutterMap(
             mapController: _mapController,
-            options: MapOptions(initialCenter: center, initialZoom: 7.5),
+            options: MapOptions(
+              initialCenter: center,
+              initialZoom: 7.5,
+              minZoom: 2,
+              maxZoom: 18,
+            ),
             children: [
               TileLayer(
                 urlTemplate: dark
-                    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png'
-                    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
+                    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
+                    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
                 subdomains: const ['a', 'b', 'c', 'd'],
                 userAgentPackageName: 'com.eliasnunes.meteor',
                 maxZoom: 19,
+                maxNativeZoom: 18,
+                panBuffer: 0,
+                keepBuffer: 1,
               ),
               TileLayer(
                 key: ValueKey('$_layer-$_opacity'),
                 urlTemplate: overlay,
                 userAgentPackageName: 'com.eliasnunes.meteor',
                 tileProvider: NetworkTileProvider(),
+                maxNativeZoom: 10,
+                maxZoom: 12,
+                panBuffer: 0,
+                keepBuffer: 1,
                 errorTileCallback: (_, _, _) {},
                 tileBuilder: (_, tile, _) =>
                     Opacity(opacity: _opacity, child: tile),

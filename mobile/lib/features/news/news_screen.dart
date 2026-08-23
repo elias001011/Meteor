@@ -8,9 +8,7 @@ import '../../app_controller.dart';
 import '../../domain/content_models.dart';
 
 class NewsScreen extends StatefulWidget {
-  const NewsScreen({required this.onAskAi, super.key});
-
-  final VoidCallback onAskAi;
+  const NewsScreen({super.key});
 
   @override
   State<NewsScreen> createState() => _NewsScreenState();
@@ -141,15 +139,10 @@ class _NewsScreenState extends State<NewsScreen> {
                         crossAxisCount: columns,
                         mainAxisSpacing: 12,
                         crossAxisSpacing: 12,
-                        mainAxisExtent: 390,
+                        mainAxisExtent: 350,
                       ),
-                      itemBuilder: (context, index) => _ArticleCard(
-                        article: state.news[index],
-                        onAskAi: () {
-                          state.askAboutNews(state.news[index]);
-                          widget.onAskAi();
-                        },
-                      ),
+                      itemBuilder: (context, index) =>
+                          _ArticleCard(article: state.news[index]),
                     );
                   },
                 ),
@@ -162,10 +155,9 @@ class _NewsScreenState extends State<NewsScreen> {
 }
 
 class _ArticleCard extends StatelessWidget {
-  const _ArticleCard({required this.article, required this.onAskAi});
+  const _ArticleCard({required this.article});
 
   final NewsArticle article;
-  final VoidCallback onAskAi;
 
   @override
   Widget build(BuildContext context) => Card(
@@ -218,14 +210,6 @@ class _ArticleCard extends StatelessWidget {
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
-                    ),
-                  ),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton.icon(
-                      onPressed: onAskAi,
-                      icon: const Icon(Icons.auto_awesome_rounded, size: 18),
-                      label: const Text('Analisar com IA'),
                     ),
                   ),
                 ],

@@ -20,6 +20,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   PageController? _pageController;
+  bool _pageSyncScheduled = false;
 
   @override
   void didChangeDependencies() {
@@ -38,6 +39,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppController>();
+    _syncPage(state);
     final data = state.weather;
     if (data == null) {
       return SafeArea(
@@ -58,7 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
       650.0,
     );
     return RefreshIndicator(
-      onRefresh: state.refreshWeather,
+      onRefresh: () => state.refreshWeather(refreshImage: true),
       child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
@@ -103,7 +105,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 actions: [
                   TextButton(
-                    onPressed: state.refreshWeather,
+                    onPressed: () => state.refreshWeather(refreshImage: true),
                     child: const Text('Atualizar'),
                   ),
                 ],
@@ -178,6 +180,19 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _syncPage(AppController state) {
+    if (_pageSyncScheduled) return;
+    _pageSyncScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _pageSyncScheduled = false;
+      if (!mounted || _pageController?.hasClients != true) return;
+      final current = _pageController!.page?.round();
+      if (current != state.selectedLocationIndex) {
+        _pageController!.jumpToPage(state.selectedLocationIndex);
+      }
+    });
+  }
+
   Future<void> _showCitySearch(BuildContext context) async {
     final state = context.read<AppController>();
     final city = await showModalBottomSheet<CityLocation>(
@@ -215,7 +230,11 @@ class _LocationsHero extends StatelessWidget {
       PageView.builder(
         controller: controller,
         itemCount: state.locations.length,
-        onPageChanged: state.selectLocation,
+        onPageChanged: (index) {
+          if (index != state.selectedLocationIndex) {
+            state.selectLocation(index);
+          }
+        },
         itemBuilder: (_, index) {
           final location = state.locations[index];
           final data = index == state.selectedLocationIndex
@@ -560,6 +579,8 @@ class _CurrentGrid extends StatelessWidget {
       builder: (_, constraints) {
         final columns = constraints.maxWidth >= 760 ? 5 : 2;
         return GridView.builder(
+          primary: false,
+          padding: EdgeInsets.zero,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: values.length,
@@ -705,6 +726,7 @@ class _Hourly extends StatelessWidget {
                 visible.length * 68,
               ),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   SizedBox(
                     height: 112,
@@ -971,17 +993,21 @@ class _SunCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            Icon(
-              Icons.wb_twilight_rounded,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(width: 12),
-            _SunValue('Nascer', DateFormat.Hm('pt_BR').format(sunrise)),
             _SunValue(
+              Icons.wb_twilight_rounded,
+              'Nascer',
+              DateFormat.Hm('pt_BR').format(sunrise),
+            ),
+            _SunValue(
+              Icons.light_mode_outlined,
               'Luz do dia',
               '${daylight.inHours}h ${daylight.inMinutes.remainder(60)}min',
             ),
-            _SunValue('Pôr', DateFormat.Hm('pt_BR').format(sunset)),
+            _SunValue(
+              Icons.nights_stay_outlined,
+              'Pôr do sol',
+              DateFormat.Hm('pt_BR').format(sunset),
+            ),
           ],
         ),
       ),
@@ -990,19 +1016,31 @@ class _SunCard extends StatelessWidget {
 }
 
 class _SunValue extends StatelessWidget {
-  const _SunValue(this.label, this.value);
+  const _SunValue(this.icon, this.label, this.value);
+  final IconData icon;
   final String label;
   final String value;
 
   @override
   Widget build(BuildContext context) => Expanded(
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    child: Row(
       children: [
-        Text(label, style: Theme.of(context).textTheme.labelSmall),
-        const SizedBox(height: 3),
-        FittedBox(
-          child: Text(value, style: Theme.of(context).textTheme.titleSmall),
+        Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+        const SizedBox(width: 7),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: Theme.of(context).textTheme.labelSmall),
+              const SizedBox(height: 3),
+              FittedBox(
+                child: Text(
+                  value,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     ),
@@ -1149,29 +1187,63 @@ class _CitySearchSheetState extends State<_CitySearchSheet> {
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 8),
+            const Text('Segure e arraste para reordenar.'),
+            const SizedBox(height: 8),
             SizedBox(
-              height: 58,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
+              height: math.min(190, state.locations.length * 58.0),
+              child: ReorderableListView.builder(
+                buildDefaultDragHandles: false,
                 itemCount: state.locations.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 8),
-                itemBuilder: (_, index) => InputChip(
-                  avatar: Icon(
-                    index == state.selectedLocationIndex
-                        ? Icons.location_on_rounded
-                        : Icons.location_on_outlined,
-                    size: 18,
-                  ),
-                  label: Text(state.locations[index].name),
-                  selected: index == state.selectedLocationIndex,
-                  onPressed: () =>
-                      Navigator.pop(context, state.locations[index]),
-                  onDeleted: state.locations.length <= 1
-                      ? null
-                      : () => state.removeLocation(index),
-                ),
+                onReorderItem: state.reorderLocation,
+                itemBuilder: (_, index) {
+                  final city = state.locations[index];
+                  final selected = index == state.selectedLocationIndex;
+                  return Card(
+                    key: ValueKey(city.storageKey),
+                    margin: const EdgeInsets.only(bottom: 6),
+                    child: ListTile(
+                      dense: true,
+                      leading: Icon(
+                        selected
+                            ? Icons.location_on_rounded
+                            : Icons.location_on_outlined,
+                        color: selected
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                      ),
+                      title: Text(city.name),
+                      subtitle: city.country.isEmpty
+                          ? null
+                          : Text(city.country),
+                      selected: selected,
+                      onTap: () async {
+                        await state.selectLocation(index);
+                        if (context.mounted) Navigator.pop(context);
+                      },
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (state.locations.length > 1)
+                            IconButton(
+                              tooltip: 'Remover ${city.name}',
+                              onPressed: () => state.removeLocation(index),
+                              icon: const Icon(Icons.close_rounded),
+                            ),
+                          ReorderableDragStartListener(
+                            index: index,
+                            child: const Padding(
+                              padding: EdgeInsets.all(12),
+                              child: Icon(Icons.drag_handle_rounded),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
+            const SizedBox(height: 10),
             TextField(
               controller: input,
               textInputAction: TextInputAction.search,

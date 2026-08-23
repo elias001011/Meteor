@@ -54,6 +54,7 @@ class AppController extends ChangeNotifier {
   ];
   int selectedLocationIndex = 0;
   final Map<String, WeatherBundle> _weatherByLocation = {};
+  final Map<String, int> _imagePageByLocation = {};
   int _weatherRequestSerial = 0;
   WeatherBundle? weather;
   List<NewsArticle> news = const [];
@@ -65,7 +66,6 @@ class AppController extends ChangeNotifier {
   String? weatherError;
   String? newsError;
   String? chatError;
-  String? aiDraft;
   String? pushError;
 
   Future<void> initialize() async {
@@ -89,16 +89,26 @@ class AppController extends ChangeNotifier {
     await Future.wait([refreshWeather(), loadNews()]);
   }
 
-  Future<void> refreshWeather({CityLocation? nextLocation}) async {
+  Future<void> refreshWeather({
+    CityLocation? nextLocation,
+    bool refreshImage = false,
+  }) async {
     final target = nextLocation ?? location;
     final targetIndex = selectedLocationIndex;
     final requestSerial = ++_weatherRequestSerial;
+    String? imageNonce;
+    if (refreshImage) {
+      final nextPage = ((_imagePageByLocation[target.storageKey] ?? 1) % 20) + 1;
+      _imagePageByLocation[target.storageKey] = nextPage;
+      imageNonce = nextPage.toString();
+    }
     weatherState = LoadState.loading;
     weatherError = null;
     notifyListeners();
     try {
       final result = await weatherRepository.refresh(
         target,
+        imageNonce: imageNonce,
         allowCacheFallback: nextLocation == null,
         shouldPersist: () =>
             requestSerial == _weatherRequestSerial &&
@@ -150,8 +160,8 @@ class AppController extends ChangeNotifier {
     selectedLocationIndex = locations.length - 1;
     location = value;
     weather = null;
-    await store.saveLocations(locations, selectedLocationIndex);
     notifyListeners();
+    await store.saveLocations(locations, selectedLocationIndex);
     await refreshWeather(nextLocation: value);
   }
 
@@ -161,12 +171,12 @@ class AppController extends ChangeNotifier {
     selectedLocationIndex = index;
     location = target;
     weather = _weatherByLocation[location.storageKey];
+    notifyListeners();
     await store.saveLocations(locations, selectedLocationIndex);
     if (selectedLocationIndex != index ||
         location.storageKey != target.storageKey) {
       return;
     }
-    notifyListeners();
     await refreshWeather(nextLocation: target);
   }
 
@@ -193,6 +203,26 @@ class AppController extends ChangeNotifier {
     await store.saveLocations(locations, selectedLocationIndex);
     notifyListeners();
     if (weather == null) await refreshWeather();
+  }
+
+  Future<void> reorderLocation(int oldIndex, int newIndex) async {
+    if (oldIndex < 0 || oldIndex >= locations.length) return;
+    if (newIndex < 0 || newIndex >= locations.length || oldIndex == newIndex) {
+      return;
+    }
+    final selectedKey = location.storageKey;
+    final reordered = [...locations];
+    final moved = reordered.removeAt(oldIndex);
+    reordered.insert(newIndex, moved);
+    locations = reordered;
+    selectedLocationIndex = locations.indexWhere(
+      (item) => item.storageKey == selectedKey,
+    );
+    if (selectedLocationIndex < 0) selectedLocationIndex = 0;
+    location = locations[selectedLocationIndex];
+    weather = _weatherByLocation[location.storageKey] ?? weather;
+    notifyListeners();
+    await store.saveLocations(locations, selectedLocationIndex);
   }
 
   Future<List<CityLocation>> searchCities(String value) async {
@@ -252,16 +282,6 @@ class AppController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void askAboutNews(NewsArticle article) {
-    aiDraft =
-        'Analise esta notícia, resuma os fatos e explique o possível impacto:\n\n${article.aiContext}';
-    notifyListeners();
-  }
-
-  void clearAiDraft() {
-    aiDraft = null;
-  }
-
   Future<void> sendMessage(String rawPrompt) async {
     final prompt = rawPrompt.trim();
     if (prompt.isEmpty || isSendingChat) return;
@@ -274,7 +294,6 @@ class AppController extends ChangeNotifier {
     chat = [...chat, userMessage];
     isSendingChat = true;
     chatError = null;
-    aiDraft = null;
     notifyListeners();
     try {
       final response = await _client.sendChat(
