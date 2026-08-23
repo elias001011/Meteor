@@ -1,707 +1,202 @@
-
-
-import React, { useState, useEffect } from 'react';
-import type { AppSettings, View, DataSource, AppTheme, TransparencyMode, ClockDisplayMode, BackgroundMode, MapTheme, BorderEffectMode, LayoutDensity, DesktopLayout, UnitSystem, ForecastComplexity, ForecastDetailView, ZenModeStyle, ZenModeBackground, ZenModeSound } from '../../types';
-import { getSettings, resetSettings, resetCache, resetAllData, exportAppData } from '../../services/settingsService';
+import React, { useEffect, useState } from 'react';
+import type {
+  AppSettings, AppTheme, BackgroundMode, ClockDisplayMode, DataSource,
+  ForecastDetailView, LayoutDensity, MapTheme, StartupBehavior, View,
+  ZenModeBackground, ZenModeSound, ZenModeStyle,
+} from '../../types';
+import { exportAppData, getSettings, resetAllData, resetCache, resetSettings } from '../../services/settingsService';
 import { useTheme } from '../context/ThemeContext';
-import {
-    LightbulbIcon, SparklesIcon, ChevronLeftIcon, GaugeIcon,
-    HeartIcon, GithubIcon, FileTextIcon, GlobeIcon, SettingsIcon,
-    DatabaseIcon, AlertTriangleIcon, MapIcon, HomeIcon, EyeIcon, MaximizeIcon
-} from '../icons';
+import { AlertTriangleIcon, FileTextIcon, GithubIcon, GlobeIcon } from '../icons';
 
 interface SettingsViewProps {
-    settings: AppSettings;
-    onSettingsChanged: (newSettings: AppSettings) => void;
-    onClearHistory: () => void; 
-    onOpenImport: () => void;
-    onOpenChangelog: () => void;
-    onOpenCitySelection: () => void;
+  settings: AppSettings;
+  onSettingsChanged: (newSettings: AppSettings) => void;
+  onClearHistory: () => void;
+  onOpenImport: () => void;
+  onOpenChangelog: () => void;
+  onOpenCitySelection: () => void;
 }
 
-type SettingsTab = 'general' | 'visual' | 'ai' | 'data' | 'about';
+type SettingsTab = 'general' | 'appearance' | 'ai' | 'data' | 'about';
 
-const SettingsView: React.FC<SettingsViewProps> = ({ 
-    settings, 
-    onSettingsChanged, 
-    onClearHistory, 
-    onOpenImport, 
-    onOpenChangelog, 
-    onOpenCitySelection 
-}) => {
-    const [activeTab, setActiveTab] = useState<SettingsTab>('general');
-    const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
-    const [pixCopied, setPixCopied] = useState(false);
-    
-    const { classes, density, isPerformanceMode, cardClass, glassClass } = useTheme();
-    const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
+const tabs: Array<{ id: SettingsTab; label: string }> = [
+  { id: 'general', label: 'Geral' }, { id: 'appearance', label: 'Aparência' },
+  { id: 'ai', label: 'IA' }, { id: 'data', label: 'Dados' }, { id: 'about', label: 'Sobre' },
+];
 
-    useEffect(() => {
-        const handleFsChange = () => setIsFullscreen(!!document.fullscreenElement);
-        document.addEventListener('fullscreenchange', handleFsChange);
-        return () => document.removeEventListener('fullscreenchange', handleFsChange);
-    }, []);
+const themes: Array<{ id: AppTheme; label: string; color: string }> = [
+  { id: 'cyan', label: 'Ciano', color: 'bg-cyan-500' }, { id: 'blue', label: 'Azul', color: 'bg-blue-600' },
+  { id: 'purple', label: 'Roxo', color: 'bg-purple-600' }, { id: 'emerald', label: 'Verde', color: 'bg-emerald-600' },
+  { id: 'rose', label: 'Rosa', color: 'bg-rose-600' }, { id: 'amber', label: 'Âmbar', color: 'bg-amber-500' },
+];
 
-    const handleSave = (updatedSettings: Partial<AppSettings>) => {
-        const newSettings = { ...settings, ...updatedSettings };
-        onSettingsChanged(newSettings);
-    };
+const Panel: React.FC<{ title: string; description?: string; children: React.ReactNode }> = ({ title, description, children }) => {
+  const { cardClass } = useTheme();
+  return (
+    <section className={`rounded-2xl p-4 sm:p-5 ${cardClass}`}>
+      <div className="mb-4">
+        <h3 className="text-sm font-semibold text-white">{title}</h3>
+        {description && <p className="mt-1 text-xs leading-relaxed text-slate-500">{description}</p>}
+      </div>
+      {children}
+    </section>
+  );
+};
 
-    const toggleFullscreen = () => {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch(err => {});
-        } else {
-            if (document.exitFullscreen) document.exitFullscreen();
-        }
-    };
+const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged, onClearHistory, onOpenImport, onOpenChangelog, onOpenCitySelection }) => {
+  const [activeTab, setActiveTab] = useState<SettingsTab>('general');
+  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const [pixCopied, setPixCopied] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(Boolean(document.fullscreenElement));
+  const { classes, isPerformanceMode } = useTheme();
 
-    const handleReset = (type: 'settings' | 'cache' | 'history' | 'all') => {
-        if (!confirm("Tem certeza? Esta ação é irreversível.")) return;
-        switch (type) {
-            case 'settings': resetSettings(); onSettingsChanged(getSettings()); setFeedbackMessage("Configurações resetadas."); break;
-            case 'cache': resetCache(); setFeedbackMessage("Cache limpo."); break;
-            case 'history': onClearHistory(); setFeedbackMessage("Histórico da IA limpo."); break;
-            case 'all': resetAllData(); window.location.reload(); break;
-        }
-        setTimeout(() => setFeedbackMessage(null), 3000);
-    };
+  useEffect(() => {
+    const update = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener('fullscreenchange', update);
+    return () => document.removeEventListener('fullscreenchange', update);
+  }, []);
 
-    const handleExport = () => {
-        exportAppData();
-        setFeedbackMessage("Backup salvo nos downloads!");
-        setTimeout(() => setFeedbackMessage(null), 3000);
-    };
+  const save = (patch: Partial<AppSettings>) => onSettingsChanged({ ...settings, ...patch });
+  const notify = (message: string) => {
+    setFeedbackMessage(message);
+    window.setTimeout(() => setFeedbackMessage(null), 2600);
+  };
 
-    const handleCopyPix = () => {
-        navigator.clipboard.writeText("8001be0f-4952-4ef8-b2a5-9bafe691c65c");
-        setPixCopied(true);
-        setTimeout(() => setPixCopied(false), 2000);
-    };
-    
-    const themes: { id: AppTheme, name: string, color: string }[] = [
-        { id: 'cyan', name: 'Padrão', color: 'bg-cyan-500' },
-        { id: 'blue', name: 'Royal', color: 'bg-blue-600' },
-        { id: 'purple', name: 'Profundo', color: 'bg-purple-600' },
-        { id: 'emerald', name: 'Natureza', color: 'bg-emerald-600' },
-        { id: 'rose', name: 'Floral', color: 'bg-rose-600' },
-        { id: 'amber', name: 'Solar', color: 'bg-amber-500' },
-    ];
+  const toggleFullscreen = async () => {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await document.documentElement.requestFullscreen();
+    } catch { notify('O navegador bloqueou o modo tela cheia.'); }
+  };
 
-    const backgroundOptions: { id: BackgroundMode, label: string }[] = [
-        { id: 'gradient', label: 'Gradiente' },
-        { id: 'solid', label: 'Sólido' },
-        { id: 'amoled', label: 'Preto AMOLED' }
-    ];
+  const handleReset = (type: 'settings' | 'cache' | 'history' | 'all') => {
+    if (!window.confirm('Tem certeza? Esta ação não pode ser desfeita.')) return;
+    if (type === 'settings') { resetSettings(); onSettingsChanged(getSettings()); notify('Ajustes restaurados.'); }
+    else if (type === 'cache') { resetCache(); notify('Cache do clima removido.'); }
+    else if (type === 'history') { onClearHistory(); notify('Histórico da IA removido.'); }
+    else { resetAllData(); window.location.reload(); }
+  };
 
-    const borderEffectOptions: { id: BorderEffectMode, label: string }[] = [
-        { id: 'none', label: 'Nenhum' },
-        { id: 'top', label: 'Topo' },
-        { id: 'bottom', label: 'Base' }
-    ];
+  const handleCopyPix = async () => {
+    try {
+      await navigator.clipboard.writeText('8001be0f-4952-4ef8-b2a5-9bafe691c65c');
+      setPixCopied(true);
+      window.setTimeout(() => setPixCopied(false), 2000);
+    } catch { notify('Não foi possível copiar automaticamente.'); }
+  };
 
-    const densityOptions: { id: LayoutDensity, label: string }[] = [
-        { id: 'comfortable', label: 'Confortável' },
-        { id: 'compact', label: 'Compacto' }
-    ];
+  const inputClass = `w-full rounded-xl border border-white/[0.08] bg-black/20 px-3.5 py-3 text-sm text-slate-200 outline-none placeholder:text-slate-600 focus:ring-1 ${classes.ring}`;
+  const optionClass = 'bg-[#15191f] text-white';
 
-    const mapThemeOptions: { id: MapTheme, label: string }[] = [
-        { id: 'dark', label: 'Escuro' },
-        { id: 'light', label: 'Claro' }
-    ];
+  const Toggle = ({ checked, onChange, label }: { checked: boolean; onChange: () => void; label: string }) => (
+    <button type="button" role="switch" aria-checked={checked} aria-label={label} onClick={onChange} className={`relative h-6 w-10 flex-none rounded-full transition-colors ${checked ? classes.bg : 'bg-slate-700'}`}>
+      <span className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-[left] ${checked ? 'left-5' : 'left-1'}`} />
+    </button>
+  );
 
-    const desktopLayoutOptions: { id: DesktopLayout, label: string }[] = [
-        { id: '25-75', label: 'Lateral (25/75)' },
-        { id: '40-60', label: 'Balanceado (40/60)' },
-        { id: '50-50', label: 'Dividido (50/50)' }
-    ];
-    
-    // Zen Mode Options
-    const zenStyles: { id: ZenModeStyle, label: string }[] = [
-        { id: 'cinematic', label: 'Cinemático' },
-        { id: 'minimal', label: 'Minimalista' }
-    ];
-    
-    const zenBackgrounds: { id: ZenModeBackground, label: string }[] = [
-        { id: 'image', label: 'Imagem (Cidade)' },
-        { id: 'app', label: 'Fundo do App' }
-    ];
+  const Row = ({ title, description, action }: { title: string; description?: string; action: React.ReactNode }) => (
+    <div className="flex items-center justify-between gap-5 rounded-xl px-1 py-2.5">
+      <div className="min-w-0"><p className="text-sm font-medium text-slate-200">{title}</p>{description && <p className="mt-0.5 text-xs leading-relaxed text-slate-500">{description}</p>}</div>
+      {action}
+    </div>
+  );
 
-    const selectStyle = `w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-gray-200 focus:ring-2 outline-none ${classes.ring} appearance-none cursor-pointer hover:bg-white/5 transition-colors ${density.text}`;
-    const inputStyle = `w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-gray-200 focus:ring-2 outline-none ${classes.ring} placeholder-gray-500 transition-colors ${density.text}`;
-    const optionClass = "bg-slate-900 text-white py-2";
+  const Segment = <T extends string,>({ value, options, onChange }: { value: T; options: Array<{ value: T; label: string }>; onChange: (value: T) => void }) => (
+    <div className="flex min-w-0 rounded-xl bg-black/20 p-1">
+      {options.map(option => <button type="button" key={option.value} onClick={() => onChange(option.value)} className={`min-w-0 flex-1 rounded-lg px-2.5 py-2 text-xs transition-colors ${value === option.value ? 'bg-white/[0.09] text-white' : 'text-slate-500 hover:text-slate-300'}`}>{option.label}</button>)}
+    </div>
+  );
 
-    const ToggleSwitch = ({ checked, onChange, disabled = false, activeColorClass }: { checked: boolean, onChange: () => void, disabled?: boolean, activeColorClass?: string }) => (
-        <button 
-            onClick={onChange}
-            disabled={disabled}
-            className={`relative w-12 h-7 rounded-full transition-all duration-300 ease-in-out focus:outline-none flex-shrink-0 active:scale-95 ${checked ? (activeColorClass || classes.bg) + ` shadow-[0_0_10px_rgba(0,0,0,0.3)]` : 'bg-gray-700'} ${disabled ? 'cursor-not-allowed opacity-40 saturate-0' : 'cursor-pointer hover:brightness-110'}`}
-        >
-            <span className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow-sm transform transition-all duration-300 ease-in-out ${checked ? 'left-6' : 'left-1'}`} />
-        </button>
-    );
-
-    const TabButton = ({ id, label, icon }: { id: SettingsTab, label: string, icon: React.ReactNode }) => {
-        const isActive = activeTab === id;
-        return (
-            <button
-                onClick={() => setActiveTab(id)}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-full transition-all duration-300 font-medium text-sm flex-shrink-0 relative overflow-hidden group active:scale-95
-                    ${isActive ? `${classes.bg} text-white shadow-lg` : 'bg-transparent text-gray-400 hover:bg-white/5 hover:text-gray-200'}`}
-            >
-                <div className="relative z-10 flex items-center gap-2">{icon}<span className="whitespace-nowrap">{label}</span></div>
-            </button>
-        );
-    };
-
-    const DisabledOverlay = ({ children }: { children?: React.ReactNode }) => (
-        <div className="relative">
-            <div className="absolute inset-0 z-10 bg-gray-900/50 backdrop-blur-[1px] rounded-xl flex items-center justify-center border border-white/5">
-                <span className="text-[10px] font-bold text-white bg-black/60 px-2 py-1 rounded border border-white/10">Controlado pelo Modo Desempenho</span>
-            </div>
-            <div className="opacity-40 pointer-events-none grayscale">{children}</div>
+  const renderGeneral = () => (
+    <div className="space-y-4">
+      <Panel title="Ao abrir o Meteor" description="Escolha a tela ou a localização carregada na inicialização.">
+        <select value={settings.startupBehavior} onChange={event => { const behavior = event.target.value as StartupBehavior; save({ startupBehavior: behavior }); if (behavior === 'specific_location' && !settings.specificLocation) onOpenCitySelection(); }} className={inputClass}>
+          <option value="idle" className={optionClass}>Mostrar a busca</option><option value="last_location" className={optionClass}>Abrir a última localização</option>
+          <option value="specific_location" className={optionClass}>Abrir uma localização escolhida</option><option value="custom_section" className={optionClass}>Abrir uma seção específica</option>
+        </select>
+        {settings.startupBehavior === 'custom_section' && <select value={settings.startupSection || 'weather'} onChange={event => save({ startupSection: event.target.value as View })} className={`${inputClass} mt-3`}>
+          <option value="weather" className={optionClass}>Clima</option><option value="map" className={optionClass}>Mapa</option><option value="ai" className={optionClass}>Meteor IA</option><option value="news" className={optionClass}>Notícias</option><option value="alerts" className={optionClass}>Alertas</option>
+        </select>}
+        {settings.startupBehavior === 'specific_location' && <button type="button" onClick={onOpenCitySelection} className="mt-3 w-full rounded-xl bg-white/[0.04] px-3.5 py-3 text-left text-sm text-slate-300 hover:bg-white/[0.07]">{settings.specificLocation ? `${settings.specificLocation.name}, ${settings.specificLocation.country}` : 'Selecionar localização'}</button>}
+      </Panel>
+      <Panel title="Clima e unidades">
+        <div className="space-y-2">
+          <Segment value={settings.unitSystem} options={[{ value: 'metric', label: 'Métrico · °C' }, { value: 'imperial', label: 'Imperial · °F' }]} onChange={unitSystem => save({ unitSystem })} />
+          <Row title="Relógio no cabeçalho" action={<Toggle label="Relógio no cabeçalho" checked={settings.showClock} onChange={() => save({ showClock: !settings.showClock })} />} />
+          <div className="px-1 pt-1"><label className="mb-2 block text-xs text-slate-500">Horário local no card principal</label><select value={settings.clockDisplayMode} onChange={event => save({ clockDisplayMode: event.target.value as ClockDisplayMode })} className={inputClass}><option value="always" className={optionClass}>Sempre mostrar</option><option value="different_zone" className={optionClass}>Somente em outro fuso</option><option value="never" className={optionClass}>Não mostrar</option></select></div>
         </div>
-    );
-
-    // Helper to determine the active "Main" transparency tab (Off, Transparent, Glass)
-    const activeTransparencyTab = settings.transparencyMode === 'glass' ? 'glass' : (settings.transparencyMode === 'off' ? 'off' : 'transparent');
-
-    const renderGeneral = () => (
-        <div className={`space-y-6 animate-enter`}>
-            {/* Modo Desempenho */}
-            <section className={`${cardClass} rounded-3xl ${density.padding} border-l-4`} style={{ borderLeftColor: classes.hex }}>
-                 <div className="flex items-center justify-between">
-                    <div className="flex flex-col gap-0.5">
-                        <span className="text-white font-bold text-lg">Modo Desempenho</span>
-                        <span className={`text-xs ${density.subtext} text-gray-400`}>Desliga transparências, blur e animações para máxima velocidade.</span>
-                    </div>
-                    <ToggleSwitch checked={settings.performanceMode} onChange={() => handleSave({ performanceMode: !settings.performanceMode })} activeColorClass={classes.bg} />
-                </div>
-            </section>
-
-            {/* 3. Inicialização */}
-            <section className={`${cardClass} rounded-3xl ${density.padding}`}>
-                <h3 className={`text-lg font-bold ${classes.text} mb-4 flex items-center gap-2`}><HomeIcon className="w-5 h-5" /> Inicialização</h3>
-                <div className={density.settingsGap}>
-                    <div className="flex flex-col gap-2">
-                        <label className={`${density.text} text-sm font-medium text-gray-300`}>Comportamento ao abrir</label>
-                        <select value={settings.startupBehavior} onChange={(e) => { const val = e.target.value as any; handleSave({ startupBehavior: val }); if (val === 'specific_location' && !settings.specificLocation) onOpenCitySelection(); }} className={selectStyle}>
-                            <option value="idle" className={optionClass}>Tela Inicial (Boas-vindas)</option>
-                            <option value="last_location" className={optionClass}>Carregar Última Localização</option>
-                            <option value="specific_location" className={optionClass}>Carregar Localização Específica</option>
-                            <option value="custom_section" className={optionClass}>Abrir em uma Seção (ex: Chat)</option>
-                        </select>
-                    </div>
-                    
-                    {/* Seletor de Seção Específica */}
-                    {settings.startupBehavior === 'custom_section' && (
-                        <div className="flex flex-col gap-2 animate-enter pl-4 border-l-2 border-gray-700">
-                            <label className={`${density.text} text-sm font-medium text-gray-300`}>Selecione a Seção</label>
-                            <select 
-                                value={settings.startupSection || 'weather'} 
-                                onChange={(e) => handleSave({ startupSection: e.target.value as View })} 
-                                className={selectStyle}
-                            >
-                                <option value="weather" className={optionClass}>Clima</option>
-                                <option value="map" className={optionClass}>Mapa</option>
-                                <option value="ai" className={optionClass}>IA (Chat)</option>
-                                <option value="news" className={optionClass}>Notícias</option>
-                                <option value="alerts" className={optionClass}>Alertas meteorológicos</option>
-                                <option value="settings" className={optionClass}>Ajustes</option>
-                            </select>
-                        </div>
-                    )}
-
-                    {/* Seletor de Local Específico com Validação */}
-                    {settings.startupBehavior === 'specific_location' && (
-                        <div className={`flex items-center justify-between bg-black/20 p-4 rounded-xl border ${!settings.specificLocation ? 'border-red-500/50' : 'border-white/5'} mt-2 animate-enter`}>
-                            <div>
-                                <p className="text-sm text-gray-400">Local Padrão:</p>
-                                <p className={`font-bold ${!settings.specificLocation ? 'text-red-400 animate-pulse' : 'text-white'}`}>
-                                    {settings.specificLocation?.name || '⚠️ Nenhum selecionado!'}
-                                </p>
-                            </div>
-                            <button onClick={onOpenCitySelection} className={`${classes.text} text-sm hover:underline font-bold`}>
-                                {settings.specificLocation ? 'Alterar' : 'Selecionar'}
-                            </button>
-                        </div>
-                    )}
-                </div>
-            </section>
-
-            {/* 4. Sistema & Interface */}
-            <section className={`${cardClass} rounded-3xl ${density.padding}`}>
-                <h3 className={`text-lg font-bold ${classes.text} mb-4 flex items-center gap-2`}><SettingsIcon className="w-5 h-5" /> Sistema & Interface</h3>
-                <div className={density.settingsGap}>
-                    <div className="flex items-center justify-between">
-                        <span className={`${density.text} text-white font-medium`}>Modo Tela Cheia</span>
-                        <button onClick={toggleFullscreen} className={`px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg ${isFullscreen ? 'bg-red-500/20 text-red-300' : 'bg-white/10 text-white'}`}>{isFullscreen ? 'Sair' : 'Ativar'}</button>
-                    </div>
-                    <div className="flex items-center justify-between pt-4 border-t border-white/5">
-                        <span className={`${density.text} text-white font-medium`}>Iniciar em tela cheia</span>
-                        <ToggleSwitch checked={settings.startFullscreen} onChange={() => handleSave({ startFullscreen: !settings.startFullscreen })} activeColorClass={classes.bg} />
-                    </div>
-                    <div className="flex items-center justify-between pt-4 border-t border-white/5">
-                        <span className={`${density.text} text-white font-medium`}>Relógio no Topo</span>
-                        <ToggleSwitch checked={settings.showClock} onChange={() => handleSave({ showClock: !settings.showClock })} activeColorClass={classes.bg} />
-                    </div>
-                    <div className="flex flex-col gap-2 pt-4 border-t border-white/5">
-                        <label className={`${density.text} text-sm font-medium text-gray-300`}>Horário Local da Cidade (Card)</label>
-                        <select value={settings.clockDisplayMode} onChange={(e) => handleSave({ clockDisplayMode: e.target.value as ClockDisplayMode })} className={selectStyle}>
-                            <option value="always" className={optionClass}>Sempre mostrar</option>
-                            <option value="different_zone" className={optionClass}>Apenas se o fuso for diferente</option>
-                            <option value="never" className={optionClass}>Nunca mostrar</option>
-                        </select>
-                    </div>
-                    <div className="flex items-center justify-between pt-4 border-t border-white/5">
-                        <span className={`${density.text} text-white font-medium`}>Barras de Rolagem</span>
-                        <ToggleSwitch checked={settings.showScrollbars} onChange={() => handleSave({ showScrollbars: !settings.showScrollbars })} activeColorClass={classes.bg} />
-                    </div>
-
-                    {/* Unidades de Medida - V4.0 Feature */}
-                    <div className="flex flex-col gap-2 pt-4 border-t border-white/5">
-                         <label className={`${density.text} text-sm font-medium text-gray-300`}>Sistema de Unidades</label>
-                         <div className="flex bg-black/20 rounded-xl p-1 border border-white/5">
-                            <button onClick={() => handleSave({ unitSystem: 'metric' })} className={`flex-1 py-2 rounded-lg text-xs font-medium ${settings.unitSystem !== 'imperial' ? 'bg-white/10 text-white' : 'text-gray-400'}`}>Métrico (°C, km/h)</button>
-                            <button onClick={() => handleSave({ unitSystem: 'imperial' })} className={`flex-1 py-2 rounded-lg text-xs font-medium ${settings.unitSystem === 'imperial' ? 'bg-white/10 text-white' : 'text-gray-400'}`}>Imperial (°F, mph)</button>
-                        </div>
-                    </div>
-                </div>
-            </section>
+      </Panel>
+      <Panel title="Navegador">
+        <div className="space-y-1">
+          <Row title="Tela cheia" description="É ativada somente após um clique, como exigido pelo navegador." action={<button type="button" onClick={toggleFullscreen} className="rounded-lg bg-white/[0.07] px-3 py-2 text-xs text-slate-200 hover:bg-white/[0.1]">{isFullscreen ? 'Sair' : 'Ativar'}</button>} />
+          <Row title="Exibir barras de rolagem" action={<Toggle label="Exibir barras de rolagem" checked={settings.showScrollbars} onChange={() => save({ showScrollbars: !settings.showScrollbars })} />} />
+          <Row title="Modo de desempenho" description="Reduz transparência e movimento em aparelhos mais lentos." action={<Toggle label="Modo de desempenho" checked={settings.performanceMode} onChange={() => save({ performanceMode: !settings.performanceMode })} />} />
         </div>
-    );
+      </Panel>
+    </div>
+  );
 
-    const renderVisual = () => (
-        <div className={`space-y-6 animate-enter`}>
-            {/* 1. Cores e Tema */}
-            <section className={`${cardClass} rounded-3xl ${density.padding}`}>
-                <h3 className={`text-lg font-bold ${classes.text} mb-4 flex items-center gap-2`}><EyeIcon className="w-5 h-5" /> Cores e Tema</h3>
-                <div className={density.settingsGap}>
-                    <div className="flex items-center justify-between pb-3 border-b border-white/5">
-                        <span className={`${density.text} text-white font-medium`}>Tema Dinâmico</span>
-                        <ToggleSwitch checked={settings.dynamicTheme} onChange={() => handleSave({ dynamicTheme: !settings.dynamicTheme })} activeColorClass={classes.bg} />
-                    </div>
-                    <div className={`${settings.dynamicTheme ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
-                        <label className={`${density.text} font-medium text-gray-300 mb-3 block`}>Cor Principal</label>
-                        <div className={`flex flex-wrap ${density.itemGap}`}>
-                            {themes.map((theme) => (
-                                <button key={theme.id} onClick={() => handleSave({ themeColor: theme.id })} className={`w-12 h-12 rounded-full ${theme.color} ring-2 ${settings.themeColor === theme.id ? `ring-white scale-110` : 'ring-transparent opacity-70'} transition-all`} aria-label={`Selecionar cor ${theme.name}`}/>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-             {/* 2. Resumo do Clima (Insights) */}
-             <section className={`${cardClass} rounded-3xl ${density.padding}`}>
-                <h3 className={`text-lg font-bold ${classes.text} mb-4 flex items-center gap-2`}><LightbulbIcon className="w-5 h-5" /> Resumo do Clima</h3>
-                <div className={density.settingsGap}>
-                    <div className="flex items-center justify-between">
-                        <span className={`${density.text} text-white font-medium`}>Habilitar Resumos</span>
-                        <ToggleSwitch checked={settings.weatherInsights.enabled} onChange={() => handleSave({ weatherInsights: { ...settings.weatherInsights, enabled: !settings.weatherInsights.enabled } })} activeColorClass={classes.bg} />
-                    </div>
-                    {settings.weatherInsights.enabled && (
-                        <div className="space-y-4 pt-4 border-t border-white/5 animate-enter">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="text-xs text-gray-400 block mb-2">Estilo Visual</label>
-                                    <div className="flex bg-black/20 rounded-xl p-1 border border-white/5">
-                                        <button onClick={() => handleSave({ weatherInsights: { ...settings.weatherInsights, style: 'container' } })} className={`flex-1 py-2 rounded-lg text-xs font-medium ${settings.weatherInsights.style === 'container' ? 'bg-white/10 text-white' : 'text-gray-400'}`}>Caixa</button>
-                                        <button onClick={() => handleSave({ weatherInsights: { ...settings.weatherInsights, style: 'clean' } })} className={`flex-1 py-2 rounded-lg text-xs font-medium ${settings.weatherInsights.style === 'clean' ? 'bg-white/10 text-white' : 'text-gray-400'}`}>Limpo</button>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="text-xs text-gray-400 block mb-2">Conteúdo</label>
-                                    <select value={settings.weatherInsights.content} onChange={(e) => handleSave({ weatherInsights: { ...settings.weatherInsights, content: e.target.value as any } })} className={selectStyle}>
-                                        <option value="both" className={optionClass}>Ambos</option>
-                                        <option value="highlight" className={optionClass}>Apenas Destaque</option>
-                                        <option value="recommendation" className={optionClass}>Apenas Rec.</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <span className={`${density.text} text-gray-300 font-medium`}>Marcador pulsante</span>
-                                <ToggleSwitch checked={settings.weatherInsights.showPulse} onChange={() => handleSave({ weatherInsights: { ...settings.weatherInsights, showPulse: !settings.weatherInsights.showPulse } })} activeColorClass={classes.bg} />
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </section>
-            
-            {/* 2.5 Modo Zen (Novo v4.3) */}
-            <section className={`${cardClass} rounded-3xl ${density.padding}`}>
-                <h3 className={`text-lg font-bold ${classes.text} mb-4 flex items-center gap-2`}><MaximizeIcon className="w-5 h-5" /> Modo Zen</h3>
-                <div className={density.settingsGap}>
-                     <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="text-xs text-gray-400 block mb-2">Estilo Visual</label>
-                            <div className="flex bg-black/20 rounded-xl p-1 border border-white/5">
-                                {zenStyles.map((style) => (
-                                    <button 
-                                        key={style.id} 
-                                        onClick={() => handleSave({ zenMode: { ...settings.zenMode, style: style.id } })} 
-                                        className={`flex-1 py-2.5 rounded-lg text-xs font-medium ${settings.zenMode.style === style.id ? 'bg-white/10 text-white' : 'text-gray-400'}`}
-                                    >
-                                        {style.label}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                        <div>
-                            <label className="text-xs text-gray-400 block mb-2">Fundo</label>
-                            <div className="flex bg-black/20 rounded-xl p-1 border border-white/5">
-                                {zenBackgrounds.map((bg) => (
-                                    <button 
-                                        key={bg.id} 
-                                        onClick={() => handleSave({ zenMode: { ...settings.zenMode, background: bg.id } })} 
-                                        className={`flex-1 py-2.5 rounded-lg text-xs font-medium ${settings.zenMode.background === bg.id ? 'bg-white/10 text-white' : 'text-gray-400'}`}
-                                    >
-                                        {bg.label}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between pt-2">
-                        <div>
-                            <span className={`${density.text} text-white font-medium block`}>Exibir Detalhes do Clima</span>
-                            <span className="text-[10px] text-gray-500">Mostra temperatura e condições no rodapé.</span>
-                        </div>
-                        <ToggleSwitch checked={settings.zenMode.showWeatherInfo} onChange={() => handleSave({ zenMode: { ...settings.zenMode, showWeatherInfo: !settings.zenMode.showWeatherInfo } })} activeColorClass={classes.bg} />
-                    </div>
-                    
-                    <div className="pt-2 border-t border-white/5">
-                        <label className={`${density.text} text-sm font-medium text-gray-300 mb-2 block`}>Som Ambiente</label>
-                        <select 
-                            value={settings.zenMode.ambientSound} 
-                            onChange={(e) => handleSave({ zenMode: { ...settings.zenMode, ambientSound: e.target.value as ZenModeSound } })} 
-                            className={selectStyle}
-                        >
-                            <option value="off" className={optionClass}>Desligado</option>
-                            <option value="rain" className={optionClass}>Chuva Suave (Gerado)</option>
-                        </select>
-                        <p className="text-[10px] text-gray-500 mt-1">Sons gerados em tempo real (sem download).</p>
-                    </div>
-                </div>
-            </section>
-
-             {/* 3. Detalhes (V4.0) */}
-             <section className={`${cardClass} rounded-3xl ${density.padding}`}>
-                <h3 className={`text-lg font-bold ${classes.text} mb-4 flex items-center gap-2`}><SettingsIcon className="w-5 h-5" /> Detalhes</h3>
-                <div className={density.settingsGap}>
-                    {/* Visualização Complexa */}
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <span className={`${density.text} text-white font-medium block`}>Previsão Detalhada</span>
-                            <span className="text-[10px] text-gray-500">Exibe pop-up com UV, Vento e mais detalhes.</span>
-                        </div>
-                        <ToggleSwitch checked={settings.forecastComplexity === 'advanced'} onChange={() => handleSave({ forecastComplexity: settings.forecastComplexity === 'advanced' ? 'basic' : 'advanced' })} activeColorClass={classes.bg} />
-                    </div>
-                     {settings.forecastComplexity === 'advanced' && (
-                        <div className="pl-4 border-l-2 border-gray-700 animate-enter mt-2 space-y-4">
-                             <div>
-                                <label className="text-xs text-gray-400 block mb-2">Onde exibir detalhes?</label>
-                                <select value={settings.forecastDetailView} onChange={(e) => handleSave({ forecastDetailView: e.target.value as ForecastDetailView })} className={selectStyle}>
-                                    <option value="both" className={optionClass}>Ambos (Horária + Diária)</option>
-                                    <option value="forecast_only" className={optionClass}>Apenas Horária</option>
-                                    <option value="daily_only" className={optionClass}>Apenas Diária</option>
-                                </select>
-                             </div>
-                             <div className="flex items-center justify-between">
-                                <span className={`${density.text} text-gray-300 font-medium text-sm`}>Exibir rótulo "Detalhes"</span>
-                                <ToggleSwitch checked={settings.showDetailLabel} onChange={() => handleSave({ showDetailLabel: !settings.showDetailLabel })} activeColorClass={classes.bg} />
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </section>
-
-            {/* 4. Efeitos e Layout */}
-            <section className={`${cardClass} rounded-3xl ${density.padding}`}>
-                <h3 className={`text-lg font-bold ${classes.text} mb-4`}>Efeitos e Layout</h3>
-                <div className={density.settingsGap}>
-                    {/* Background & Border */}
-                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                        <div>
-                            <label className="text-xs text-gray-400 block mb-2">Estilo do Fundo</label>
-                            <div className="grid grid-cols-3 bg-black/20 rounded-xl p-1 border border-white/5">
-                                {backgroundOptions.map((opt) => (<button key={opt.id} onClick={() => handleSave({ backgroundMode: opt.id })} className={`flex-1 py-2.5 rounded-lg text-xs font-medium ${settings.backgroundMode === opt.id ? 'bg-white/10 text-white' : 'text-gray-400'}`}>{opt.label}</button>))}
-                            </div>
-                        </div>
-                        <div>
-                            <label className="text-xs text-gray-400 block mb-2">Borda LED</label>
-                            <div className="flex bg-black/20 rounded-xl p-1 border border-white/5">
-                                {borderEffectOptions.map((opt) => (<button key={opt.id} onClick={() => handleSave({ borderEffect: opt.id })} className={`flex-1 py-2.5 rounded-lg text-xs font-medium ${settings.borderEffect === opt.id ? 'bg-white/10 text-white' : 'text-gray-400'}`}>{opt.label}</button>))}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Transparência (Hierarchical Logic) */}
-                    <div className="pt-4 border-t border-white/5">
-                        <label className={`${density.text} text-sm font-medium text-gray-300 mb-2 block`}>Transparência e Vidro</label>
-                        
-                        {isPerformanceMode ? (
-                            <DisabledOverlay>
-                                 <div className="flex bg-black/20 rounded-xl p-1 border border-white/5 mb-3 h-12"></div>
-                            </DisabledOverlay>
-                        ) : (
-                            <>
-                                {/* 1. Main Mode Selection */}
-                                <div className="flex bg-black/20 rounded-xl p-1 border border-white/5 mb-3 overflow-x-auto">
-                                    <button 
-                                        onClick={() => handleSave({ transparencyMode: 'off' })} 
-                                        className={`flex-1 min-w-[70px] py-2.5 rounded-lg text-xs font-medium transition-all ${activeTransparencyTab === 'off' ? 'bg-white/10 text-white shadow-sm' : 'text-gray-400'}`}
-                                    >
-                                        Sólido
-                                    </button>
-                                    <button 
-                                        onClick={() => handleSave({ transparencyMode: settings.transparencyMode === 'balanced' ? 'balanced' : 'subtle' })} 
-                                        className={`flex-1 min-w-[70px] py-2.5 rounded-lg text-xs font-medium transition-all ${activeTransparencyTab === 'transparent' ? 'bg-white/10 text-white shadow-sm' : 'text-gray-400'}`}
-                                    >
-                                        Transparente
-                                    </button>
-                                    <button 
-                                        onClick={() => handleSave({ transparencyMode: 'glass' })} 
-                                        className={`flex-1 min-w-[70px] py-2.5 rounded-lg text-xs font-medium transition-all ${activeTransparencyTab === 'glass' ? 'bg-white/10 text-white shadow-sm' : 'text-gray-400'}`}
-                                    >
-                                        Vidro (Blur)
-                                    </button>
-                                </div>
-
-                                {/* 2. Sub-options for Transparent Mode */}
-                                {activeTransparencyTab === 'transparent' && (
-                                    <div className="pl-4 border-l-2 border-gray-700 animate-enter mb-3">
-                                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Intensidade</h4>
-                                        <div className="flex bg-black/20 rounded-xl p-1 border border-white/5 w-fit">
-                                            <button onClick={() => handleSave({ transparencyMode: 'subtle' })} className={`px-4 py-2 rounded-lg text-xs font-medium ${settings.transparencyMode === 'subtle' ? 'bg-white/10 text-white' : 'text-gray-400'}`}>Sutil (96%)</button>
-                                            <button onClick={() => handleSave({ transparencyMode: 'balanced' })} className={`px-4 py-2 rounded-lg text-xs font-medium ${settings.transparencyMode === 'balanced' ? 'bg-white/10 text-white' : 'text-gray-400'}`}>Equilibrado (93%)</button>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* 3. Scope Toggles for Transparent AND Glass Modes */}
-                                {(activeTransparencyTab === 'glass' || activeTransparencyTab === 'transparent') && !settings.performanceMode && (
-                                    <div className="pl-4 border-l-2 border-gray-700 space-y-2 animate-enter">
-                                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Aplicar Efeito em:</h4>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            <label className="flex items-center gap-3 cursor-pointer p-2 rounded hover:bg-white/5"><input type="checkbox" checked={settings.glassScope.header} onChange={() => handleSave({ glassScope: { ...settings.glassScope, header: !settings.glassScope.header } })} className="accent-cyan-500 w-4 h-4" /><span className="text-sm text-gray-300">Cabeçalho (Header)</span></label>
-                                            <label className="flex items-center gap-3 cursor-pointer p-2 rounded hover:bg-white/5"><input type="checkbox" checked={settings.glassScope.cards} onChange={() => handleSave({ glassScope: { ...settings.glassScope, cards: !settings.glassScope.cards } })} className="accent-cyan-500 w-4 h-4" /><span className="text-sm text-gray-300">Cartões e Widgets</span></label>
-                                            <label className="flex items-center gap-3 cursor-pointer p-2 rounded hover:bg-white/5"><input type="checkbox" checked={settings.glassScope.overlays} onChange={() => handleSave({ glassScope: { ...settings.glassScope, overlays: !settings.glassScope.overlays } })} className="accent-cyan-500 w-4 h-4" /><span className="text-sm text-gray-300">Menus e Sobreposições</span></label>
-                                        </div>
-                                    </div>
-                                )}
-                            </>
-                        )}
-                    </div>
-
-                    {/* Density & Map */}
-                    <div className="pt-4 border-t border-white/5 grid grid-cols-2 gap-4">
-                         <div>
-                             <label className={`${density.text} text-sm font-medium text-gray-300 mb-2 block`}>Densidade</label>
-                             <div className="flex bg-black/20 rounded-xl p-1 border border-white/5">
-                                {densityOptions.map((opt) => (<button key={opt.id} onClick={() => handleSave({ layoutDensity: opt.id })} className={`flex-1 py-2 rounded-lg text-xs font-medium ${settings.layoutDensity === opt.id ? 'bg-white/10 text-white' : 'text-gray-400'}`}>{opt.label}</button>))}
-                            </div>
-                        </div>
-                         <div>
-                             <label className={`${density.text} text-sm font-medium text-gray-300 mb-2 block`}>Tema do Mapa</label>
-                             <div className="flex bg-black/20 rounded-xl p-1 border border-white/5">
-                                {mapThemeOptions.map((opt) => (<button key={opt.id} onClick={() => handleSave({ mapTheme: opt.id })} className={`flex-1 py-2 rounded-lg text-xs font-medium ${settings.mapTheme === opt.id ? 'bg-white/10 text-white' : 'text-gray-400'}`}>{opt.label}</button>))}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Layout Desktop */}
-                    <div className="hidden lg:block pt-2">
-                         <label className={`${density.text} text-sm font-medium text-gray-300 mb-2 block`}>Layout da Tela</label>
-                         <div className="flex bg-black/20 rounded-xl p-1 border border-white/5">
-                            {desktopLayoutOptions.map((opt) => (<button key={opt.id} onClick={() => handleSave({ desktopLayout: opt.id })} className={`flex-1 py-2 rounded-lg text-sm font-medium ${settings.desktopLayout === opt.id ? 'bg-white/10 text-white' : 'text-gray-400'}`}>{opt.label}</button>))}
-                        </div>
-                    </div>
-
-                    {/* Animations */}
-                    <div className="pt-4 border-t border-white/5 space-y-3">
-                         <div className="flex items-center justify-between">
-                            <span className={`${density.text} text-white font-medium`}>Remover Animações</span>
-                            {isPerformanceMode ? (
-                                <span className="text-xs text-gray-500 bg-black/20 px-2 py-1 rounded">Desligado (Perf.)</span>
-                            ) : (
-                                <ToggleSwitch checked={settings.reducedMotion} onChange={() => handleSave({ reducedMotion: !settings.reducedMotion })} activeColorClass={classes.bg} />
-                            )}
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className={`${density.text} text-white font-medium`}>Animação de Chuva</span>
-                            <ToggleSwitch checked={settings.rainAnimation.enabled} onChange={() => handleSave({ rainAnimation: { ...settings.rainAnimation, enabled: !settings.rainAnimation.enabled } })} activeColorClass={classes.bg} />
-                        </div>
-                        
-                        {settings.rainAnimation.enabled && (
-                             isPerformanceMode ? (
-                                 <DisabledOverlay>
-                                     <div className="flex items-center justify-between pl-4 border-l-2 border-gray-700">
-                                         <span className="text-xs text-gray-400">Intensidade Visual</span>
-                                         <div className="flex bg-black/20 rounded-lg p-0.5 border border-white/5 h-8 w-24"></div>
-                                     </div>
-                                 </DisabledOverlay>
-                             ) : (
-                                <div className="flex items-center justify-between pl-4 border-l-2 border-gray-700">
-                                    <span className="text-xs text-gray-400">Intensidade Visual</span>
-                                    <div className="flex bg-black/20 rounded-lg p-0.5 border border-white/5">
-                                        <button onClick={() => handleSave({ rainAnimation: { ...settings.rainAnimation, intensity: 'low' } })} className={`px-4 py-1.5 rounded text-xs font-medium ${settings.rainAnimation.intensity === 'low' ? 'bg-white/10 text-white' : 'text-gray-500'}`}>Leve</button>
-                                        <button onClick={() => handleSave({ rainAnimation: { ...settings.rainAnimation, intensity: 'high' } })} className={`px-4 py-1.5 rounded text-xs font-medium ${settings.rainAnimation.intensity === 'high' ? 'bg-white/10 text-white' : 'text-gray-500'}`}>Forte</button>
-                                    </div>
-                                </div>
-                             )
-                        )}
-                    </div>
-                </div>
-            </section>
+  const renderAppearance = () => {
+    const transparency = settings.transparencyMode === 'off' || settings.transparencyMode === 'glass' ? settings.transparencyMode : 'subtle';
+    return <div className="space-y-4">
+      <Panel title="Cores">
+        <Row title="Cor automática" description="Adapta o destaque à condição do tempo." action={<Toggle label="Cor automática" checked={settings.dynamicTheme} onChange={() => save({ dynamicTheme: !settings.dynamicTheme })} />} />
+        <div className={`mt-3 grid grid-cols-3 gap-2 sm:grid-cols-6 ${settings.dynamicTheme ? 'pointer-events-none opacity-40' : ''}`}>{themes.map(theme => <button type="button" key={theme.id} onClick={() => save({ themeColor: theme.id })} className={`flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs ${settings.themeColor === theme.id ? 'bg-white/[0.09] text-white' : 'text-slate-500 hover:bg-white/[0.04]'}`}><span className={`h-3 w-3 rounded-full ${theme.color}`} />{theme.label}</button>)}</div>
+      </Panel>
+      <Panel title="Superfície" description="Os modos mantêm o mesmo layout; muda apenas o fundo e a opacidade.">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div><label className="mb-2 block text-xs text-slate-500">Fundo</label><Segment<BackgroundMode> value={settings.backgroundMode} options={[{ value: 'solid', label: 'Sólido' }, { value: 'gradient', label: 'Gradiente' }, { value: 'amoled', label: 'AMOLED' }]} onChange={backgroundMode => save({ backgroundMode })} /></div>
+          <div className={isPerformanceMode ? 'pointer-events-none opacity-40' : ''}><label className="mb-2 block text-xs text-slate-500">Transparência</label><Segment value={transparency} options={[{ value: 'off', label: 'Sólido' }, { value: 'subtle', label: 'Sutil' }, { value: 'glass', label: 'Vidro' }]} onChange={transparencyMode => save({ transparencyMode })} /></div>
+          <div><label className="mb-2 block text-xs text-slate-500">Densidade</label><Segment<LayoutDensity> value={settings.layoutDensity} options={[{ value: 'compact', label: 'Compacta' }, { value: 'comfortable', label: 'Confortável' }]} onChange={layoutDensity => save({ layoutDensity })} /></div>
+          <div><label className="mb-2 block text-xs text-slate-500">Mapa</label><Segment<MapTheme> value={settings.mapTheme} options={[{ value: 'dark', label: 'Escuro' }, { value: 'light', label: 'Claro' }]} onChange={mapTheme => save({ mapTheme })} /></div>
         </div>
-    );
-
-    const renderAi = () => (
-        <div className={`space-y-6 animate-enter`}>
-            <section className={`${cardClass} rounded-3xl ${density.padding}`}>
-                <h3 className={`text-lg font-bold ${classes.text} mb-4 flex items-center gap-2`}><SparklesIcon className="w-5 h-5" /> Perfil da IA</h3>
-                <div className={density.settingsGap}>
-                    <div className="flex flex-col gap-2">
-                         <label className={`${density.text} text-sm font-medium text-gray-300`}>Como devo te chamar?</label>
-                         <input type="text" value={settings.userName || ''} onChange={(e) => handleSave({ userName: e.target.value })} placeholder="Seu nome ou apelido" className={inputStyle} maxLength={30} />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                         <label className={`${density.text} text-sm font-medium text-gray-300`}>Instruções de Personalidade</label>
-                         <textarea value={settings.userAiInstructions || ''} onChange={(e) => handleSave({ userAiInstructions: e.target.value })} placeholder="Ex: Seja engraçada, Fale como um pirata..." className={`${inputStyle} min-h-[100px] resize-none`} maxLength={200} />
-                         <p className="text-xs text-gray-500">Nota: Instruções que tentem burlar as diretrizes de segurança ou solicitar injeção de prompt serão ignoradas pelo modelo.</p>
-                    </div>
-                </div>
-            </section>
-            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 flex items-start gap-3 backdrop-blur-sm">
-                <AlertTriangleIcon className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                    <strong className="text-yellow-400 text-sm block">Política de Segurança & Diretrizes Éticas</strong> 
-                    <p className="text-xs text-gray-300 leading-relaxed">
-                        O Meteor utiliza modelos de IA generativa avançados. É estritamente proibido tentar realizar "jailbreak", injeção de prompt, ou utilizar a IA para gerar conteúdo de ódio, discriminação ou atividades ilegais. O sistema possui filtros de segurança ativos.
-                    </p>
-                </div>
-             </div>
+      </Panel>
+      <Panel title="Conteúdo da previsão">
+        <div className="space-y-1">
+          <Row title="Recomendações do clima" action={<Toggle label="Recomendações do clima" checked={settings.weatherInsights.enabled} onChange={() => save({ weatherInsights: { ...settings.weatherInsights, enabled: !settings.weatherInsights.enabled } })} />} />
+          <Row title="Detalhes ao tocar na previsão" description="Inclui vento, umidade, UV e outras métricas." action={<Toggle label="Detalhes da previsão" checked={settings.forecastComplexity === 'advanced'} onChange={() => save({ forecastComplexity: settings.forecastComplexity === 'advanced' ? 'basic' : 'advanced' })} />} />
+          {settings.forecastComplexity === 'advanced' && <div className="px-1 py-2"><select value={settings.forecastDetailView} onChange={event => save({ forecastDetailView: event.target.value as ForecastDetailView })} className={inputClass}><option value="both" className={optionClass}>Previsão horária e diária</option><option value="forecast_only" className={optionClass}>Somente horária</option><option value="daily_only" className={optionClass}>Somente diária</option></select></div>}
         </div>
-    );
-    
-    const renderData = () => (
-        <div className="space-y-6 animate-enter">
-            <section className={`${cardClass} rounded-3xl ${density.padding} border border-cyan-500/20`}>
-                <h3 className="text-lg font-bold text-cyan-400 mb-4 flex items-center gap-2">
-                    <DatabaseIcon className="w-5 h-5" />
-                    Backup Local
-                </h3>
-                <p className="text-sm text-gray-300 leading-relaxed">
-                    Seus dados ficam apenas neste dispositivo. Exporte um arquivo JSON para manter uma cópia segura e restaure o mesmo arquivo quando precisar recuperar o app.
-                </p>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5">
-                    <button onClick={handleExport} className="bg-black/20 hover:bg-white/10 border border-white/10 text-white py-4 rounded-xl font-medium flex items-center justify-center gap-2 text-sm transition-colors">
-                        Exportar Backup
-                    </button>
-                    <button onClick={onOpenImport} className="bg-black/20 hover:bg-white/10 border border-white/10 text-white py-4 rounded-xl font-medium flex items-center justify-center gap-2 text-sm transition-colors">
-                        Restaurar Backup
-                    </button>
-                </div>
-
-                <p className="text-xs text-gray-500 mt-3">
-                    O backup inclui configurações, histórico de chat, localização recente e cache do clima.
-                </p>
-            </section>
-
-            <section className={`${cardClass} rounded-3xl ${density.padding}`}>
-                <h3 className={`text-lg font-bold ${classes.text} mb-4 flex items-center gap-2`}>
-                    <SettingsIcon className="w-5 h-5" />
-                    Gerenciamento Local
-                </h3>
-                <div className={density.settingsGap}>
-                    <div className="flex flex-col gap-2">
-                        <label className={`${density.text} text-sm font-medium text-gray-300`}>Fonte Preferida</label>
-                        <select value={settings.weatherSource} onChange={(e) => handleSave({ weatherSource: e.target.value as DataSource | 'auto' })} className={selectStyle}>
-                            <option value="auto" className={optionClass}>Automático (Recomendado)</option>
-                            <option value="onecall" className={optionClass}>OpenWeather (OneCall/Pro)</option>
-                            <option value="free" className={optionClass}>OpenWeather (Padrão/Gratuito)</option>
-                            <option value="open-meteo" className={optionClass}>Open-Meteo (Open Source)</option>
-                        </select>
-                    </div>
-                    <div className="flex items-center justify-between pb-6 border-b border-white/5 pt-4">
-                        <span className={`${density.text} text-white font-medium`}>Salvar Histórico de Chat</span>
-                        <ToggleSwitch checked={settings.saveChatHistory} onChange={() => handleSave({ saveChatHistory: !settings.saveChatHistory })} activeColorClass={classes.bg} />
-                    </div>
-                    <div className="border-t border-white/5 pt-6 space-y-4">
-                        <h4 className="text-red-400 text-xs font-bold uppercase tracking-wider mb-2">Zona de Perigo</h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <button onClick={() => handleReset('settings')} className="border border-red-500/30 text-red-300 hover:bg-red-500/10 py-3 rounded-xl text-sm transition-colors">Resetar Ajustes</button>
-                            <button onClick={() => handleReset('cache')} className="border border-red-500/30 text-red-300 hover:bg-red-500/10 py-3 rounded-xl text-sm transition-colors">Limpar Cache</button>
-                            <button onClick={() => handleReset('history')} className="border border-red-500/30 text-red-300 hover:bg-red-500/10 py-3 rounded-xl text-sm transition-colors">Limpar Histórico IA</button>
-                            <button onClick={() => handleReset('all')} className="bg-red-500/80 hover:bg-red-600 text-white py-3 rounded-xl text-sm font-bold shadow-lg shadow-red-900/20 border border-red-400/50 transition-colors">Resetar Tudo</button>
-                        </div>
-                    </div>
-                </div>
-            </section>
+      </Panel>
+      <Panel title="Movimento">
+        <div className="space-y-1"><Row title="Reduzir animações" action={<Toggle label="Reduzir animações" checked={settings.reducedMotion} onChange={() => save({ reducedMotion: !settings.reducedMotion })} />} /><Row title="Chuva na tela" description="Aparece somente quando a condição indica chuva." action={<Toggle label="Chuva na tela" checked={settings.rainAnimation.enabled} onChange={() => save({ rainAnimation: { ...settings.rainAnimation, enabled: !settings.rainAnimation.enabled } })} />}/>{settings.rainAnimation.enabled && <Segment value={settings.rainAnimation.intensity} options={[{ value: 'low', label: 'Leve' }, { value: 'high', label: 'Forte' }]} onChange={intensity => save({ rainAnimation: { ...settings.rainAnimation, intensity } })} />}</div>
+      </Panel>
+      <Panel title="Modo Zen">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div><label className="mb-2 block text-xs text-slate-500">Apresentação</label><Segment<ZenModeStyle> value={settings.zenMode.style} options={[{ value: 'cinematic', label: 'Cinemática' }, { value: 'minimal', label: 'Minimalista' }]} onChange={style => save({ zenMode: { ...settings.zenMode, style } })} /></div>
+          <div><label className="mb-2 block text-xs text-slate-500">Fundo</label><Segment<ZenModeBackground> value={settings.zenMode.background} options={[{ value: 'image', label: 'Foto' }, { value: 'app', label: 'Aplicativo' }]} onChange={background => save({ zenMode: { ...settings.zenMode, background } })} /></div>
         </div>
-    );
+        <div className="mt-3 space-y-1"><Row title="Exibir dados do clima" action={<Toggle label="Exibir dados no modo Zen" checked={settings.zenMode.showWeatherInfo} onChange={() => save({ zenMode: { ...settings.zenMode, showWeatherInfo: !settings.zenMode.showWeatherInfo } })} />} /><div className="px-1 pt-2"><label className="mb-2 block text-xs text-slate-500">Som ambiente</label><select value={settings.zenMode.ambientSound} onChange={event => save({ zenMode: { ...settings.zenMode, ambientSound: event.target.value as ZenModeSound } })} className={inputClass}><option value="off" className={optionClass}>Desligado</option><option value="rain" className={optionClass}>Chuva suave</option></select></div></div>
+      </Panel>
+    </div>;
+  };
 
-    const renderAbout = () => (
-        <div className={`space-y-6 animate-enter`}>
-            <section className={`${cardClass} rounded-3xl ${density.padding} border-l-4 relative overflow-hidden`} style={{ borderLeftColor: classes.hex }}>
-                <div className="relative z-10">
-                    <h3 className={`text-lg font-bold text-white mb-2 flex items-center gap-2`}>
-                        <HeartIcon className={`w-5 h-5 ${classes.text} fill-current ${!isPerformanceMode && !settings.reducedMotion ? 'animate-pulse' : ''}`} /> 
-                        Apoie o Projeto
-                    </h3>
-                    <div className="bg-black/30 rounded-xl p-4 border border-white/10 mb-4 flex flex-col gap-1">
-                        <p className="text-xs text-gray-400 uppercase tracking-wider font-bold">Chave Pix (Aleatória)</p>
-                        <code className={`font-mono ${classes.text} text-sm break-all select-all`}>8001be0f-4952-4ef8-b2a5-9bafe691c65c</code>
-                    </div>
-                    <button onClick={handleCopyPix} className={`w-full font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg group ${pixCopied ? `${classes.bg} text-white` : `${classes.bg}/10 ${classes.text} border ${classes.borderFaded} hover:${classes.bg} hover:text-white`}`}>{pixCopied ? 'Chave Copiada!' : 'Copiar Chave Pix'}</button>
-                </div>
-            </section>
-            <section className={`${cardClass} rounded-3xl ${density.padding}`}>
-                <h3 className={`text-lg font-bold ${classes.text} mb-4`}>Links Úteis</h3>
-                <div className="grid grid-cols-1 gap-3">
-                    <a href="https://policies-meteor-ai.netlify.app/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-4 rounded-xl bg-black/20 border border-white/5 hover:bg-white/10 transition-all"><div className={`p-2 rounded-lg bg-gray-800 text-gray-400`}><FileTextIcon className="w-5 h-5" /></div><div className="flex-1"><h4 className="text-sm font-bold text-white">Política de Privacidade</h4></div><ChevronLeftIcon className="w-4 h-4 text-gray-500 rotate-180" /></a>
-                    <a href="https://sobre-meteor-ai.netlify.app/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-4 rounded-xl bg-black/20 border border-white/5 hover:bg-white/10 transition-all"><div className={`p-2 rounded-lg bg-gray-800 text-gray-400`}><GlobeIcon className="w-5 h-5" /></div><div className="flex-1"><h4 className="text-sm font-bold text-white">Sobre o Projeto</h4></div><ChevronLeftIcon className="w-4 h-4 text-gray-500 rotate-180" /></a>
-                    <a href="https://github.com/elias001011/Meteor" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-4 rounded-xl bg-black/20 border border-white/5 hover:bg-white/10 transition-all"><div className={`p-2 rounded-lg bg-gray-800 text-gray-400`}><GithubIcon className="w-5 h-5" /></div><div className="flex-1"><h4 className="text-sm font-bold text-white">GitHub</h4></div><ChevronLeftIcon className="w-4 h-4 text-gray-500 rotate-180" /></a>
-                </div>
-            </section>
-             <div className="pt-2 pb-6">
-                <button onClick={onOpenChangelog} className={`w-full group relative overflow-hidden rounded-2xl border border-white/10 bg-gray-900/60 hover:bg-gray-900/80 transition-all p-4 text-left flex items-center justify-between`}>
-                    <div className="flex items-center gap-4 relative z-10">
-                        <div className={`p-3 rounded-full bg-gradient-to-br ${classes.gradient} shadow-lg`}><SparklesIcon className="w-5 h-5 text-white" /></div>
-                        <div><p className="text-xs text-gray-400 font-medium uppercase tracking-wider mb-0.5">Meteor App</p><p className="text-white font-bold">Versão 5.8.0</p><p className="text-xs text-gray-500 mt-0.5">Desenvolvido por @elias_jrnunes</p></div>
-                    </div>
-                    <ChevronLeftIcon className="w-5 h-5 rotate-180 text-gray-500" />
-                </button>
-            </div>
-        </div>
-    );
+  const renderAi = () => <div className="space-y-4">
+    <Panel title="Personalização" description="Esses dados ficam armazenados localmente neste navegador.">
+      <div className="space-y-4"><label className="block text-xs text-slate-500">Como a IA deve chamar você?<input type="text" value={settings.userName || ''} onChange={event => save({ userName: event.target.value })} placeholder="Nome ou apelido" maxLength={30} className={`${inputClass} mt-2`} /></label><label className="block text-xs text-slate-500">Preferências de resposta<textarea value={settings.userAiInstructions || ''} onChange={event => save({ userAiInstructions: event.target.value })} placeholder="Ex.: responda de forma direta e use linguagem simples" maxLength={200} className={`${inputClass} mt-2 min-h-24 resize-y`} /></label></div>
+    </Panel>
+    <div className="flex gap-3 rounded-xl bg-amber-300/[0.06] p-4 text-xs leading-relaxed text-slate-400"><AlertTriangleIcon className="mt-0.5 h-4 w-4 flex-none text-amber-300" />As respostas podem conter erros. Para decisões importantes, confirme os dados em uma fonte oficial.</div>
+  </div>;
 
-    return (
-        <div className={`p-4 sm:p-6 max-w-3xl mx-auto ${density.settingsGap} pb-32`}>
-            <h2 className={`text-2xl font-bold text-white flex items-center gap-3 tracking-tight`}>Ajustes</h2>
-            {feedbackMessage && <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[9999] bg-emerald-600/90 backdrop-blur-md text-white px-6 py-3 rounded-full font-medium shadow-xl border border-emerald-400/50 animate-enter-pop">{feedbackMessage}</div>}
-            
-            <div className="sticky top-4 z-30 mb-8 flex justify-center">
-                 <div className={`${glassClass} rounded-full p-1.5 shadow-2xl flex gap-1 overflow-x-auto max-w-full scrollbar-hide`}>
-                    <TabButton id="general" label="Geral" icon={<SettingsIcon className="w-4 h-4" />} />
-                    <TabButton id="visual" label="Visual" icon={<EyeIcon className="w-4 h-4" />} />
-                    <TabButton id="ai" label="IA" icon={<SparklesIcon className="w-4 h-4" />} />
-                    <TabButton id="data" label="Backup" icon={<DatabaseIcon className="w-4 h-4" />} />
-                    <TabButton id="about" label="Sobre" icon={<HeartIcon className="w-4 h-4" />} />
-                </div>
-            </div>
+  const renderData = () => <div className="space-y-4">
+    <Panel title="Backup local" description="Exporte ajustes, histórico e cache em um arquivo JSON."><div className="grid gap-2 sm:grid-cols-2"><button type="button" onClick={() => { exportAppData(); notify('Backup salvo nos downloads.'); }} className="rounded-xl bg-white/[0.06] px-4 py-3 text-sm text-white hover:bg-white/[0.09]">Exportar backup</button><button type="button" onClick={onOpenImport} className="rounded-xl bg-white/[0.06] px-4 py-3 text-sm text-white hover:bg-white/[0.09]">Restaurar backup</button></div></Panel>
+    <Panel title="Dados e fonte"><label className="block text-xs text-slate-500">Fonte meteorológica preferida<select value={settings.weatherSource} onChange={event => save({ weatherSource: event.target.value as DataSource | 'auto' })} className={`${inputClass} mt-2`}><option value="auto" className={optionClass}>Automática — recomendado</option><option value="onecall" className={optionClass}>OpenWeather One Call</option><option value="free" className={optionClass}>OpenWeather padrão</option><option value="open-meteo" className={optionClass}>Open-Meteo</option></select></label><div className="mt-3"><Row title="Salvar histórico da IA" description="Mantém as conversas neste navegador." action={<Toggle label="Salvar histórico da IA" checked={settings.saveChatHistory} onChange={() => save({ saveChatHistory: !settings.saveChatHistory })} />}/></div></Panel>
+    <Panel title="Limpeza" description="Escolha exatamente o que deseja remover."><div className="grid gap-2 sm:grid-cols-2"><button type="button" onClick={() => handleReset('settings')} className="rounded-xl bg-white/[0.04] px-3 py-3 text-sm text-slate-300 hover:bg-white/[0.07]">Restaurar ajustes</button><button type="button" onClick={() => handleReset('cache')} className="rounded-xl bg-white/[0.04] px-3 py-3 text-sm text-slate-300 hover:bg-white/[0.07]">Limpar cache</button><button type="button" onClick={() => handleReset('history')} className="rounded-xl bg-white/[0.04] px-3 py-3 text-sm text-slate-300 hover:bg-white/[0.07]">Limpar histórico da IA</button><button type="button" onClick={() => handleReset('all')} className="rounded-xl bg-red-400/[0.1] px-3 py-3 text-sm text-red-300 hover:bg-red-400/[0.15]">Apagar dados locais</button></div></Panel>
+  </div>;
 
-            <div className="min-h-[300px]">
-                {activeTab === 'general' && renderGeneral()}
-                {activeTab === 'visual' && renderVisual()}
-                {activeTab === 'ai' && renderAi()}
-                {activeTab === 'data' && renderData()}
-                {activeTab === 'about' && renderAbout()}
-            </div>
-        </div>
-    );
+  const renderAbout = () => <div className="space-y-4">
+    <Panel title="Meteor 6.0.0" description="Previsão, notícias, mapa e contexto climático em um só lugar."><button type="button" onClick={onOpenChangelog} className="rounded-lg px-2 py-2 text-sm text-slate-400 hover:bg-white/[0.04] hover:text-white">Ver histórico de mudanças</button></Panel>
+    <Panel title="Links"><div className="grid gap-2">{[
+      { href: 'https://policies-meteor-ai.netlify.app/', label: 'Política de privacidade', icon: <FileTextIcon className="h-4 w-4" /> }, { href: 'https://sobre-meteor-ai.netlify.app/', label: 'Sobre o projeto', icon: <GlobeIcon className="h-4 w-4" /> }, { href: 'https://github.com/elias001011/Meteor', label: 'Código no GitHub', icon: <GithubIcon className="h-4 w-4" /> },
+    ].map(link => <a key={link.href} href={link.href} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 rounded-xl bg-white/[0.035] px-3 py-3 text-sm text-slate-300 hover:bg-white/[0.06] hover:text-white">{link.icon}{link.label}</a>)}</div></Panel>
+    <Panel title="Apoie o projeto" description="Contribuição opcional via Pix."><code className="block break-all rounded-xl bg-black/20 px-3 py-3 text-xs text-slate-400">8001be0f-4952-4ef8-b2a5-9bafe691c65c</code><button type="button" onClick={handleCopyPix} className={`mt-2 w-full rounded-xl px-4 py-3 text-sm ${pixCopied ? `${classes.bg} text-white` : 'bg-white/[0.06] text-slate-200 hover:bg-white/[0.09]'}`}>{pixCopied ? 'Chave copiada' : 'Copiar chave Pix'}</button></Panel>
+  </div>;
+
+  return <div className="mx-auto max-w-4xl px-4 pb-32 pt-6 sm:px-6">
+    <div className="mb-5 flex flex-wrap items-end justify-between gap-4"><div><h2 className="text-2xl font-semibold tracking-tight text-white">Ajustes</h2><p className="mt-1 text-sm text-slate-500">Preferências salvas neste navegador.</p></div><nav className="flex max-w-full gap-1 overflow-x-auto rounded-xl bg-white/[0.035] p-1" aria-label="Seções dos ajustes">{tabs.map(tab => <button type="button" key={tab.id} onClick={() => setActiveTab(tab.id)} aria-current={activeTab === tab.id ? 'page' : undefined} className={`flex-none rounded-lg px-3 py-2 text-xs font-medium transition-colors ${activeTab === tab.id ? 'bg-white/[0.09] text-white' : 'text-slate-500 hover:text-slate-200'}`}>{tab.label}</button>)}</nav></div>
+    {feedbackMessage && <div role="status" className="fixed left-1/2 top-20 z-[200] -translate-x-1/2 rounded-xl border border-white/[0.08] bg-[#15191f] px-4 py-3 text-sm text-slate-200 shadow-xl">{feedbackMessage}</div>}
+    {activeTab === 'general' && renderGeneral()}{activeTab === 'appearance' && renderAppearance()}{activeTab === 'ai' && renderAi()}{activeTab === 'data' && renderData()}{activeTab === 'about' && renderAbout()}
+  </div>;
 };
 
 export default SettingsView;

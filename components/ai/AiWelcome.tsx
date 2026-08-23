@@ -1,7 +1,7 @@
 
 
 import React, { useState, useEffect } from 'react';
-import { SparklesIcon, InfoIcon } from '../icons';
+import { InfoIcon } from '../icons';
 import { useTheme } from '../context/ThemeContext';
 import { getSettings } from '../../services/settingsService';
 
@@ -64,36 +64,28 @@ const AiWelcome: React.FC<AiWelcomeProps> = ({ onPromptSelect }) => {
 
     return (
         <div className="flex flex-col items-center justify-center min-h-full p-6 animate-enter">
-            <div
-                className={`p-5 rounded-full bg-gradient-to-br ${classes.gradient} mb-6 shadow-lg`}
-                style={{ boxShadow: `0 0 24px ${classes.hex}33` }}
-            >
-                <SparklesIcon className="w-12 h-12 text-white" />
-            </div>
+            <img src="/favicon.svg" alt="" className="mb-5 h-12 w-12" />
             
-            <h2 className="text-3xl font-bold text-white mb-3 text-center tracking-tight">{greeting}</h2>
-            <p className="text-gray-400 text-center max-w-xs mb-10 leading-relaxed">
-                Sou sua assistente climática inteligente. Pergunte sobre o tempo, curiosidades ou peça dicas.
+            <h2 className="mb-3 text-center text-3xl font-semibold tracking-tight text-white">{greeting}</h2>
+            <p className="mb-8 max-w-sm text-center leading-relaxed text-gray-400">
+                Pergunte sobre a previsão, os dados exibidos ou como se preparar para as condições do dia.
             </p>
 
-            <div className="w-full max-w-md space-y-3">
+            <div className="w-full max-w-lg border-y border-white/[0.07]">
                 {prompts.map((prompt, idx) => (
                     <button
                         key={idx}
                         onClick={() => onPromptSelect(prompt)}
-                        className={`w-full p-4 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all duration-300 text-left text-sm text-gray-200 hover:text-white group relative overflow-hidden`}
+                        className="group relative w-full border-t border-white/[0.07] px-1 py-3.5 text-left text-sm text-gray-300 transition-colors first:border-t-0 hover:text-white"
                     >
-                        <div className={`absolute left-0 top-0 h-full w-1 ${classes.bg} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
-                        <span className="group-hover:translate-x-2 transition-transform duration-300 block">
-                            "{prompt}"
-                        </span>
+                        {prompt}
                     </button>
                 ))}
             </div>
 
             <button 
                 onClick={() => setShowInfoModal(true)}
-                className={`mt-12 flex items-center gap-2 px-5 py-2 rounded-full border border-white/10 bg-gray-800/50 hover:bg-gray-800 text-xs font-medium text-gray-300 hover:text-white transition-all hover:shadow-lg`}
+                className="mt-8 flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-gray-500 transition-colors hover:bg-white/[0.04] hover:text-white"
             >
                 <InfoIcon className="w-4 h-4" />
                 O que a IA pode fazer?
@@ -102,10 +94,7 @@ const AiWelcome: React.FC<AiWelcomeProps> = ({ onPromptSelect }) => {
             {/* AI INFO MODAL */}
             {showInfoModal && (
                 <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-enter" onClick={() => setShowInfoModal(false)}>
-                    <div className="bg-gray-900 border border-gray-700 rounded-3xl max-w-sm w-full p-6 relative shadow-2xl" onClick={e => e.stopPropagation()}>
-                        <div className={`w-12 h-12 rounded-2xl ${classes.bg}/20 flex items-center justify-center mb-4`}>
-                             <SparklesIcon className={`w-6 h-6 ${classes.text}`} />
-                        </div>
+                    <div className="relative w-full max-w-sm rounded-2xl border border-white/[0.09] bg-[#15191f] p-6" onClick={e => e.stopPropagation()}>
                         <h3 className="text-xl font-bold text-white mb-4">Capacidades da IA</h3>
                         <ul className="space-y-4 text-sm text-gray-300">
                             <li className="flex gap-3">

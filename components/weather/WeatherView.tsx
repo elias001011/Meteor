@@ -54,15 +54,12 @@ const WeatherView: React.FC<WeatherViewProps> = ({
 
   if (status === 'idle') {
     return (
-      <div className="mx-auto flex min-h-[74dvh] max-w-5xl items-center px-4 py-12 sm:px-6">
-        <section className={`relative w-full overflow-hidden rounded-[2rem] border border-white/10 px-5 py-14 text-center sm:px-12 sm:py-20 ${isAmoled ? 'bg-black' : 'bg-[radial-gradient(circle_at_50%_0%,rgba(56,189,248,0.15),transparent_23rem),linear-gradient(145deg,rgba(18,33,51,0.96),rgba(4,10,18,0.98))]'}`}>
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.045]">
-            <img src="/favicon.svg" alt="" className="h-11 w-11" />
-          </div>
-          <p className="meteor-eyebrow mb-3">Previsão clara, decisões melhores</p>
-          <h2 className="mx-auto max-w-2xl text-4xl font-black tracking-[-0.045em] text-white sm:text-6xl">O clima do seu dia, sem ruído.</h2>
-          <p className="mx-auto mt-5 max-w-lg text-sm leading-relaxed text-slate-400 sm:text-base">Pesquise uma cidade ou use sua localização para acessar previsão, mapa e um resumo automático das condições.</p>
-          <div className="mx-auto mt-9 max-w-xl text-left"><SearchBar onCitySelect={onCitySelect} onGeolocate={onGeolocate} /></div>
+      <div className="mx-auto flex min-h-[70dvh] max-w-4xl items-center px-4 py-10 sm:px-6">
+        <section className={`w-full rounded-2xl border border-white/[0.08] px-5 py-12 text-center sm:px-12 sm:py-16 ${isAmoled ? 'bg-black' : 'bg-[#111419]'}`}>
+          <img src="/favicon.svg" alt="" className="mx-auto mb-5 h-12 w-12" />
+          <h2 className="mx-auto max-w-xl text-3xl font-semibold tracking-[-0.035em] text-white sm:text-5xl">Consulte o clima da sua cidade.</h2>
+          <p className="mx-auto mt-4 max-w-md text-sm leading-relaxed text-slate-400 sm:text-base">Previsão por hora, próximos dias e informações para planejar sua rotina.</p>
+          <div className="mx-auto mt-8 max-w-xl text-left"><SearchBar onCitySelect={onCitySelect} onGeolocate={onGeolocate} /></div>
         </section>
       </div>
     );
@@ -71,12 +68,12 @@ const WeatherView: React.FC<WeatherViewProps> = ({
   if (!weatherData) return null;
 
   return (
-    <div className="mx-auto max-w-[1480px] space-y-4 px-3 py-4 sm:space-y-5 sm:px-6 sm:py-6 lg:px-8">
-      <div className="relative z-30 mx-auto max-w-3xl lg:mx-0 lg:max-w-xl">
+    <div className="mx-auto max-w-[1320px] space-y-3 px-3 py-4 sm:space-y-4 sm:px-5 sm:py-5 lg:px-6">
+      <div className="relative z-30 max-w-xl">
         <SearchBar onCitySelect={onCitySelect} onGeolocate={onGeolocate} />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-12 lg:items-start">
+      <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-12 lg:items-start">
         <div className="lg:col-span-5 lg:row-span-2">
           <CurrentWeather data={weatherData} clockDisplayMode={clockDisplayMode} unitSystem={unitSystem} />
         </div>
@@ -90,14 +87,15 @@ const WeatherView: React.FC<WeatherViewProps> = ({
 
       {dataSource !== 'open-meteo' && <Alerts alerts={alerts} />}
 
-      <div className="grid grid-cols-1 gap-4 sm:gap-5 xl:grid-cols-12 xl:items-start">
-        <div className="min-w-0 xl:col-span-7">
+      <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-12 lg:items-start">
+        <div className="min-w-0 lg:col-span-7">
           <DailyForecastComponent data={dailyForecast} timezoneOffset={weatherData.timezoneOffset} unitSystem={unitSystem} showDetailLabel={showDetailLabel} />
         </div>
-        <div className="xl:col-span-5"><AdditionalInfo data={weatherData} unitSystem={unitSystem} /></div>
+        <div className="space-y-3 sm:space-y-4 lg:col-span-5">
+          <AdditionalInfo data={weatherData} unitSystem={unitSystem} />
+          {airQualityData && <AirQuality data={airQualityData} />}
+        </div>
       </div>
-
-      {airQualityData && <AirQuality data={airQualityData} />}
       <DataSourceInfo source={dataSource} lastUpdated={lastUpdated} onClick={onDataSourceInfoClick} />
     </div>
   );

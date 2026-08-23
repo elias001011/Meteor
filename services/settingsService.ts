@@ -18,20 +18,20 @@ const getPlatformDefaults = (): Partial<AppSettings> => {
     if (isMobile) {
         // Mobile Defaults (Performance Focused)
         return {
-            transparencyMode: 'balanced', // User requested 'Equilibrado' as default
-            borderEffect: 'bottom',
+            transparencyMode: 'off',
+            borderEffect: 'none',
             layoutDensity: 'compact',
-            rainAnimation: { enabled: true, intensity: 'low' },
+            rainAnimation: { enabled: false, intensity: 'low' },
             reducedMotion: true, // Disable global animations by default
             showScrollbars: false
         };
     } else {
         // Desktop Defaults (Visuals Focused)
         return {
-            transparencyMode: 'glass', // Blur enabled
-            borderEffect: 'top',
-            layoutDensity: 'comfortable',
-            rainAnimation: { enabled: true, intensity: 'high' },
+            transparencyMode: 'off',
+            borderEffect: 'none',
+            layoutDensity: 'compact',
+            rainAnimation: { enabled: false, intensity: 'low' },
             reducedMotion: false,
             showScrollbars: true
         };
@@ -48,14 +48,14 @@ const DEFAULT_SETTINGS: AppSettings = {
     startupBehavior: 'idle',
     saveChatHistory: false,
     startupSection: 'weather',
-    themeColor: 'purple',
+    themeColor: 'blue',
     dynamicTheme: false,
     glassScope: {
         header: true,
         cards: true,
         overlays: true
     },
-    backgroundMode: 'gradient',
+    backgroundMode: 'solid',
     mapTheme: 'light',
     desktopLayout: '40-60',
     weatherInsights: {

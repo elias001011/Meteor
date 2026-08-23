@@ -4,22 +4,19 @@ import type { WeatherData, UnitSystem } from '../../types';
 import { WindIcon, DropletsIcon, GaugeIcon, SunIcon, EyeIcon, CloudIcon, ThermometerIcon, CloudRainIcon, CloudSnowIcon, SunriseIcon, SunsetIcon } from '../icons';
 import { useTheme } from '../context/ThemeContext';
 import ForecastDetailModal from './ForecastDetailModal';
-import { getSettings } from '../../services/settingsService';
 
 interface AdditionalInfoProps {
   data: WeatherData;
   unitSystem: UnitSystem;
 }
 
-const InfoItem: React.FC<{ icon: React.ReactNode; label: string; value: string | number; iconSize: string; textSize: string; subtextSize: string; onClick: (val: string) => void }> = ({ icon, label, value, iconSize, textSize, subtextSize, onClick }) => (
-    <button onClick={() => onClick(String(value))} className="flex items-center gap-3 p-2 rounded-xl transition-colors hover:bg-white/5 min-w-0 w-full text-left group">
-        <div className={`bg-white/5 rounded-full p-2 flex-shrink-0 group-hover:bg-white/10 transition-colors`}>
-            {icon}
-        </div>
-        <div className="min-w-0 flex-1">
-            <p className={`text-gray-500 font-bold uppercase tracking-wider truncate ${subtextSize}`}>{label}</p>
-            <p className={`font-bold text-slate-100 truncate ${textSize}`}>{value}</p>
-        </div>
+const InfoItem: React.FC<{ icon: React.ReactNode; label: string; value: string | number; onClick: (val: string) => void }> = ({ icon, label, value, onClick }) => (
+    <button onClick={() => onClick(String(value))} className="flex min-w-0 w-full items-center gap-2.5 rounded-lg px-1 py-2.5 text-left transition-colors hover:bg-white/[0.025] hover:text-white">
+        <span className="flex-none text-slate-500">{icon}</span>
+        <span className="min-w-0 flex-1">
+            <span className="block truncate text-[11px] text-slate-500">{label}</span>
+            <span className="block truncate text-sm font-medium text-slate-200">{value}</span>
+        </span>
     </button>
 );
 
@@ -29,18 +26,8 @@ const degreesToCardinal = (deg: number): string => {
 };
 
 const AdditionalInfo: React.FC<AdditionalInfoProps> = ({ data, unitSystem }) => {
-  const { classes, cardClass, density } = useTheme();
+  const { cardClass } = useTheme();
   const [selectedInfo, setSelectedInfo] = useState<string | null>(null);
-  const settings = getSettings();
-  const desktopLayout = settings.desktopLayout || '40-60';
-
-  // Determine grid based on layout. 
-  // '25-75' makes the left panel very narrow, so max 2 columns.
-  // Others have more room, allowing 3 columns on large screens, 4 on XL.
-  const isNarrowLayout = desktopLayout === '25-75';
-  const gridClasses = isNarrowLayout 
-    ? "grid-cols-2 lg:grid-cols-2" 
-    : "grid-cols-2 lg:grid-cols-3 xl:grid-cols-4";
 
   const formatTime = (timestamp: number) => {
       const offset = data.timezoneOffset || 0;
@@ -56,13 +43,13 @@ const AdditionalInfo: React.FC<AdditionalInfoProps> = ({ data, unitSystem }) => 
   };
   
   const uviInfo = typeof data.uvi === 'number' ? getUviInfo(data.uvi) : null;
-  const iconClass = `${density.iconSize} ${classes.text}`;
+  const iconClass = 'h-4 w-4';
   
   const handleItemClick = (text: string) => {
       setSelectedInfo(text);
   };
 
-  const itemProps = { iconSize: density.iconSize, textSize: density.text, subtextSize: 'text-[10px]', onClick: handleItemClick };
+  const itemProps = { onClick: handleItemClick };
 
   // Conversions
   const formatVisibility = (m: number) => {
@@ -97,8 +84,9 @@ const AdditionalInfo: React.FC<AdditionalInfoProps> = ({ data, unitSystem }) => 
 
   return (
     <>
-        <div className={`rounded-3xl ${density.padding} ${cardClass} animate-enter`}>
-            <div className={`grid ${gridClasses} ${density.gap} gap-y-4`}>
+        <section className={`rounded-2xl p-4 sm:p-5 ${cardClass} animate-enter`} aria-labelledby="details-title">
+            <h3 id="details-title" className="mb-1 text-sm font-semibold text-white">Informações gerais</h3>
+            <div className="grid grid-cols-2 gap-x-4">
                 {/* Sunrise / Sunset */}
                 <InfoItem icon={<SunriseIcon className={iconClass} />} label="Nascer" value={formatTime(data.sunrise)} {...itemProps} />
                 <InfoItem icon={<SunsetIcon className={iconClass} />} label="Pôr" value={formatTime(data.sunset)} {...itemProps} />
@@ -147,7 +135,7 @@ const AdditionalInfo: React.FC<AdditionalInfoProps> = ({ data, unitSystem }) => 
                     <InfoItem icon={<CloudSnowIcon className={iconClass} />} label="Neve (1h)" value={`${data.snow_1h} mm`} {...itemProps} />
                 )}
             </div>
-        </div>
+        </section>
 
         <ForecastDetailModal 
             isOpen={!!selectedInfo} 

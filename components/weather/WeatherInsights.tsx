@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import type { AirQualityData, DailyForecast, HourlyForecast, WeatherAlert, WeatherData } from '../../types';
 import { getSettings } from '../../services/settingsService';
-import { AlertTriangleIcon, LightbulbIcon, SparklesIcon } from '../icons';
 import { useTheme } from '../context/ThemeContext';
 
 interface WeatherInsightsProps {
@@ -22,17 +21,17 @@ interface Insight {
   detail: string;
 }
 
-const severityStyles: Record<InsightSeverity, { dot: string; surface: string; label: string }> = {
-  critical: { dot: 'bg-red-400', surface: 'border-red-400/25 bg-red-400/[0.08]', label: 'Urgente' },
-  attention: { dot: 'bg-amber-300', surface: 'border-amber-300/20 bg-amber-300/[0.07]', label: 'Atenção' },
-  info: { dot: 'bg-sky-300', surface: 'border-sky-300/20 bg-sky-300/[0.06]', label: 'Observe' },
-  good: { dot: 'bg-emerald-300', surface: 'border-emerald-300/20 bg-emerald-300/[0.06]', label: 'Tranquilo' },
+const severityDots: Record<InsightSeverity, string> = {
+  critical: 'bg-red-400',
+  attention: 'bg-amber-300',
+  info: 'bg-sky-300',
+  good: 'bg-emerald-300',
 };
 
 const hasWords = (value: string, words: string[]) => words.some(word => value.includes(word));
 
 const WeatherInsights: React.FC<WeatherInsightsProps> = ({ current, hourly, daily, airQuality, alerts = [] }) => {
-  const { cardClass, classes } = useTheme();
+  const { cardClass } = useTheme();
   const settings = getSettings();
   const config = settings.weatherInsights;
 
@@ -117,35 +116,29 @@ const WeatherInsights: React.FC<WeatherInsightsProps> = ({ current, hourly, dail
   if (!config.enabled) return null;
 
   return (
-    <section className={`rounded-[1.75rem] p-5 sm:p-6 ${cardClass}`} aria-labelledby="smart-summary-title">
-      <div className="mb-4 flex items-start justify-between gap-4">
-        <div>
-          <p className="meteor-eyebrow mb-1 flex items-center gap-1.5"><SparklesIcon className={`h-3.5 w-3.5 ${classes.text}`} /> Análise local</p>
-          <h3 id="smart-summary-title" className="text-xl font-extrabold tracking-tight text-white">Resumo inteligente</h3>
+    <section className={`min-h-[9rem] rounded-2xl p-5 sm:p-6 ${cardClass}`} aria-label="Recomendações para as condições atuais">
+      {insights[0] && (
+        <div className="flex items-start gap-3">
+          <span className={`mt-2 h-2.5 w-2.5 flex-none rounded-full ${severityDots[insights[0].severity]}`} aria-hidden="true" />
+          <div>
+            <h3 className="text-sm font-medium text-slate-400">{insights[0].title}</h3>
+            <p className="mt-2 max-w-3xl text-xl font-medium leading-snug tracking-[-0.02em] text-slate-100 sm:text-2xl">{insights[0].detail}</p>
+          </div>
         </div>
-        <div className={`rounded-full ${classes.bg}/15 p-2 ${classes.text}`} aria-hidden="true"><LightbulbIcon className="h-5 w-5" /></div>
-      </div>
-
-      <div className="space-y-2.5">
-        {insights.map(insight => {
-          const style = severityStyles[insight.severity];
-          return (
-            <article key={insight.id} className={`rounded-2xl border p-3.5 ${style.surface}`}>
-              <div className="flex items-start gap-3">
-                <span className={`mt-1.5 h-2.5 w-2.5 flex-none rounded-full ${style.dot}`} aria-hidden="true" />
-                <div>
-                  <p className="mb-0.5 text-[10px] font-extrabold uppercase tracking-[0.13em] text-white/45">{style.label}</p>
-                  <h4 className="text-sm font-bold text-white">{insight.title}</h4>
-                  <p className="mt-1 text-sm leading-relaxed text-slate-300">{insight.detail}</p>
-                </div>
-              </div>
-            </article>
-          );
-        })}
-      </div>
-      <p className="mt-4 flex items-center gap-1.5 text-[11px] leading-relaxed text-slate-500">
-        <AlertTriangleIcon className="h-3.5 w-3.5 flex-none" /> Resumo automático baseado nos dados disponíveis; avisos oficiais têm prioridade.
-      </p>
+      )}
+      {insights.length > 1 && (
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          {insights.slice(1).map(insight => (
+            <div key={insight.id} className="rounded-xl bg-white/[0.03] p-3.5">
+              <h4 className="flex items-center gap-2 text-xs font-medium text-slate-300">
+                <span className={`h-1.5 w-1.5 rounded-full ${severityDots[insight.severity]}`} aria-hidden="true" />
+                {insight.title}
+              </h4>
+              <p className="mt-1.5 text-xs leading-relaxed text-slate-500">{insight.detail}</p>
+            </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 };

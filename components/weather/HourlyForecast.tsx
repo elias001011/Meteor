@@ -14,7 +14,7 @@ interface HourlyForecastProps {
 }
 
 const HourlyForecastComponent: React.FC<HourlyForecastProps> = ({ data, timezoneOffset = 0, unitSystem = 'metric', showDetailLabel = true }) => {
-  const { classes, cardClass, density } = useTheme();
+  const { classes, cardClass } = useTheme();
   const scrollRef = useRef<HTMLDivElement>(null);
   const settings = getSettings();
   
@@ -81,24 +81,21 @@ const HourlyForecastComponent: React.FC<HourlyForecastProps> = ({ data, timezone
 
   return (
     <>
-        <div className={`relative rounded-3xl ${density.padding} ${cardClass} animate-enter overflow-hidden transition-all duration-300`}>
-        <div className="flex items-center justify-between mb-3 px-2">
-            <h3 className={`${density.sectionTitle} font-medium text-gray-300 uppercase tracking-wide m-0`}>Previsão por hora</h3>
-            {showComplexHere && showDetailLabel && (
-                <span className="text-[10px] text-cyan-400 bg-cyan-400/10 px-2 py-0.5 rounded border border-cyan-400/20">Detalhes</span>
-            )}
+        <section className={`relative overflow-hidden rounded-2xl p-4 sm:p-5 ${cardClass} animate-enter`}>
+        <div className="mb-3 flex items-center justify-between">
+            <h3 className="m-0 text-sm font-semibold text-white">Próximas horas</h3>
         </div>
         
-        <div ref={scrollRef} className="flex space-x-3 overflow-x-auto -mx-2 px-2 scroll-smooth no-scrollbar pb-1">
+        <div ref={scrollRef} className="-mx-1 flex divide-x divide-white/[0.07] overflow-x-auto scroll-smooth px-1 no-scrollbar">
             {data.map((item, index) => (
                 <button 
                     key={index}
                     onClick={() => handleItemClick(item)}
-                    className={`flex flex-col items-center justify-between space-y-2 flex-shrink-0 w-16 py-3 text-center bg-white/5 border border-white/5 rounded-2xl hover:bg-white/10 transition-all active:scale-95 group min-w-[4.5rem]`}
+                    className="group flex w-[4.5rem] flex-none flex-col items-center justify-between space-y-1.5 px-2 py-2.5 text-center transition-colors hover:bg-white/[0.035]"
                 >
-                    <span className={`${density.subtext} text-gray-400 font-medium group-hover:text-white`}>{formatHour(item.dt)}</span>
-                    <span className="text-2xl my-1 transform group-hover:scale-110 transition-transform">{item.conditionIcon}</span>
-                    <span className={`font-bold ${density.text}`}>{formatTemp(item.temperature)}°</span>
+                    <span className="text-[11px] text-slate-500 group-hover:text-slate-300">{formatHour(item.dt)}</span>
+                    <span className="my-1 text-2xl">{item.conditionIcon}</span>
+                    <span className="text-sm font-semibold">{formatTemp(item.temperature)}°</span>
                     
                     {/* Container de Chuva */}
                     <div className="h-4 w-full flex items-center justify-center">
@@ -114,7 +111,7 @@ const HourlyForecastComponent: React.FC<HourlyForecastProps> = ({ data, timezone
                 </button>
             ))}
         </div>
-        </div>
+        </section>
 
         <ForecastDetailModal 
             isOpen={!!selectedItem} 

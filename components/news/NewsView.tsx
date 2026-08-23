@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getTopHeadlines, searchNews, NewsArticle, NewsCategory, formatPublishedDate, extractNewsContext } from '../../services/newsService';
 import { useTheme } from '../context/ThemeContext';
-import { SearchIcon, NewspaperIcon, RefreshCwIcon, SparklesIcon, ExternalLinkIcon, AlertCircleIcon } from '../icons';
+import { SearchIcon, NewspaperIcon, RefreshCwIcon, ExternalLinkIcon, AlertCircleIcon } from '../icons';
 
 interface NewsViewProps {
     onAskAIAboutNews?: (newsContext: string) => void;
@@ -16,17 +16,17 @@ declare global {
     }
 }
 
-const CATEGORIES: { value: NewsCategory | ''; label: string; emoji: string }[] = [
-    { value: '', label: 'Destaques', emoji: '🔥' },
-    { value: 'general', label: 'Geral', emoji: '📰' },
-    { value: 'world', label: 'Mundo', emoji: '🌍' },
-    { value: 'nation', label: 'Brasil', emoji: '🇧🇷' },
-    { value: 'business', label: 'Negócios', emoji: '💼' },
-    { value: 'technology', label: 'Tecnologia', emoji: '💻' },
-    { value: 'science', label: 'Ciência', emoji: '🔬' },
-    { value: 'health', label: 'Saúde', emoji: '🏥' },
-    { value: 'sports', label: 'Esportes', emoji: '⚽' },
-    { value: 'entertainment', label: 'Entretenimento', emoji: '🎬' },
+const CATEGORIES: { value: NewsCategory | ''; label: string }[] = [
+    { value: '', label: 'Destaques' },
+    { value: 'general', label: 'Geral' },
+    { value: 'world', label: 'Mundo' },
+    { value: 'nation', label: 'Brasil' },
+    { value: 'business', label: 'Negócios' },
+    { value: 'technology', label: 'Tecnologia' },
+    { value: 'science', label: 'Ciência' },
+    { value: 'health', label: 'Saúde' },
+    { value: 'sports', label: 'Esportes' },
+    { value: 'entertainment', label: 'Entretenimento' },
 ];
 
 const safeExternalUrl = (value: string): string | undefined => {
@@ -39,7 +39,7 @@ const safeExternalUrl = (value: string): string | undefined => {
 };
 
 const NewsView: React.FC<NewsViewProps> = ({ onAskAIAboutNews }) => {
-    const { cardClass, classes, glassClass, density } = useTheme();
+    const { cardClass, classes } = useTheme();
     
     const [articles, setArticles] = useState<NewsArticle[]>([]);
     const [loading, setLoading] = useState(false);
@@ -114,16 +114,12 @@ const NewsView: React.FC<NewsViewProps> = ({ onAskAIAboutNews }) => {
     };
 
     return (
-        <div className="h-full overflow-y-auto pb-24 pt-16 lg:pb-6">
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-6">
+        <div className="h-full overflow-y-auto pb-24 pt-10 lg:pb-6">
+            <div className="mx-auto max-w-5xl space-y-5 px-4 sm:px-6">
                 
                 {/* Header */}
-                <div className="flex items-center gap-3 mb-2">
-                    <div className={`p-2 rounded-xl ${classes.bg} bg-opacity-20`}>
-                        <NewspaperIcon className={`w-6 h-6 ${classes.text}`} />
-                    </div>
-                    <div>
-                        <h2 className="text-2xl font-bold text-white">Notícias</h2>
+                <div>
+                        <h2 className="text-2xl font-semibold tracking-tight text-white">Notícias</h2>
                         <p className="text-sm text-gray-400">
                             {isSearching 
                                 ? `Buscando: "${searchQuery}"` 
@@ -132,7 +128,6 @@ const NewsView: React.FC<NewsViewProps> = ({ onAskAIAboutNews }) => {
                                     : 'Principais destaques'
                             }
                         </p>
-                    </div>
                 </div>
 
                 {/* Barra de Busca */}
@@ -142,7 +137,7 @@ const NewsView: React.FC<NewsViewProps> = ({ onAskAIAboutNews }) => {
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Buscar notícias..."
-                        className={`w-full bg-gray-900/60 border border-white/10 rounded-2xl py-3 pl-11 pr-24 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-inset ${classes.ring} transition-all`}
+                        className={`h-11 w-full rounded-xl border border-white/[0.08] bg-[#111419] pl-10 pr-24 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 ${classes.ring}`}
                     />
                     <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                     
@@ -173,14 +168,13 @@ const NewsView: React.FC<NewsViewProps> = ({ onAskAIAboutNews }) => {
                             <button
                                 key={cat.value}
                                 onClick={() => setSelectedCategory(cat.value)}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm whitespace-nowrap transition-all ${
+                                className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm transition-colors ${
                                     selectedCategory === cat.value
-                                        ? `${classes.bg} text-white`
-                                        : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
+                                        ? 'bg-white/[0.09] text-white'
+                                        : 'text-gray-500 hover:bg-white/[0.04] hover:text-white'
                                 }`}
                             >
-                                <span>{cat.emoji}</span>
-                                <span>{cat.label}</span>
+                                {cat.label}
                             </button>
                         ))}
                     </div>
@@ -212,38 +206,38 @@ const NewsView: React.FC<NewsViewProps> = ({ onAskAIAboutNews }) => {
 
                 {/* News Grid */}
                 {!loading && !error && articles.length > 0 && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-3">
                         {articles.map((article, index) => (
                             <article
                                 key={`${article.url}-${index}`}
-                                className={`group ${cardClass} rounded-2xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-xl border border-white/5 hover:border-white/10 flex flex-col`}
+                                className={`group overflow-hidden rounded-2xl sm:flex ${cardClass}`}
                             >
                                 {/* Imagem */}
-                                <div className="relative h-40 overflow-hidden bg-gray-800">
+                                <div className="relative h-40 flex-none overflow-hidden bg-[#181c22] sm:h-auto sm:w-52">
                                     {article.image ? (
                                         <img
                                             src={article.image}
                                             alt={article.title}
-                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                            className="h-full w-full object-cover"
                                             loading="lazy"
                                             onError={(e) => {
                                                 (e.target as HTMLImageElement).style.display = 'none';
                                             }}
                                         />
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
-                                            <NewspaperIcon className="w-12 h-12 text-gray-600" />
+                                        <div className="flex h-full w-full items-center justify-center bg-[#181c22]">
+                                            <NewspaperIcon className="h-8 w-8 text-gray-700" />
                                         </div>
                                     )}
                                     
                                     {/* Badge de data */}
-                                    <div className={`absolute top-3 right-3 ${glassClass} px-2 py-1 rounded-lg text-xs text-white`}>
+                                    <div className="absolute right-2 top-2 rounded-md bg-black/65 px-2 py-1 text-[10px] text-white/75">
                                         {formatPublishedDate(article.publishedAt)}
                                     </div>
                                 </div>
 
                                 {/* Conteúdo */}
-                                <div className="p-4 flex-1 flex flex-col">
+                                <div className="flex min-w-0 flex-1 flex-col p-4">
                                     {/* Fonte */}
                                     <div className="flex items-center gap-2 mb-2">
                                         <span className="text-xs text-gray-500 truncate">
@@ -252,12 +246,12 @@ const NewsView: React.FC<NewsViewProps> = ({ onAskAIAboutNews }) => {
                                     </div>
 
                                     {/* Título */}
-                                    <h3 className="text-white font-semibold text-base leading-snug mb-2 line-clamp-2 group-hover:text-cyan-300 transition-colors">
+                                    <h3 className="mb-2 line-clamp-2 text-base font-medium leading-snug text-white">
                                         {article.title}
                                     </h3>
 
                                     {/* Descrição */}
-                                    <p className="text-gray-400 text-sm leading-relaxed line-clamp-3 mb-4 flex-1">
+                                    <p className="mb-4 line-clamp-2 flex-1 text-sm leading-relaxed text-gray-400">
                                         {article.description || 'Sem descrição disponível.'}
                                     </p>
 
@@ -265,17 +259,16 @@ const NewsView: React.FC<NewsViewProps> = ({ onAskAIAboutNews }) => {
                                     <div className="flex gap-2 pt-3 border-t border-white/5">
                                         <button
                                             onClick={() => handleSummarizeWithAI(article)}
-                                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl ${classes.bg} hover:brightness-110 text-white text-sm font-semibold shadow-lg transition-all active:scale-95`}
+                                            className={`rounded-lg px-2 py-2 text-left text-xs font-medium ${classes.text} hover:bg-white/[0.04]`}
                                         >
-                                            <SparklesIcon className="w-4 h-4" />
-                                            Resumo com IA
+                                            Perguntar à IA
                                         </button>
                                         
                                         <a
                                             href={safeExternalUrl(article.url)}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-medium transition-colors"
+                                            className="ml-auto flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-gray-400 hover:bg-white/[0.04] hover:text-white"
                                         >
                                             <ExternalLinkIcon className="w-3.5 h-3.5" />
                                             Ler
