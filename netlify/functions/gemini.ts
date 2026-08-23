@@ -236,20 +236,9 @@ const buildFinalUserContent = (
 ].filter(Boolean).join('\n\n');
 
 const modelAttempts = (): ModelAttempt[] => {
-    const models = [...new Set([
-        safeText(process.env.GEMINI_MODEL, 100),
-        'gemini-3.7-flash',
-        'gemini-3.6-flash',
-        'gemini-3.5-flash-lite',
-    ].filter(Boolean))];
-
     return [
-        { model: models[0], useSearch: true },
-        { model: models[0], useSearch: false },
-        ...(models.slice(1, 3).flatMap((model, index) => index === 0
-            ? [{ model, useSearch: true }, { model, useSearch: false }]
-            : [{ model, useSearch: false }]
-        )),
+        { model: 'gemini-3.5-flash-lite', useSearch: true },
+        { model: 'gemini-3.5-flash-lite', useSearch: false },
     ];
 };
 
