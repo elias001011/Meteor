@@ -18,6 +18,7 @@ class _MapScreenState extends State<MapScreen> {
   final _mapController = MapController();
   String _layer = 'PR0';
   double _opacity = .68;
+  String? _lastLocationKey;
 
   static const _layers = <String, ({String label, IconData icon})>{
     'PR0': (label: 'Chuva', icon: Icons.water_drop_outlined),
@@ -31,6 +32,12 @@ class _MapScreenState extends State<MapScreen> {
   Widget build(BuildContext context) {
     final state = context.watch<AppController>();
     final center = LatLng(state.location.latitude, state.location.longitude);
+    if (_lastLocationKey != state.location.storageKey) {
+      _lastLocationKey = state.location.storageKey;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _mapController.move(center, 7.5);
+      });
+    }
     final base = AppConfig.bffUrl.replaceAll(RegExp(r'/+$'), '');
     final overlay =
         '$base/weather?endpoint=tile&layer=$_layer&z={z}&x={x}&y={y}';

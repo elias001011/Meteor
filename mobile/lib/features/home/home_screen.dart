@@ -1164,10 +1164,8 @@ class _CitySearchSheetState extends State<_CitySearchSheet> {
                   ),
                   label: Text(state.locations[index].name),
                   selected: index == state.selectedLocationIndex,
-                  onPressed: () async {
-                    await state.selectLocation(index);
-                    if (context.mounted) Navigator.pop(context);
-                  },
+                  onPressed: () =>
+                      Navigator.pop(context, state.locations[index]),
                   onDeleted: state.locations.length <= 1
                       ? null
                       : () => state.removeLocation(index),

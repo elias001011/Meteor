@@ -26,10 +26,11 @@ class WeatherRepository {
   Future<WeatherBundle> refresh(
     CityLocation location, {
     bool allowCacheFallback = true,
+    bool Function()? shouldPersist,
   }) async {
     try {
       final raw = await _client.fetchWeatherJson(location);
-      await _store.saveWeather(raw);
+      if (shouldPersist?.call() ?? true) await _store.saveWeather(raw);
       return WeatherBundle.fromJson(raw);
     } catch (_) {
       final cache = allowCacheFallback ? readCache() : null;

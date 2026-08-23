@@ -54,6 +54,7 @@ class AppController extends ChangeNotifier {
   ];
   int selectedLocationIndex = 0;
   final Map<String, WeatherBundle> _weatherByLocation = {};
+  int _weatherRequestSerial = 0;
   WeatherBundle? weather;
   List<NewsArticle> news = const [];
   List<ChatMessage> chat = const [];
@@ -90,6 +91,8 @@ class AppController extends ChangeNotifier {
 
   Future<void> refreshWeather({CityLocation? nextLocation}) async {
     final target = nextLocation ?? location;
+    final targetIndex = selectedLocationIndex;
+    final requestSerial = ++_weatherRequestSerial;
     weatherState = LoadState.loading;
     weatherError = null;
     notifyListeners();
@@ -97,7 +100,14 @@ class AppController extends ChangeNotifier {
       final result = await weatherRepository.refresh(
         target,
         allowCacheFallback: nextLocation == null,
+        shouldPersist: () =>
+            requestSerial == _weatherRequestSerial &&
+            targetIndex == selectedLocationIndex,
       );
+      if (requestSerial != _weatherRequestSerial ||
+          targetIndex != selectedLocationIndex) {
+        return;
+      }
       weather = result;
       location = CityLocation(
         name: result.current.city,
@@ -106,15 +116,19 @@ class AppController extends ChangeNotifier {
         longitude: target.longitude,
       );
       locations = [
-        ...locations.take(selectedLocationIndex),
+        ...locations.take(targetIndex),
         location,
-        ...locations.skip(selectedLocationIndex + 1),
+        ...locations.skip(targetIndex + 1),
       ];
       _weatherByLocation[location.storageKey] = result;
       await store.saveLocations(locations, selectedLocationIndex);
       weatherState = LoadState.success;
       if (settings.pushEnabled) unawaited(_syncPush());
     } catch (error) {
+      if (requestSerial != _weatherRequestSerial ||
+          targetIndex != selectedLocationIndex) {
+        return;
+      }
       weatherError = _message(error, 'Não foi possível atualizar o clima.');
       weatherState = LoadState.error;
     }
@@ -143,12 +157,17 @@ class AppController extends ChangeNotifier {
 
   Future<void> selectLocation(int index) async {
     if (index < 0 || index >= locations.length) return;
+    final target = locations[index];
     selectedLocationIndex = index;
-    location = locations[index];
+    location = target;
     weather = _weatherByLocation[location.storageKey];
     await store.saveLocations(locations, selectedLocationIndex);
+    if (selectedLocationIndex != index ||
+        location.storageKey != target.storageKey) {
+      return;
+    }
     notifyListeners();
-    await refreshWeather();
+    await refreshWeather(nextLocation: target);
   }
 
   Future<void> removeLocation(int index) async {
@@ -156,6 +175,13 @@ class AppController extends ChangeNotifier {
       return;
     }
     final removed = locations[index];
+    _weatherRequestSerial += 1;
+    if (index < selectedLocationIndex) {
+      selectedLocationIndex -= 1;
+    } else if (index == selectedLocationIndex &&
+        selectedLocationIndex == locations.length - 1) {
+      selectedLocationIndex -= 1;
+    }
     locations = [...locations]..removeAt(index);
     _weatherByLocation.remove(removed.storageKey);
     selectedLocationIndex = selectedLocationIndex.clamp(
