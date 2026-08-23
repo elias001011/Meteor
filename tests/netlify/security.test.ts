@@ -7,7 +7,7 @@ import {
     parseRateLimitState,
     safeText,
     sanitizeExternalUrl,
-} from './security.js';
+} from '../../netlify/functions/security.js';
 
 const event = (origin?: string): HandlerEvent => ({
     rawUrl: 'https://meteor.example/.netlify/functions/weather',
