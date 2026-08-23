@@ -94,7 +94,7 @@ class _AppShellState extends State<AppShell> {
       const HomeScreen(),
       const MapScreen(),
       const AiScreen(),
-      NewsScreen(onAskAi: () => setState(() => _index = 2)),
+      const NewsScreen(),
       const SettingsScreen(),
     ];
     return LayoutBuilder(

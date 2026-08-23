@@ -11,7 +11,7 @@ class _DelayedWeatherClient extends BffClient {
   final requests = <String, Completer<Json>>{};
 
   @override
-  Future<Json> fetchWeatherJson(CityLocation location) {
+  Future<Json> fetchWeatherJson(CityLocation location, {String? imageNonce}) {
     return (requests[location.storageKey] ??= Completer<Json>()).future;
   }
 }
@@ -88,5 +88,38 @@ void main() {
     expect(controller.selectedLocationIndex, 1);
     expect(controller.location.name, 'Cidade B');
     expect(controller.weather?.current.city, 'Cidade B');
+  });
+
+  test('reordena localidades preservando a localidade selecionada', () async {
+    SharedPreferences.setMockInitialValues({});
+    final controller = AppController(
+      store: LocalStore(await SharedPreferences.getInstance()),
+    );
+    const cities = [
+      CityLocation(
+        name: 'Cidade A',
+        country: 'BR',
+        latitude: -10,
+        longitude: -40,
+      ),
+      CityLocation(
+        name: 'Cidade B',
+        country: 'BR',
+        latitude: -20,
+        longitude: -50,
+      ),
+    ];
+    controller.locations = cities;
+    controller.selectedLocationIndex = 1;
+    controller.location = cities[1];
+
+    await controller.reorderLocation(1, 0);
+
+    expect(controller.locations.map((city) => city.name), [
+      'Cidade B',
+      'Cidade A',
+    ]);
+    expect(controller.selectedLocationIndex, 0);
+    expect(controller.location.name, 'Cidade B');
   });
 }

@@ -52,8 +52,7 @@ dependencies:
   firebase_app_check: ^0.4.6
   package_info_plus: ^10.2.1
   flutter_timezone: ^5.1.0
-  dynamic_color: ^1.8.1
-
+  flutter_markdown_plus: ^1.0.12
 dev_dependencies:
   flutter_test:
     sdk: flutter

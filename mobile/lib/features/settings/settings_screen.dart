@@ -5,6 +5,32 @@ import '../../app_controller.dart';
 import '../../core/app_config.dart';
 import '../../domain/app_settings.dart';
 
+extension on MeteorAccent {
+  String get label => switch (this) {
+    MeteorAccent.indigo => 'Índigo',
+    MeteorAccent.blue => 'Azul',
+    MeteorAccent.cyan => 'Ciano',
+    MeteorAccent.teal => 'Verde-azulado',
+    MeteorAccent.green => 'Verde',
+    MeteorAccent.amber => 'Âmbar',
+    MeteorAccent.orange => 'Laranja',
+    MeteorAccent.rose => 'Rosa',
+    MeteorAccent.purple => 'Roxo',
+  };
+
+  Color get color => switch (this) {
+    MeteorAccent.indigo => const Color(0xFF536DFE),
+    MeteorAccent.blue => const Color(0xFF1976D2),
+    MeteorAccent.cyan => const Color(0xFF0097A7),
+    MeteorAccent.teal => const Color(0xFF00897B),
+    MeteorAccent.green => const Color(0xFF388E3C),
+    MeteorAccent.amber => const Color(0xFFFFB300),
+    MeteorAccent.orange => const Color(0xFFF57C00),
+    MeteorAccent.rose => const Color(0xFFD81B60),
+    MeteorAccent.purple => const Color(0xFF7E57C2),
+  };
+}
+
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
@@ -63,20 +89,74 @@ class SettingsScreen extends StatelessWidget {
                                 }).toList(),
                           ),
                           const SizedBox(height: 10),
+                          SwitchListTile(
+                            contentPadding: EdgeInsets.zero,
+                            secondary: const Icon(Icons.map_outlined),
+                            title: const Text('Mapa escuro'),
+                            subtitle: const Text(
+                              'Afeta somente o mapa meteorológico. Desligado, ele permanece claro em qualquer tema.',
+                            ),
+                            value: settings.darkMap,
+                            onChanged: (value) => state.updateSettings(
+                              settings.copyWith(darkMap: value),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
                           Text(
                             'AMOLED usa preto real no aplicativo; fotos permanecem apenas no cartão principal do clima.',
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
-                          SwitchListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: const Text('Cores do sistema'),
-                            subtitle: const Text(
-                              'Usa a paleta Material You quando disponível.',
-                            ),
-                            value: settings.dynamicColor,
-                            onChanged: (value) => state.updateSettings(
-                              settings.copyWith(dynamicColor: value),
-                            ),
+                          const SizedBox(height: 18),
+                          Text(
+                            'Cor do Meteor',
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Escolha uma paleta Material para botões, gráficos e destaques.',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 12,
+                            runSpacing: 12,
+                            children: MeteorAccent.values.map((accent) {
+                              final selected = settings.accent == accent;
+                              return Semantics(
+                                button: true,
+                                selected: selected,
+                                label: accent.label,
+                                child: InkWell(
+                                  customBorder: const CircleBorder(),
+                                  onTap: () => state.updateSettings(
+                                    settings.copyWith(accent: accent),
+                                  ),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 180),
+                                    width: 42,
+                                    height: 42,
+                                    decoration: BoxDecoration(
+                                      color: accent.color,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: selected
+                                            ? Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface
+                                            : Colors.transparent,
+                                        width: 3,
+                                      ),
+                                    ),
+                                    child: selected
+                                        ? const Icon(
+                                            Icons.check_rounded,
+                                            color: Colors.white,
+                                          )
+                                        : null,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
                           ),
                         ],
                       ),

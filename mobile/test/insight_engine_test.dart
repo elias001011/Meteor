@@ -7,8 +7,13 @@ void main() {
     final data = _bundle(condition: 'Trovoada', feelsLike: 40);
     final insights = InsightEngine.analyze(data);
 
-    expect(insights.first.severity, InsightSeverity.severe);
+    expect(insights.first.severity, InsightSeverity.normal);
+    expect(insights[1].severity, InsightSeverity.severe);
     expect(insights.map((item) => item.title), contains('Calor muito intenso'));
+    expect(
+      insights.map((item) => item.title),
+      contains('Trovoada em São Paulo'),
+    );
   });
 
   test('produz resumo útil quando não há riscos', () {
@@ -18,7 +23,8 @@ void main() {
 
     expect(insights, hasLength(1));
     expect(insights.single.severity, InsightSeverity.normal);
-    expect(insights.single.body, contains('Hoje varia entre'));
+    expect(insights.single.body, contains('Hoje: 19–25 °C'));
+    expect(insights.single.body, contains('próximas 6 h'));
   });
 }
 

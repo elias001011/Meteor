@@ -1,25 +1,18 @@
 import 'package:flutter/material.dart';
 
 abstract final class AppTheme {
-  static const seed = Color(0xFF4767FF);
+  static ThemeData light(Color seed) => _build(Brightness.light, seed);
 
-  static ThemeData light([ColorScheme? scheme]) =>
-      _build(Brightness.light, scheme);
+  static ThemeData dark(Color seed) => _build(Brightness.dark, seed);
 
-  static ThemeData dark([ColorScheme? scheme]) =>
-      _build(Brightness.dark, scheme);
-
-  static ThemeData amoled() {
-    final base = _build(Brightness.dark);
-    const blackScheme = ColorScheme.dark(
-      primary: Color(0xFFB8C4FF),
-      onPrimary: Color(0xFF102264),
-      secondary: Color(0xFF62D4ED),
+  static ThemeData amoled(Color seed) {
+    final base = _build(Brightness.dark, seed);
+    final blackScheme = base.colorScheme.copyWith(
       surface: Colors.black,
-      onSurface: Color(0xFFF3F3F7),
-      surfaceContainer: Color(0xFF090909),
-      surfaceContainerHigh: Color(0xFF121212),
-      outlineVariant: Color(0xFF292929),
+      onSurface: const Color(0xFFF3F3F7),
+      surfaceContainer: const Color(0xFF090909),
+      surfaceContainerHigh: const Color(0xFF121212),
+      outlineVariant: const Color(0xFF292929),
     );
     return base.copyWith(
       scaffoldBackgroundColor: Colors.black,
@@ -34,10 +27,11 @@ abstract final class AppTheme {
     );
   }
 
-  static ThemeData _build(Brightness brightness, [ColorScheme? dynamicScheme]) {
-    final scheme =
-        dynamicScheme ??
-        ColorScheme.fromSeed(seedColor: seed, brightness: brightness);
+  static ThemeData _build(Brightness brightness, Color seed) {
+    final scheme = ColorScheme.fromSeed(
+      seedColor: seed,
+      brightness: brightness,
+    );
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,

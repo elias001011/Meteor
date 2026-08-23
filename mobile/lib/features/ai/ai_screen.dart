@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -46,10 +47,6 @@ class _AiScreenState extends State<AiScreen> {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppController>();
-    if (state.aiDraft != null && _input.text != state.aiDraft) {
-      _input.text = state.aiDraft!;
-      _input.selection = TextSelection.collapsed(offset: _input.text.length);
-    }
     if (state.isSendingChat) _scrollToBottom();
     return Scaffold(
       appBar: AppBar(
@@ -216,7 +213,7 @@ class _MessageBubble extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
-          color: user ? scheme.primaryContainer : scheme.surfaceContainerHigh,
+          color: user ? scheme.primary : scheme.surfaceContainerHigh,
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(20),
             topRight: const Radius.circular(20),
@@ -227,7 +224,51 @@ class _MessageBubble extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SelectableText(message.text),
+            MarkdownBody(
+              data: message.text,
+              selectable: true,
+              softLineBreak: true,
+              styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context))
+                  .copyWith(
+                    p: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: user ? scheme.onPrimary : scheme.onSurface,
+                      height: 1.45,
+                    ),
+                    h1: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      color: user ? scheme.onPrimary : scheme.onSurface,
+                    ),
+                    h2: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: user ? scheme.onPrimary : scheme.onSurface,
+                    ),
+                    h3: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: user ? scheme.onPrimary : scheme.onSurface,
+                    ),
+                    strong: TextStyle(
+                      color: user ? scheme.onPrimary : scheme.onSurface,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    listBullet: TextStyle(
+                      color: user ? scheme.onPrimary : scheme.primary,
+                    ),
+                    blockquoteDecoration: BoxDecoration(
+                      color: user
+                          ? scheme.onPrimary.withValues(alpha: .1)
+                          : scheme.surfaceContainerHighest,
+                      border: Border(
+                        left: BorderSide(
+                          color: user ? scheme.onPrimary : scheme.primary,
+                          width: 3,
+                        ),
+                      ),
+                    ),
+                  ),
+              onTapLink: (_, href, _) {
+                final uri = Uri.tryParse(href ?? '');
+                if (uri != null && {'http', 'https'}.contains(uri.scheme)) {
+                  launchUrl(uri, mode: LaunchMode.externalApplication);
+                }
+              },
+            ),
             if (message.sources.isNotEmpty) ...[
               const SizedBox(height: 12),
               Text('Fontes', style: Theme.of(context).textTheme.labelLarge),
