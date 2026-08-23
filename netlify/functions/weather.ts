@@ -654,6 +654,7 @@ const handler: Handler = async (event: HandlerEvent) => {
                 const q = safeText(params.q, 120);
                 const country = safeText(params.country, 8).toUpperCase();
                 const source = safeText(params.source, 20) || 'auto';
+                const imageNonce = safeText(params.imageNonce, 40);
 
                 if (lat === null || lon === null) {
                     return errorResponse(event, 400, 'COORDINATES_REQUIRED', 'Latitude e longitude são obrigatórias.', { methods: ALLOWED_METHODS });
@@ -772,7 +773,8 @@ const handler: Handler = async (event: HandlerEvent) => {
                 weatherBundle.weatherData.city = weatherBundle.weatherData.city || resolvedCityName;
                 weatherBundle.weatherData.country = weatherBundle.weatherData.country || '';
 
-                const imageFallbackUrl = `https://picsum.photos/seed/${encodeURIComponent(`${resolvedCityName}-meteor`)}/1600/1000`;
+                const imageSeed = `${resolvedCityName}-meteor${imageNonce ? `-${imageNonce}` : ''}`;
+                const imageFallbackUrl = `https://picsum.photos/seed/${encodeURIComponent(imageSeed)}/1600/1000`;
                 let imageUrl = imageFallbackUrl;
                 let imageAttribution: {
                     source: 'unsplash' | 'picsum';
@@ -785,7 +787,11 @@ const handler: Handler = async (event: HandlerEvent) => {
                     try {
                         const weatherCondition = weatherBundle.weatherData.condition || 'weather';
                         const searchQuery = `${resolvedCityName} ${weatherCondition}`;
-                        const unsplashUrl = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(searchQuery)}&per_page=1&orientation=landscape`;
+                        const requestedPage = Number.parseInt(imageNonce, 10);
+                        const page = Number.isSafeInteger(requestedPage) && requestedPage >= 1 && requestedPage <= 20
+                            ? requestedPage
+                            : 1;
+                        const unsplashUrl = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(searchQuery)}&per_page=1&page=${page}&orientation=landscape`;
 
                         const unsplashRes = await fetchWithTimeout(unsplashUrl, {
                             headers: {
@@ -831,7 +837,9 @@ const handler: Handler = async (event: HandlerEvent) => {
 
                 return jsonResponse(event, 200, responseBody, {
                     methods: ALLOWED_METHODS,
-                    cacheControl: 'public, max-age=180, s-maxage=300, stale-while-revalidate=600',
+                    cacheControl: imageNonce
+                        ? 'private, no-store'
+                        : 'public, max-age=180, s-maxage=300, stale-while-revalidate=600',
                     headers: {
                         'X-RateLimit-Limit': String(rateLimit.limit),
                         'X-RateLimit-Remaining': String(rateLimit.remaining),
