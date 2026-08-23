@@ -26,7 +26,7 @@ Content-Type: application/json
   "location": { "latitude": -23.55052, "longitude": -46.63331 },
   "timeZone": "America/Sao_Paulo",
   "locale": "pt-BR",
-  "appVersion": "1.0.0+1",
+  "appVersion": "1.0.0",
   "preferences": {
     "severeAlerts": true,
     "rainSoon": true,
@@ -34,6 +34,8 @@ Content-Type: application/json
     "temperature": false,
     "uv": false,
     "wind": false,
+    "dailySummaryHour": 7,
+    "quietHoursEnabled": true,
     "quietStartHour": 22,
     "quietEndHour": 7,
     "coldThresholdC": 5,
@@ -66,11 +68,12 @@ Netlify e não possui URL pública. A cada execução ele:
 2. agrupa instalações pela localização aproximada;
 3. faz uma consulta One Call 3.0 por grupo, com timeout de 9 segundos;
 4. avalia alertas oficiais, chuva nas próximas três horas, temperatura, UV,
-   vento e resumo diário das 07:00 no fuso de cada instalação;
+   vento e resumo diário no horário escolhido e fuso de cada instalação;
 5. reserva uma chave de deduplicação no Firestore antes do envio;
 6. envia lotes FCM e remove instalações cujo token foi invalidado.
 
-O silêncio padrão é 22:00–07:00. Apenas um alerta oficial classificado como
+O silêncio padrão é 22:00–07:00 e pode ser desligado ou alterado pelo usuário.
+Apenas um alerta oficial classificado como
 crítico pode furar esse período. Chuva e vento têm cooldown de seis horas;
 temperatura, UV e resumo usam chaves estáveis por data local. A coleção de
 entregas evita duplicidade inclusive se duas execuções se sobrepuserem.
@@ -104,6 +107,8 @@ Passos nos consoles:
 1. criar um projeto Firebase novo e registrar `com.eliasnunes.meteor`;
 2. habilitar Authentication/Anonymous, Firestore e Cloud Messaging API HTTP v1;
 3. habilitar App Check com Play Integrity e registrar os SHA-256 de debug/release;
+   para APK off-Play, permitir versão não reconhecida pelo catálogo sem remover
+   a exigência de integridade do dispositivo;
 4. gerar uma conta de serviço exclusiva, com somente os papéis necessários para
    validar Auth/App Check, ler/gravar as três coleções e enviar FCM;
 5. adicionar `FIREBASE_SERVICE_ACCOUNT_JSON` como segredo Netlify e redeployar;

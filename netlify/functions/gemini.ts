@@ -43,9 +43,9 @@ const MAX_USER_INSTRUCTIONS_LENGTH = 400;
 const MAX_TIME_CONTEXT_LENGTH = 120;
 const MAX_WEATHER_CONTEXT_TEXT_LENGTH = 5_000;
 const REQUEST_DEADLINE_MS = 28_000;
-const MODEL_CALL_TIMEOUT_MS = 9_000;
+const MODEL_CALL_TIMEOUT_MS = 16_000;
 const ALLOWED_METHODS = ['POST', 'OPTIONS'];
-const GOOGLE_SEARCH_TOOL = { googleSearch: { searchTypes: { webSearch: {} } } } as const;
+const GOOGLE_SEARCH_TOOL = { googleSearch: {} } as const;
 
 const isRecord = (value: unknown): value is Record<string, unknown> => (
     typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -238,9 +238,9 @@ const buildFinalUserContent = (
 const modelAttempts = (): ModelAttempt[] => {
     const models = [...new Set([
         safeText(process.env.GEMINI_MODEL, 100),
-        'gemini-3.1-flash-lite',
-        'gemini-2.5-flash',
-        'gemini-2.5-flash-lite',
+        'gemini-3.7-flash',
+        'gemini-3.6-flash',
+        'gemini-3.5-flash-lite',
     ].filter(Boolean))];
 
     return [
@@ -307,8 +307,6 @@ const runModelWithFallbacks = async (
                     contents,
                     config: {
                         systemInstruction: buildSystemInstruction(),
-                        temperature: 0.35,
-                        topP: 0.9,
                         maxOutputTokens: 2_048,
                         ...(attempt.useSearch ? { tools: [GOOGLE_SEARCH_TOOL] } : {}),
                         abortSignal: AbortSignal.timeout(timeout),
