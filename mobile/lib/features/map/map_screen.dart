@@ -67,10 +67,10 @@ class _MapScreenState extends State<MapScreen> {
                 keepBuffer: 1,
               ),
               TileLayer(
-                key: ValueKey('$_layer-$_opacity'),
+                key: ValueKey(_layer),
                 urlTemplate: overlay,
                 userAgentPackageName: 'com.eliasnunes.meteor',
-                tileProvider: NetworkTileProvider(),
+                minZoom: 3,
                 maxNativeZoom: 10,
                 maxZoom: 12,
                 panBuffer: 0,

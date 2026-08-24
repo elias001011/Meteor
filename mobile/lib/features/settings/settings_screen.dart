@@ -241,6 +241,40 @@ class SettingsScreen extends StatelessWidget {
                               ),
                             ),
                           ),
+                        if (settings.pushEnabled)
+                          ListTile(
+                            leading: const Icon(Icons.send_to_mobile_rounded),
+                            title: const Text('Testar neste aparelho'),
+                            subtitle: const Text(
+                              'Envia uma notificação agora para confirmar Firebase, servidor e Android.',
+                            ),
+                            trailing: OutlinedButton(
+                              onPressed: state.pushBusy
+                                  ? null
+                                  : () async {
+                                      final sent = await state
+                                          .sendTestNotification();
+                                      if (!context.mounted) return;
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                sent
+                                                    ? 'Teste enviado. A notificação deve aparecer em instantes.'
+                                                    : state.pushError ?? 'O teste não foi confirmado.',
+                                              ),
+                                            ),
+                                          );
+                                    },
+                              child: const Text('Enviar'),
+                            ),
+                          ),
+                        const Padding(
+                          padding: EdgeInsets.fromLTRB(16, 4, 16, 8),
+                          child: Text(
+                            'Os avisos normais são enviados pelo servidor apenas quando uma condição configurada acontece. Ativar não gera uma notificação imediata.',
+                          ),
+                        ),
                         _NotificationSwitch(
                           title: 'Alertas severos oficiais',
                           subtitle:
