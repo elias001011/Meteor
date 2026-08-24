@@ -384,6 +384,54 @@ class AppController extends ChangeNotifier {
     }
   }
 
+  Future<bool> sendTestNotification() async {
+    pushError = null;
+    if (!settings.pushEnabled || !notifications.isAvailable) {
+      pushError = 'Ative as notificações antes de enviar um teste.';
+      notifyListeners();
+      return false;
+    }
+    if (!store.pushRegistered && !await _syncPush()) return false;
+
+    pushBusy = true;
+    notifyListeners();
+    try {
+      for (var attempt = 0; attempt < 2; attempt++) {
+        final credentials = await notifications.credentials(
+          forceRefresh: attempt > 0,
+        );
+        if (credentials == null) {
+          throw const PushApiException(
+            'Não foi possível obter as credenciais desta instalação.',
+          );
+        }
+        try {
+          await _installationClient.sendTest(
+            credentials: credentials,
+            installationId: await store.installationId(),
+          );
+          return true;
+        } on PushApiException catch (error) {
+          if (attempt == 0 &&
+              (error.statusCode == 401 || error.statusCode == 403)) {
+            continue;
+          }
+          rethrow;
+        }
+      }
+      return false;
+    } catch (error) {
+      pushError = _message(
+        error,
+        'Não foi possível enviar a notificação de teste.',
+      );
+      return false;
+    } finally {
+      pushBusy = false;
+      notifyListeners();
+    }
+  }
+
   Future<bool> _syncPush({bool forceAuthRefresh = false}) async {
     if (!settings.pushEnabled || !notifications.isAvailable || pushBusy) {
       return false;

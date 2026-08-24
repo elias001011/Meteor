@@ -85,4 +85,27 @@ void main() {
       installationId: 'installation_id_123456',
     );
   });
+
+  test('teste de push usa endpoint dedicado e mantém autenticação', () async {
+    late http.Request captured;
+    final client = MobileInstallationClient(
+      client: MockClient((request) async {
+        captured = request;
+        return http.Response('{"ok":true}', 202);
+      }),
+    );
+
+    await client.sendTest(
+      credentials: credentials,
+      installationId: 'installation_id_123456',
+    );
+
+    expect(captured.method, 'POST');
+    expect(captured.url.path, endsWith('/mobile-push-test'));
+    expect(captured.headers['authorization'], 'Bearer firebase-id-token');
+    expect(captured.headers['x-firebase-appcheck'], 'app-check-token');
+    expect(jsonDecode(captured.body), {
+      'installationId': 'installation_id_123456',
+    });
+  });
 }

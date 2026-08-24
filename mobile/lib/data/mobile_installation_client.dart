@@ -19,6 +19,11 @@ class MobileInstallationClient {
     return Uri.parse('$base/mobile-installation');
   }
 
+  Uri get _testEndpoint {
+    final base = AppConfig.bffUrl.replaceAll(RegExp(r'/+$'), '');
+    return Uri.parse('$base/mobile-push-test');
+  }
+
   Future<void> upsert({
     required PushCredentials credentials,
     required String installationId,
@@ -56,13 +61,21 @@ class MobileInstallationClient {
     required String installationId,
   }) => _send('DELETE', credentials, {'installationId': installationId});
 
+  Future<void> sendTest({
+    required PushCredentials credentials,
+    required String installationId,
+  }) => _send('POST', credentials, {
+    'installationId': installationId,
+  }, endpoint: _testEndpoint);
+
   Future<void> _send(
     String method,
     PushCredentials credentials,
-    Map<String, Object> body,
-  ) async {
+    Map<String, Object> body, {
+    Uri? endpoint,
+  }) async {
     try {
-      final request = http.Request(method, _endpoint)
+      final request = http.Request(method, endpoint ?? _endpoint)
         ..headers.addAll({
           'Accept': 'application/json',
           'Content-Type': 'application/json',

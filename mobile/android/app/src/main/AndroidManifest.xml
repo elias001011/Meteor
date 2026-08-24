@@ -8,7 +8,11 @@
         android:label="Meteor"
         android:name="${applicationName}"
         android:icon="@drawable/ic_launcher_meteor"
-        android:roundIcon="@drawable/ic_launcher_meteor">
+        android:roundIcon="@drawable/ic_launcher_meteor"
+        android:allowBackup="false"
+        android:fullBackupContent="@xml/backup_rules"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:usesCleartextTraffic="false">
         <activity
             android:name=".MainActivity"
             android:exported="true"
