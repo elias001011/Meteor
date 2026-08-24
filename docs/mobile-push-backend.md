@@ -59,6 +59,13 @@ não finitos, thresholds fora dos limites e corpos acima de 16 kB são rejeitado
 O token FCM nunca aparece na resposta. Um hash liga cada token ao UID e à
 instalação que o registrou, impedindo que outra sessão anônima tome sua posse.
 
+O endpoint `/.netlify/functions/mobile-push-test` aceita somente `POST`, exige
+os mesmos tokens de Auth e App Check e envia uma única mensagem para a
+instalação pertencente ao UID autenticado. Ele tem limite próprio de oito
+tentativas a cada dez minutos e não permite informar token FCM, título,
+conteúdo ou destinatário arbitrário. Serve para diagnosticar a cadeia completa
+sem criar um disparador público ou em massa.
+
 ## Funcionamento do agendador
 
 `mobile-push-scheduled` roda a cada hora (UTC) como Scheduled Function da
