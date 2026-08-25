@@ -12,6 +12,7 @@ import HourlyForecastComponent from './HourlyForecast';
 import LoadingSpinner from '../common/LoadingSpinner';
 import SearchBar from './SearchBar';
 import WeatherInsights from './WeatherInsights';
+import SunriseSunset from './SunriseSunset';
 
 interface WeatherViewProps {
   weatherData: WeatherData | null;
@@ -92,10 +93,11 @@ const WeatherView: React.FC<WeatherViewProps> = ({
           <DailyForecastComponent data={dailyForecast} timezoneOffset={weatherData.timezoneOffset} unitSystem={unitSystem} showDetailLabel={showDetailLabel} />
         </div>
         <div className="space-y-3 sm:space-y-4 lg:col-span-5">
+          <SunriseSunset sunrise={weatherData.sunrise} sunset={weatherData.sunset} timezoneOffset={weatherData.timezoneOffset} />
           <AdditionalInfo data={weatherData} unitSystem={unitSystem} />
-          {airQualityData && <AirQuality data={airQualityData} />}
         </div>
       </div>
+      {airQualityData && <AirQuality data={airQualityData} />}
       <DataSourceInfo source={dataSource} lastUpdated={lastUpdated} onClick={onDataSourceInfoClick} />
     </div>
   );

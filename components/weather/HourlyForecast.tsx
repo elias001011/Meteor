@@ -5,6 +5,7 @@ import { UmbrellaIcon } from '../icons';
 import { useTheme } from '../context/ThemeContext';
 import ForecastDetailModal from './ForecastDetailModal';
 import { getSettings } from '../../services/settingsService';
+import WeatherConditionIcon from './WeatherConditionIcon';
 
 interface HourlyForecastProps {
   data: HourlyForecast[];
@@ -91,10 +92,13 @@ const HourlyForecastComponent: React.FC<HourlyForecastProps> = ({ data, timezone
                 <button 
                     key={index}
                     onClick={() => handleItemClick(item)}
+                    onMouseDown={event => event.preventDefault()}
                     className="group flex w-[4.5rem] flex-none flex-col items-center justify-between space-y-1.5 px-2 py-2.5 text-center transition-colors hover:bg-white/[0.035]"
                 >
                     <span className="text-[11px] text-slate-500 group-hover:text-slate-300">{formatHour(item.dt)}</span>
-                    <span className="my-1 text-2xl">{item.conditionIcon}</span>
+                    <span className="my-1 flex h-8 w-8 items-center justify-center">
+                        <WeatherConditionIcon icon={item.conditionIcon} description={item.description} className="h-8 w-8" />
+                    </span>
                     <span className="text-sm font-semibold">{formatTemp(item.temperature)}°</span>
                     
                     {/* Container de Chuva */}

@@ -29,6 +29,7 @@ body {
   background: #0b0d10;
   color: #f8fafc;
   overscroll-behavior-y: none;
+  overflow-anchor: none;
 }
 
 button, input, select, textarea { font: inherit; }
@@ -45,7 +46,7 @@ textarea:focus-visible {
 
 ::selection { color: white; background: rgba(8, 145, 178, 0.72); }
 
-.meteor-shell { isolation: isolate; }
+.meteor-shell { isolation: isolate; overflow-anchor: none; }
 
 .meteor-card {
   border: 1px solid rgba(255, 255, 255, 0.09);
@@ -73,7 +74,7 @@ textarea:focus-visible {
   color: white !important;
 }
 
-html.show-scrollbars { scrollbar-width: auto; -ms-overflow-style: auto; }
+html.show-scrollbars { overflow-y: scroll; scrollbar-gutter: stable; scrollbar-width: auto; -ms-overflow-style: auto; }
 html.show-scrollbars ::-webkit-scrollbar { display: block; width: 7px; height: 7px; }
 html.show-scrollbars ::-webkit-scrollbar-thumb { border-radius: 999px; background: rgba(148, 163, 184, 0.28); }
 

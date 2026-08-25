@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import type { WeatherData, UnitSystem } from '../../types';
-import { WindIcon, DropletsIcon, GaugeIcon, SunIcon, EyeIcon, CloudIcon, ThermometerIcon, CloudRainIcon, CloudSnowIcon, SunriseIcon, SunsetIcon } from '../icons';
+import { WindIcon, DropletsIcon, GaugeIcon, SunIcon, EyeIcon, CloudIcon, ThermometerIcon, CloudRainIcon, CloudSnowIcon } from '../icons';
 import { useTheme } from '../context/ThemeContext';
 import ForecastDetailModal from './ForecastDetailModal';
 
@@ -11,7 +11,7 @@ interface AdditionalInfoProps {
 }
 
 const InfoItem: React.FC<{ icon: React.ReactNode; label: string; value: string | number; onClick: (val: string) => void }> = ({ icon, label, value, onClick }) => (
-    <button onClick={() => onClick(String(value))} className="flex min-w-0 w-full items-center gap-2.5 rounded-lg px-1 py-2.5 text-left transition-colors hover:bg-white/[0.025] hover:text-white">
+    <button onClick={() => onClick(String(value))} onMouseDown={event => event.preventDefault()} className="flex min-w-0 w-full items-center gap-2.5 rounded-lg px-1 py-2 text-left transition-colors hover:bg-white/[0.025] hover:text-white">
         <span className="flex-none text-slate-500">{icon}</span>
         <span className="min-w-0 flex-1">
             <span className="block truncate text-[11px] text-slate-500">{label}</span>
@@ -28,12 +28,6 @@ const degreesToCardinal = (deg: number): string => {
 const AdditionalInfo: React.FC<AdditionalInfoProps> = ({ data, unitSystem }) => {
   const { cardClass } = useTheme();
   const [selectedInfo, setSelectedInfo] = useState<string | null>(null);
-
-  const formatTime = (timestamp: number) => {
-      const offset = data.timezoneOffset || 0;
-      const date = new Date((timestamp + offset) * 1000);
-      return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
-  };
 
   const getUviInfo = (uvi: number) => {
     const u = Math.round(uvi);
@@ -86,11 +80,7 @@ const AdditionalInfo: React.FC<AdditionalInfoProps> = ({ data, unitSystem }) => 
     <>
         <section className={`rounded-2xl p-4 sm:p-5 ${cardClass} animate-enter`} aria-labelledby="details-title">
             <h3 id="details-title" className="mb-1 text-sm font-semibold text-white">Informações gerais</h3>
-            <div className="grid grid-cols-2 gap-x-4">
-                {/* Sunrise / Sunset */}
-                <InfoItem icon={<SunriseIcon className={iconClass} />} label="Nascer" value={formatTime(data.sunrise)} {...itemProps} />
-                <InfoItem icon={<SunsetIcon className={iconClass} />} label="Pôr" value={formatTime(data.sunset)} {...itemProps} />
-                
+            <div className="grid grid-cols-2 gap-x-3">
                 {/* Wind & Gusts */}
                 <InfoItem 
                     icon={<WindIcon className={iconClass} />} 
