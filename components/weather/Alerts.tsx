@@ -24,29 +24,27 @@ const Alerts: React.FC<AlertsProps> = ({ alerts }) => {
     return (
         <div className="space-y-3 animate-enter">
             {alerts.map((alert, index) => (
-                <div key={index} className="rounded-xl border border-white/[0.08] border-l-2 border-l-red-400 bg-[#111419] p-4 sm:p-5">
+                <article key={index} className="overflow-hidden rounded-2xl border border-red-400/20 bg-red-950/25">
                     
                     {/* Header */}
-                    <div className="mb-3 flex items-center gap-2.5">
-                        <AlertTriangleIcon className="h-4 w-4 flex-none text-red-300" />
-                        <h3 className="font-medium leading-tight text-white">{alert.event}</h3>
-                    </div>
+                    <div className="flex items-start gap-3 p-4 sm:p-5">
+                        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-400/10 text-red-300">
+                            <AlertTriangleIcon className="h-[18px] w-[18px]" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                            <h3 className="font-semibold leading-tight text-white">{alert.event}</h3>
 
-                    {/* Description Body */}
-                    <p className="mb-4 text-sm leading-relaxed text-gray-300">
-                        {alert.description}
-                    </p>
+                            <p className="mt-2 text-sm leading-relaxed text-slate-300">
+                                {alert.description}
+                            </p>
 
-                    {/* Footer Tags */}
-                    <div className="flex flex-col gap-1 text-xs text-slate-500 sm:flex-row sm:gap-4">
-                         <div>
-                             Fonte: {alert.sender_name}
-                         </div>
-                         <div>
-                             Até {formatDate(alert.end)}
-                         </div>
+                            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-red-100/45">
+                                <span>{alert.sender_name || 'Autoridade meteorológica'}</span>
+                                <span>Válido até {formatDate(alert.end)}</span>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                </article>
             ))}
         </div>
     );

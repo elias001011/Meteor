@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import type { ClockDisplayMode, UnitSystem, WeatherData } from '../../types';
 import { DropletsIcon, MapPinIcon, WindIcon } from '../icons';
 import { useTheme } from '../context/ThemeContext';
+import WeatherConditionIcon from './WeatherConditionIcon';
 
 interface CurrentWeatherProps {
   data: WeatherData;
@@ -93,7 +94,9 @@ const CurrentWeather: React.FC<CurrentWeatherProps> = ({ data, clockDisplayMode,
               <p className="mt-3 text-base font-medium capitalize">{data.condition}</p>
               {typeof data.feels_like === 'number' && <p className="mt-1 text-xs text-white/60">Sensação de {temp(data.feels_like)}°</p>}
             </div>
-            <span className="pb-2 text-4xl sm:text-5xl" aria-hidden="true">{data.conditionIcon}</span>
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center self-end pb-1 sm:h-[4.5rem] sm:w-[4.5rem]">
+              <WeatherConditionIcon icon={data.conditionIcon} description={data.condition} className="h-14 w-14 sm:h-16 sm:w-16" />
+            </div>
           </div>
 
           <div className="grid grid-cols-3 gap-2">

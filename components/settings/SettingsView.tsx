@@ -89,7 +89,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
   const optionClass = 'bg-[#15191f] text-white';
 
   const Toggle = ({ checked, onChange, label }: { checked: boolean; onChange: () => void; label: string }) => (
-    <button type="button" role="switch" aria-checked={checked} aria-label={label} onClick={onChange} className={`relative h-6 w-10 flex-none rounded-full transition-colors ${checked ? classes.bg : 'bg-slate-700'}`}>
+    <button type="button" role="switch" aria-checked={checked} aria-label={label} onMouseDown={event => event.preventDefault()} onClick={onChange} className={`relative h-6 w-10 flex-none rounded-full transition-colors ${checked ? classes.bg : 'bg-slate-700'}`}>
       <span className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-[left] ${checked ? 'left-5' : 'left-1'}`} />
     </button>
   );
@@ -103,7 +103,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
 
   const Segment = <T extends string,>({ value, options, onChange }: { value: T; options: Array<{ value: T; label: string }>; onChange: (value: T) => void }) => (
     <div className="flex min-w-0 rounded-xl bg-black/20 p-1">
-      {options.map(option => <button type="button" key={option.value} onClick={() => onChange(option.value)} className={`min-w-0 flex-1 rounded-lg px-2.5 py-2 text-xs transition-colors ${value === option.value ? 'bg-white/[0.09] text-white' : 'text-slate-500 hover:text-slate-300'}`}>{option.label}</button>)}
+      {options.map(option => <button type="button" key={option.value} onMouseDown={event => event.preventDefault()} onClick={() => onChange(option.value)} className={`min-w-0 flex-1 rounded-lg px-2.5 py-2 text-xs transition-colors ${value === option.value ? 'bg-white/[0.09] text-white' : 'text-slate-500 hover:text-slate-300'}`}>{option.label}</button>)}
     </div>
   );
 
@@ -193,7 +193,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
   </div>;
 
   return <div className="mx-auto max-w-4xl px-4 pb-32 pt-6 sm:px-6">
-    <div className="mb-5 flex flex-wrap items-end justify-between gap-4"><div><h2 className="text-2xl font-semibold tracking-tight text-white">Ajustes</h2><p className="mt-1 text-sm text-slate-500">Preferências salvas neste navegador.</p></div><nav className="flex max-w-full gap-1 overflow-x-auto rounded-xl bg-white/[0.035] p-1" aria-label="Seções dos ajustes">{tabs.map(tab => <button type="button" key={tab.id} onClick={() => setActiveTab(tab.id)} aria-current={activeTab === tab.id ? 'page' : undefined} className={`flex-none rounded-lg px-3 py-2 text-xs font-medium transition-colors ${activeTab === tab.id ? 'bg-white/[0.09] text-white' : 'text-slate-500 hover:text-slate-200'}`}>{tab.label}</button>)}</nav></div>
+    <div className="mb-5 flex flex-wrap items-end justify-between gap-4"><div><h2 className="text-2xl font-semibold tracking-tight text-white">Ajustes</h2><p className="mt-1 text-sm text-slate-500">Preferências salvas neste navegador.</p></div><nav className="flex max-w-full gap-1 overflow-x-auto rounded-xl bg-white/[0.035] p-1" aria-label="Seções dos ajustes">{tabs.map(tab => <button type="button" key={tab.id} onMouseDown={event => event.preventDefault()} onClick={() => setActiveTab(tab.id)} aria-current={activeTab === tab.id ? 'page' : undefined} className={`flex-none rounded-lg px-3 py-2 text-xs font-medium transition-colors ${activeTab === tab.id ? 'bg-white/[0.09] text-white' : 'text-slate-500 hover:text-slate-200'}`}>{tab.label}</button>)}</nav></div>
     {feedbackMessage && <div role="status" className="fixed left-1/2 top-20 z-[200] -translate-x-1/2 rounded-xl border border-white/[0.08] bg-[#15191f] px-4 py-3 text-sm text-slate-200 shadow-xl">{feedbackMessage}</div>}
     {activeTab === 'general' && renderGeneral()}{activeTab === 'appearance' && renderAppearance()}{activeTab === 'ai' && renderAi()}{activeTab === 'data' && renderData()}{activeTab === 'about' && renderAbout()}
   </div>;

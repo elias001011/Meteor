@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { XIcon, WindIcon, DropletsIcon, GaugeIcon, SunIcon, ThermometerIcon, EyeIcon } from '../icons';
 import { useTheme } from '../context/ThemeContext';
 import { getSettings } from '../../services/settingsService';
+import WeatherConditionIcon from './WeatherConditionIcon';
 
 interface ExtendedData {
     title?: string;
@@ -98,7 +99,9 @@ const ForecastDetailModal: React.FC<ForecastDetailModalProps> = ({ isOpen, onClo
 
                     <div className="flex flex-col items-center mb-6">
                         <span className="text-gray-400 font-medium text-sm uppercase tracking-wider mb-1">{data.title}</span>
-                        <div className="text-5xl my-2 transform scale-125 drop-shadow-lg">{data.icon}</div>
+                        <div className="my-3 flex h-16 w-16 items-center justify-center">
+                            <WeatherConditionIcon icon={data.icon} description={data.description} className="h-16 w-16" />
+                        </div>
                         <h2 className="text-white font-bold text-xl capitalize text-center leading-snug">{data.description}</h2>
                         
                         <div className="flex flex-col items-center mt-2">
@@ -216,8 +219,8 @@ const ForecastDetailModal: React.FC<ForecastDetailModalProps> = ({ isOpen, onClo
                     {/* Astro Info */}
                     {(data.sunrise || data.sunset || (data.moon_phase !== undefined)) && (
                          <div className="mt-4 pt-4 border-t border-white/5 grid grid-cols-2 gap-y-2 text-xs text-gray-400">
-                             {data.sunrise && <span className="flex items-center gap-1">☀️ Nascer: <span className="text-white">{formatTime(data.sunrise)}</span></span>}
-                             {data.sunset && <span className="flex items-center gap-1">🌑 Pôr: <span className="text-white">{formatTime(data.sunset)}</span></span>}
+                             {data.sunrise && <span>Nascer: <span className="text-white">{formatTime(data.sunrise)}</span></span>}
+                             {data.sunset && <span>Pôr: <span className="text-white">{formatTime(data.sunset)}</span></span>}
                              {data.moon_phase !== undefined && (
                                  <span className="col-span-2 mt-1 text-center bg-gray-800/50 py-1 rounded">
                                      Lua: {data.moon_phase === 0 || data.moon_phase === 1 ? 'Nova' : (data.moon_phase === 0.5 ? 'Cheia' : (data.moon_phase < 0.5 ? 'Crescente' : 'Minguante'))} ({data.moon_phase})

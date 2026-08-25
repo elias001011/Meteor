@@ -17,6 +17,7 @@ const Header: React.FC<HeaderProps> = ({ activeView, setView, showClock, borderE
   const { classes, isAmoled } = useTheme();
   return (
     <header className={`fixed inset-x-0 top-0 z-40 border-b border-white/[0.07] ${isAmoled ? 'bg-black' : 'bg-[#0b0d10]/95 backdrop-blur-md'}`}>
+      {borderEffect !== 'none' && <div className={`pointer-events-none absolute ${borderEffect === 'top' ? 'top-0' : 'bottom-0'} inset-x-0 h-px bg-gradient-to-r ${classes.gradient} opacity-45`} />}
       <div className="relative mx-auto flex h-16 max-w-[1380px] items-center justify-between gap-5 px-4 sm:px-6">
         <button type="button" onClick={() => setView('weather')} className="flex items-center gap-2.5 rounded-xl" aria-label="Abrir o clima">
           <img src="/favicon.svg" alt="" className="h-8 w-8" />
@@ -33,7 +34,6 @@ const Header: React.FC<HeaderProps> = ({ activeView, setView, showClock, borderE
           {showClock && <div className="text-sm font-bold tabular-nums text-white lg:hidden"><Clock /></div>}
         </div>
 
-        {borderEffect !== 'none' && <div className={`absolute ${borderEffect === 'top' ? 'top-0' : 'bottom-0'} left-6 right-6 h-px bg-gradient-to-r ${classes.gradient} opacity-45`} />}
       </div>
     </header>
   );

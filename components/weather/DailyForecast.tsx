@@ -5,6 +5,7 @@ import { UmbrellaIcon } from '../icons';
 import { useTheme } from '../context/ThemeContext';
 import ForecastDetailModal from './ForecastDetailModal';
 import { getSettings } from '../../services/settingsService';
+import WeatherConditionIcon from './WeatherConditionIcon';
 
 interface DailyForecastProps {
   data: DailyForecast[];
@@ -65,6 +66,20 @@ const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data, timezoneOf
       return Math.round(t);
   };
 
+  const range = data.reduce((acc, item) => ({
+      min: Math.min(acc.min, item.temperature_min ?? item.temperature),
+      max: Math.max(acc.max, item.temperature),
+  }), { min: Number.POSITIVE_INFINITY, max: Number.NEGATIVE_INFINITY });
+  const rangeSpan = Math.max(1, range.max - range.min);
+  const getRangeStyle = (item: DailyForecast) => {
+      const low = item.temperature_min ?? item.temperature;
+      const rawLeft = ((low - range.min) / rangeSpan) * 100;
+      const rawWidth = ((item.temperature - low) / rangeSpan) * 100;
+      const width = Math.max(10, rawWidth);
+      const left = Math.min(rawLeft, 100 - width);
+      return { left: `${Math.max(0, left)}%`, width: `${Math.min(100, width)}%` };
+  };
+
   const handleItemClick = (item: DailyForecast) => {
       setSelectedItem({
           title: getDayLabel(item.dt) + (getDayLabel(item.dt) === 'Hoje' ? '' : ` (${new Date((item.dt + timezoneOffset) * 1000).toLocaleDateString('pt-BR', {day: 'numeric', month: 'numeric', timeZone: 'UTC'})})`),
@@ -95,13 +110,14 @@ const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data, timezoneOf
             <h3 className="m-0 text-sm font-semibold text-white">Próximos dias</h3>
         </div>
         
-        <div>
+        <div className="space-y-0.5">
             {data.map((item, index) => (
             <button 
                 key={index}
                 onClick={() => handleItemClick(item)}
-                className="group grid w-full items-center gap-2 rounded-lg px-1 py-3 text-sm transition-colors hover:bg-white/[0.025]"
-                style={{ gridTemplateColumns: 'minmax(60px, 1fr) 50px 50px minmax(80px, auto)' }}
+                onMouseDown={event => event.preventDefault()}
+                className="group grid min-h-12 w-full items-center gap-2 rounded-lg px-1.5 py-2 text-sm transition-colors hover:bg-white/[0.03]"
+                style={{ gridTemplateColumns: 'minmax(54px, .75fr) 46px 38px minmax(132px, 1.6fr)' }}
             >
                 {/* Day */}
                 <span className="truncate text-left font-medium text-slate-200 group-hover:text-white">{getDayLabel(item.dt)}</span>
@@ -119,16 +135,23 @@ const DailyForecastComponent: React.FC<DailyForecastProps> = ({ data, timezoneOf
                 </div>
 
                 {/* Icon */}
-                <div className="flex justify-center">
-                     <span className="text-xl">{item.conditionIcon}</span>
+                <div className="flex h-8 w-8 items-center justify-center">
+                     <WeatherConditionIcon icon={item.conditionIcon} description={item.description} className="h-7 w-7" />
                 </div>
                 
-                {/* Temp */}
-                <div className="flex justify-end gap-3">
-                    <span className="text-right font-semibold">{formatTemp(item.temperature)}°</span>
-                    {item.temperature_min !== undefined && (
-                        <span className="text-right text-slate-500">{formatTemp(item.temperature_min)}°</span>
-                    )}
+                {/* Daily low/high range, normalized against the seven-day forecast. */}
+                <div
+                    className="grid min-w-0 grid-cols-[2rem_minmax(60px,1fr)_2rem] items-center gap-2"
+                    aria-label={`Mínima de ${formatTemp(item.temperature_min ?? item.temperature)} graus e máxima de ${formatTemp(item.temperature)} graus`}
+                >
+                    <span className="text-right text-xs tabular-nums text-slate-500">{formatTemp(item.temperature_min ?? item.temperature)}°</span>
+                    <span className="relative h-1.5 overflow-hidden rounded-full bg-white/[0.08]">
+                        <span
+                            className="absolute inset-y-0 rounded-full bg-gradient-to-r from-sky-400 via-cyan-300 to-amber-300"
+                            style={getRangeStyle(item)}
+                        />
+                    </span>
+                    <span className="text-left text-xs font-semibold tabular-nums text-slate-200">{formatTemp(item.temperature)}°</span>
                 </div>
             </button>
             ))}

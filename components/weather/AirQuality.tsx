@@ -35,7 +35,7 @@ const getAqiInfo = (aqi: number): AqiInfo => {
 };
 
 const Pollutant: React.FC<{ name: string; value: number | undefined }> = ({ name, value }) => (
-    <div className="py-2.5">
+    <div className="py-2">
         <p className="text-[11px] text-slate-500">{name}</p>
         <p className="mt-0.5 text-sm font-medium text-slate-200">{typeof value === 'number' ? value.toFixed(1) : '—'} <span className="text-[10px] font-normal text-slate-600">μg/m³</span></p>
     </div>
@@ -62,7 +62,7 @@ const AirQuality: React.FC<AirQualityProps> = ({ data }) => {
                     <div className={`${aqiInfo.colorClass} h-full rounded-full transition-[width] duration-700`} style={{ width: `${aqiInfo.percentage}%` }} />
                 </div>
             )}
-            <div className="mt-3 grid grid-cols-2 gap-x-4 sm:grid-cols-4 xl:grid-cols-2">
+            <div className="mt-2 grid grid-cols-2 gap-x-4 sm:grid-cols-4">
                     <Pollutant name="PM2.5" value={data.components.pm2_5} />
                     <Pollutant name="Ozônio (O₃)" value={data.components.o3} />
                     <Pollutant name="Dióxido de nitrogênio" value={data.components.no2} />
