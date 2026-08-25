@@ -1,7 +1,7 @@
 
 import { type Handler, type HandlerEvent } from "@netlify/functions";
 import { getStore } from "@netlify/blobs";
-import { Buffer } from "buffer";
+import { Buffer } from "node:buffer";
 import {
     buildRateLimitResponse,
     checkRateLimit,
