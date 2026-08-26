@@ -393,8 +393,29 @@ const useWeather = () => {
   return { weatherData, loading };
 };
 
-// Weather Card
+// Weather Card - com tilt 3D que segue o mouse
 const WeatherCardPremium = ({ data }: { data?: WeatherData }) => {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const rotateX = useMotionValue(0);
+  const rotateY = useMotionValue(0);
+  const springConfig = { stiffness: 300, damping: 25, mass: 0.5 };
+  const springRotateX = useSpring(rotateX, springConfig);
+  const springRotateY = useSpring(rotateY, springConfig);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const card = cardRef.current;
+    if (!card) return;
+    const rect = card.getBoundingClientRect();
+    const px = (e.clientX - rect.left) / rect.width;
+    const py = (e.clientY - rect.top) / rect.height;
+    rotateY.set((px - 0.5) * 24);
+    rotateX.set((0.5 - py) * 24);
+  };
+  const handleMouseLeave = () => {
+    rotateX.set(0);
+    rotateY.set(0);
+  };
+
   if (!data) return null;
   const getIcon = (code: number) => {
     if (code <= 1) return <Sun className="w-8 h-8" />;
@@ -412,15 +433,19 @@ const WeatherCardPremium = ({ data }: { data?: WeatherData }) => {
     return 'from-amber-500 to-orange-600';
   };
   return (
-    <motion.div 
-      whileHover={{ scale: 1.05, rotateY: 5 }}
+    <motion.div
+      ref={cardRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      style={{ rotateX: springRotateX, rotateY: springRotateY, transformPerspective: 900 }}
+      whileHover={{ scale: 1.05 }}
       transition={{ type: 'spring', stiffness: 300 }}
-      className={`interactive-card bg-gradient-to-br ${getGradient(data.weatherCode)} text-white rounded-3xl p-6 shadow-2xl w-full max-w-[260px]`}
+      className={`interactive-card relative bg-gradient-to-br ${getGradient(data.weatherCode)} text-white rounded-3xl p-6 shadow-2xl w-full max-w-[260px] overflow-hidden`}
     >
-      <div className="flex items-center justify-between mb-4"><div><p className="text-lg font-bold">{data.city}</p><p className="text-xs opacity-75">{data.condition}</p></div>{getIcon(data.weatherCode)}</div>
-      <div className="text-5xl font-black mb-2">{data.temp}°</div>
-      <div className="flex gap-4 text-sm opacity-80"><span className="flex items-center gap-1"><Droplets className="w-4 h-4" /> {data.humidity}%</span><span className="flex items-center gap-1"><Wind className="w-4 h-4" /> {data.wind}km/h</span></div>
-      {data.alert && <div className="mt-4 bg-white/20 rounded-xl px-3 py-2 text-sm font-medium flex items-center gap-2"><AlertTriangle className="w-4 h-4" /> {data.alert}</div>}
+      <div className="relative flex items-center justify-between mb-4"><div><p className="text-lg font-bold">{data.city}</p><p className="text-xs opacity-75">{data.condition}</p></div>{getIcon(data.weatherCode)}</div>
+      <div className="relative text-5xl font-black mb-2">{data.temp}°</div>
+      <div className="relative flex gap-4 text-sm opacity-80"><span className="flex items-center gap-1"><Droplets className="w-4 h-4" /> {data.humidity}%</span><span className="flex items-center gap-1"><Wind className="w-4 h-4" /> {data.wind}km/h</span></div>
+      {data.alert && <div className="relative mt-4 bg-white/20 rounded-xl px-3 py-2 text-sm font-medium flex items-center gap-2"><AlertTriangle className="w-4 h-4" /> {data.alert}</div>}
     </motion.div>
   );
 };
@@ -446,15 +471,16 @@ const NavBar = ({ rainEnabled, setRainEnabled }: { rainEnabled: boolean, setRain
     }
   };
   
+  const navTransition = { type: 'tween' as const, duration: 0.3, ease: 'easeInOut' as const };
   const navLinks = [{ href: '#hero', label: 'Início' }, { href: '#tragedy', label: 'A Tragédia' }, { href: '#rsalerta', label: 'RSAlerta' }, { href: '#meteor', label: 'Meteor' }, { href: '#download', label: 'Download' }, { href: '#more-info', label: 'Sobre' }];
   return (
     <>
-      <nav className={`fixed top-0 left-0 right-0 z-50 flex flex-col items-center pointer-events-none transition-all duration-300 ${scrolled ? 'p-4' : 'p-0'}`}>
-        <motion.div 
-          animate={{ 
+      <nav className="fixed top-0 left-0 right-0 z-50 flex flex-col items-center pointer-events-none">
+        <motion.div
+          animate={{
             width: scrolled ? '96%' : '100%',
             maxWidth: scrolled ? '1400px' : '100%',
-            marginTop: scrolled ? '8px' : '0px',
+            marginTop: scrolled ? '16px' : '0px',
             borderRadius: scrolled ? '12px' : '0px',
             backgroundColor: scrolled ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0)',
             backdropFilter: scrolled ? 'blur(12px)' : 'blur(0px)',
@@ -462,38 +488,61 @@ const NavBar = ({ rainEnabled, setRainEnabled }: { rainEnabled: boolean, setRain
             paddingLeft: scrolled ? '24px' : '32px',
             paddingRight: scrolled ? '24px' : '32px',
           }}
-          transition={{ type: 'tween', duration: 0.3, ease: 'easeInOut' }}
+          transition={navTransition}
           className="pointer-events-auto flex items-center justify-between h-11 lg:h-12 w-full border-white/10"
         >
-          <a href="#hero" onClick={(e) => handleNavClick(e, '#hero')} className={`flex items-center gap-2 font-bold text-lg lg:text-xl transition-colors ${scrolled ? 'text-gray-900' : 'text-white'}`}>
+          <motion.a
+            href="#hero"
+            onClick={(e) => handleNavClick(e, '#hero')}
+            animate={{ color: scrolled ? '#111827' : '#ffffff' }}
+            transition={navTransition}
+            className="flex items-center gap-2 font-bold text-lg lg:text-xl"
+          >
             <MeteorIcon className="w-5 h-5 lg:w-6 lg:h-6 text-emerald-500" /><span>Meteor</span>
-          </a>
+          </motion.a>
           <div className="hidden lg:flex items-center gap-8">
-            {navLinks.map((link) => <a key={link.href} href={link.href} onClick={(e) => handleNavClick(e, link.href)} className={`text-sm font-medium transition-colors hover:text-emerald-500 ${scrolled ? 'text-gray-600' : 'text-white/80'}`}>{link.label}</a>)}
+            {navLinks.map((link) => (
+              <motion.a
+                key={link.href}
+                href={link.href}
+                onClick={(e) => handleNavClick(e, link.href)}
+                animate={{ color: scrolled ? '#4b5563' : 'rgba(255,255,255,0.8)' }}
+                whileHover={{ color: '#10b981' }}
+                transition={navTransition}
+                className="text-sm font-medium"
+              >
+                {link.label}
+              </motion.a>
+            ))}
           </div>
           <div className="hidden lg:flex items-center gap-4">
-            <motion.button 
+            <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => setRainEnabled(!rainEnabled)} 
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all shadow-md border ${rainEnabled ? 'bg-emerald-500 border-emerald-500 text-white' : scrolled ? 'bg-gray-800 border-gray-800 text-white hover:bg-gray-700' : 'bg-white/20 backdrop-blur-sm border-white/50 text-white hover:bg-white/30'}`}
+              onClick={() => setRainEnabled(!rainEnabled)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-300 shadow-md border ${rainEnabled ? 'bg-emerald-500 border-emerald-500 text-white' : scrolled ? 'bg-gray-800 border-gray-800 text-white hover:bg-gray-700' : 'bg-white/20 backdrop-blur-sm border-white/50 text-white hover:bg-white/30'}`}
             >
               <CloudRain className="w-3.5 h-3.5" />{rainEnabled ? 'Chuva ON' : 'Chuva OFF'}
             </motion.button>
-            <motion.a 
+            <motion.a
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               href={ANDROID_DOWNLOAD_URL}
-              target="_blank" 
-              rel="noopener noreferrer" 
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-all shadow-md"
             >
               <Download className="w-3.5 h-3.5" />Baixar Android
             </motion.a>
           </div>
-          <button className={`lg:hidden p-2 rounded-lg ${scrolled ? 'text-gray-900' : 'text-white'}`} onClick={() => setIsOpen(!isOpen)}>
+          <motion.button
+            animate={{ color: scrolled ? '#111827' : '#ffffff' }}
+            transition={navTransition}
+            className="lg:hidden p-2 rounded-lg"
+            onClick={() => setIsOpen(!isOpen)}
+          >
             {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
+          </motion.button>
         </motion.div>
 
         {/* Menu Mobile em Expansão Vertical */}
@@ -562,12 +611,23 @@ function App() {
   const { weatherData, loading } = useWeather();
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [webDevLightboxOpen, setWebDevLightboxOpen] = useState(false);
+  const [currentWebDevIndex, setCurrentWebDevIndex] = useState(0);
   const [rainEnabled, setRainEnabled] = useState(false);
   const [inSlides, setInSlides] = useState(false);
 
   // Hero + 8 slides (índice 0 = hero, 1-8 = slides)
   const bgImages = ['/hero_day_valley.jpg', '/scene_sun_cloud.jpg', '/scene_storm.jpg', '/scene_night_stars.jpg', '/scene_city_dusk.jpg', '/scene_forest_mist.jpg', '/scene_rain_valley.jpg', '/scene_snow_mountain.jpg', '/scene_tree.jpg'];
   const allScreenshots = useMemo(() => [{ src: '/screenshots/BoasVindasMeteor.png', title: 'Boas-vindas' }, { src: '/screenshots/ClimaPágina.png', title: 'Previsão' }, { src: '/screenshots/ConversaçãoIA.png', title: 'Meteor AI' }, { src: '/screenshots/Mapa.png', title: 'Mapas' }, { src: '/screenshots/Alertas-Meteor.png', title: 'Alertas' }, { src: '/screenshots/BoasVindasIA.png', title: 'IA' }, { src: '/screenshots/ConfiguraçõesVisuais.png', title: 'Configurações' }, { src: '/screenshots/Dicas-Meteor.png', title: 'Dicas' }, { src: '/screenshots/PopUPDetalhadoSobreClima.png', title: 'Detalhes' }, { src: '/screenshots/ZenMode1.png', title: 'Zen' }, { src: '/screenshots/ZenMode2.png', title: 'Zen Noite' }, { src: '/screenshots/AbadeNotícias.png', title: 'Notícias' }, { src: '/screenshots/TelaInicialRSALERTA.png', title: 'RSAlerta' }, { src: '/screenshots/RSALERTATELA2.png', title: 'RSAlerta 2' }, { src: '/screenshots/DicasDeSustentabilidadeRSALERTA.png', title: 'RSAlerta Dicas' }], []);
+  const webDevScreenshots = useMemo(() => [
+    { src: '/screenshots-web-dev/clima-boas-vindas.png', title: 'Boas-vindas' },
+    { src: '/screenshots-web-dev/clima-alerta.png', title: 'Painel de Clima' },
+    { src: '/screenshots-web-dev/clima-previsao.png', title: 'Previsão Detalhada' },
+    { src: '/screenshots-web-dev/mapa.png', title: 'Mapa Interativo' },
+    { src: '/screenshots-web-dev/meteor-ia.png', title: 'Meteor IA' },
+    { src: '/screenshots-web-dev/noticias.png', title: 'Notícias' },
+    { src: '/screenshots-web-dev/ajustes.png', title: 'Ajustes' },
+  ], []);
 
   const slides = useMemo(() => [
     { id: 'tragedy', label: 'A Tragédia', title: 'A maior catástrofe climática do RS', desc: 'Em maio de 2024, o Rio Grande do Sul enfrentou seu maior desastre climático. 183 mortes confirmadas, 25 desaparecidos, 540 mil desalojados. 478 municípios atingidos de 497 totais. O bloqueio atmosférico no Pacífico Sul, combinado ao El Niño, trouxe chuvas torrenciais sem precedentes desde 1910.', city: 'Porto Alegre', stats: [{ icon: AlertTriangle, value: '183', label: 'Mortes', color: 'text-red-400' }, { icon: MapPin, value: '540mil', label: 'Desalojados', color: 'text-blue-400' }, { icon: Map, value: '478', label: 'Cidades', color: 'text-emerald-400' }] },
@@ -636,6 +696,10 @@ function App() {
   const nextImage = useCallback(() => setCurrentImageIndex((prev) => (prev + 1) % allScreenshots.length), [allScreenshots.length]);
   const prevImage = useCallback(() => setCurrentImageIndex((prev) => (prev - 1 + allScreenshots.length) % allScreenshots.length), [allScreenshots.length]);
 
+  const openWebDevLightbox = (index: number) => { setCurrentWebDevIndex(index); setWebDevLightboxOpen(true); };
+  const nextWebDevImage = useCallback(() => setCurrentWebDevIndex((prev) => (prev + 1) % webDevScreenshots.length), [webDevScreenshots.length]);
+  const prevWebDevImage = useCallback(() => setCurrentWebDevIndex((prev) => (prev - 1 + webDevScreenshots.length) % webDevScreenshots.length), [webDevScreenshots.length]);
+
   return (
     <div ref={mainRef} className="bg-white">
       <CustomCursor />
@@ -643,6 +707,7 @@ function App() {
       <NavBar rainEnabled={rainEnabled} setRainEnabled={setRainEnabled} />
       
       {lightboxOpen && <Lightbox images={allScreenshots} currentIndex={currentImageIndex} onClose={() => setLightboxOpen(false)} onNext={nextImage} onPrev={prevImage} />}
+      {webDevLightboxOpen && <Lightbox images={webDevScreenshots} currentIndex={currentWebDevIndex} onClose={() => setWebDevLightboxOpen(false)} onNext={nextWebDevImage} onPrev={prevWebDevImage} />}
       
       {/* HERO */}
       <section id="hero" className="relative min-h-screen w-full overflow-hidden">
@@ -785,9 +850,8 @@ function App() {
                     </div>
                   )}
                 </div>
-                <div className={`slide-${index}-right ${index % 2 === 1 ? 'lg:order-1' : ''}`}>
-                  <div className="hidden lg:flex justify-center">{!loading && weatherData[slide.city] && <WeatherCardPremium data={weatherData[slide.city]} />}</div>
-                  <div className="lg:hidden flex justify-center mt-8">{!loading && weatherData[slide.city] && <WeatherCardPremium data={weatherData[slide.city]} />}</div>
+                <div className={`hidden lg:flex justify-center slide-${index}-right ${index % 2 === 1 ? 'lg:order-1' : ''}`}>
+                  {!loading && weatherData[slide.city] && <WeatherCardPremium data={weatherData[slide.city]} />}
                 </div>
               </div>
             </div>
@@ -829,6 +893,49 @@ function App() {
                   Acessar <ChevronRight className="w-4 h-4 ml-1" />
                 </span>
               </motion.a>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* NOVO METEOR WEB - EM DESENVOLVIMENTO */}
+      <section id="novo-web" className="py-16 sm:py-24 bg-gray-950">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="animate-on-scroll text-center max-w-3xl mx-auto mb-8 sm:mb-16">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-black uppercase tracking-wider mb-4">
+              <Sparkles className="w-3.5 h-3.5" />Em desenvolvimento ainda
+            </div>
+            <p className="text-emerald-500 font-mono text-xs sm:text-sm tracking-[0.3em] uppercase mb-2 sm:mb-4">Próxima geração</p>
+            <h2 className="font-display text-2xl sm:text-4xl lg:text-5xl font-black text-white mb-4 sm:mb-6">O novo Meteor Web</h2>
+            <p className="text-gray-400 text-base sm:text-lg leading-relaxed">
+              Prévia da nova experiência web, alinhada visualmente ao app Android. Ainda em construção,
+              sem previsão de lançamento definida. Enquanto isso, o{' '}
+              <a href={WEB_LEGACY_URL} target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 underline underline-offset-4">
+                Meteor Legacy
+              </a>{' '}
+              continua disponível normalmente.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
+            {webDevScreenshots.map((shot, i) => (
+              <motion.div
+                key={i}
+                whileHover={{ y: -10, scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                className="interactive-card group cursor-pointer"
+                onClick={() => openWebDevLightbox(i)}
+              >
+                <div className="bg-gray-900 rounded-2xl p-2 border border-gray-800 shadow-lg hover:shadow-2xl hover:border-emerald-500/30 transition-all overflow-hidden">
+                  <motion.img
+                    whileHover={{ scale: 1.08 }}
+                    transition={{ duration: 0.3 }}
+                    src={shot.src}
+                    alt={shot.title}
+                    className="w-full rounded-xl aspect-video object-cover object-top"
+                  />
+                  <p className="text-center text-xs font-bold text-gray-300 mt-2 truncate px-1">{shot.title}</p>
+                </div>
+              </motion.div>
             ))}
           </div>
         </div>
