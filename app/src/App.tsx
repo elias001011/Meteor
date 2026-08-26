@@ -482,15 +482,22 @@ const NavBar = ({ rainEnabled, setRainEnabled }: { rainEnabled: boolean, setRain
             maxWidth: scrolled ? '1400px' : '100%',
             marginTop: scrolled ? '16px' : '0px',
             borderRadius: scrolled ? '12px' : '0px',
-            backgroundColor: scrolled ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0)',
-            backdropFilter: scrolled ? 'blur(12px)' : 'blur(0px)',
-            boxShadow: scrolled ? '0 10px 30px rgba(0,0,0,0.1)' : 'none',
             paddingLeft: scrolled ? '24px' : '32px',
             paddingRight: scrolled ? '24px' : '32px',
           }}
           transition={navTransition}
-          className="pointer-events-auto flex items-center justify-between h-11 lg:h-12 w-full border-white/10"
+          className="pointer-events-auto relative flex items-center justify-between h-11 lg:h-12 w-full border-white/10"
         >
+          {/* Camada de fundo isolada: só a opacidade anima (crossfade), o blur/cor ficam fixos.
+              Animar backdropFilter/backgroundColor direto faz o navegador recalcular o blur a
+              cada frame, o que "pula" em vez de transicionar suavemente. */}
+          <motion.div
+            aria-hidden
+            className="absolute inset-0 bg-white/95 backdrop-blur-md shadow-[0_10px_30px_rgba(0,0,0,0.1)]"
+            style={{ borderRadius: 'inherit' }}
+            animate={{ opacity: scrolled ? 1 : 0 }}
+            transition={navTransition}
+          />
           <motion.a
             href="#hero"
             onClick={(e) => handleNavClick(e, '#hero')}
@@ -902,9 +909,6 @@ function App() {
       <section id="novo-web" className="py-16 sm:py-24 bg-gray-950">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="animate-on-scroll text-center max-w-3xl mx-auto mb-8 sm:mb-16">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-black uppercase tracking-wider mb-4">
-              <Sparkles className="w-3.5 h-3.5" />Em desenvolvimento ainda
-            </div>
             <p className="text-emerald-500 font-mono text-xs sm:text-sm tracking-[0.3em] uppercase mb-2 sm:mb-4">Próxima geração</p>
             <h2 className="font-display text-2xl sm:text-4xl lg:text-5xl font-black text-white mb-4 sm:mb-6">O novo Meteor Web</h2>
             <p className="text-gray-400 text-base sm:text-lg leading-relaxed">
