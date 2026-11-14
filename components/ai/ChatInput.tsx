@@ -58,7 +58,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
       <button
         type="submit"
         disabled={isSending || !text.trim() || isListening}
-        className={`${classes.bg} ${classes.bgHover} text-white rounded-full p-3 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed`}
+        className={`${classes.bg} ${classes.bgHover} text-on-accent rounded-full p-3 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed`}
       >
         <SendIcon className="w-5 h-5" />
       </button>

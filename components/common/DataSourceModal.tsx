@@ -129,7 +129,7 @@ const DataSourceModal: React.FC<DataSourceModalProps> = ({
             <footer className="p-4 bg-gray-900/50 border-t border-white/10 flex-shrink-0">
                  <button 
                     onClick={handleApply}
-                    className="w-full bg-cyan-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-cyan-500 transition-all disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed shadow-lg"
+                    className="w-full bg-cyan-600 text-on-accent font-bold py-3 px-4 rounded-xl hover:bg-cyan-500 transition-all disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed shadow-lg"
                     disabled={selectedSource === preferredSource}
                 >
                     Aplicar e Atualizar

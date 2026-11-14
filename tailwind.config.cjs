@@ -12,6 +12,7 @@ const bgOpacities = ['10', '20', '30', '40', '50'];
 const safelist = [
   ...themeDefinitions.flatMap((theme) => [
     theme.text,
+    theme.text.replace('-400', '-700'),
     theme.bg,
     theme.bgHover,
     theme.border,
@@ -38,7 +39,19 @@ module.exports = {
   ],
   safelist,
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: { sans: ['Geist', 'ui-sans-serif', 'system-ui', 'sans-serif'] },
+      colors: {
+        white: 'rgb(var(--meteor-ink) / <alpha-value>)',
+        ink: 'rgb(var(--meteor-ink) / <alpha-value>)',
+        canvas: 'rgb(var(--meteor-canvas) / <alpha-value>)',
+        surface: 'rgb(var(--meteor-surface) / <alpha-value>)',
+        raised: 'rgb(var(--meteor-raised) / <alpha-value>)',
+        'on-accent': '#ffffff',
+        slate: Object.fromEntries([50,100,200,300,400,500,600,700,800,900,950].map(n => [n, `rgb(var(--meteor-neutral-${n}) / <alpha-value>)`])),
+        gray: Object.fromEntries([50,100,200,300,400,500,600,700,800,900,950].map(n => [n, `rgb(var(--meteor-neutral-${n}) / <alpha-value>)`])),
+      },
+    },
   },
   plugins: [],
 };

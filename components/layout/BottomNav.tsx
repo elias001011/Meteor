@@ -19,7 +19,7 @@ interface NavButtonProps {
 const NavButton: React.FC<NavButtonProps> = ({ active, label, icon, onClick }) => {
   const { classes } = useTheme();
   return (
-    <button type="button" onClick={onClick} aria-current={active ? 'page' : undefined} className={`flex h-14 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg text-[10px] font-medium transition-colors ${active ? `${classes.text} bg-white/[0.06]` : 'text-slate-500 hover:text-slate-200'}`}>
+    <button type="button" onClick={onClick} aria-current={active ? 'page' : undefined} className={`flex h-14 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg text-[10px] font-medium transition-colors ${active ? 'bg-ink text-canvas' : 'text-slate-500 hover:text-slate-200'}`}>
       {icon}<span className="max-w-full truncate px-1">{label}</span>
     </button>
   );
@@ -46,7 +46,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeView, setView, onToggleZenM
       {open && (
         <>
           <button type="button" className="fixed inset-0 -z-10 bg-black/55 backdrop-blur-[2px]" onClick={() => setOpen(false)} aria-label="Fechar menu" />
-          <div className={`absolute bottom-[5.25rem] right-3 w-56 rounded-xl border border-white/10 p-2 ${isAmoled ? 'bg-black' : 'bg-[#15191f]'}`}>
+          <div className={`absolute bottom-[5.25rem] right-3 w-56 rounded-xl border border-white/10 p-2 ${isAmoled ? 'bg-black' : 'bg-raised'}`}>
             <p className="px-3 pb-2 pt-1 text-[10px] font-medium text-slate-500">Mais opções</p>
             {[
               { view: 'alerts' as View, label: 'Alertas meteorológicos', icon: <BellIcon className="h-5 w-5" /> },
@@ -64,7 +64,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeView, setView, onToggleZenM
         </>
       )}
 
-      <nav className={`mx-auto flex max-w-xl items-center gap-1 rounded-xl border border-white/10 p-1.5 ${isAmoled ? 'bg-black' : 'bg-[#111419]/96 backdrop-blur-md'}`} aria-label="Navegação principal">
+      <nav className={`mx-auto flex max-w-xl items-center gap-1 rounded-xl border border-white/10 p-1.5 ${isAmoled ? 'bg-black' : 'bg-surface/95 backdrop-blur-md'}`} aria-label="Navegação principal">
         <NavButton label="Clima" active={activeView === 'weather' || activeView === 'tips' || activeView === 'info'} onClick={() => choose('weather')} icon={<HomeIcon className="h-5 w-5" />} />
         <NavButton label="Mapa" active={activeView === 'map'} onClick={() => choose('map')} icon={<MapIcon className="h-5 w-5" />} />
         <NavButton label="Meteor IA" active={activeView === 'ai'} onClick={() => choose('ai')} icon={<SparklesIcon className="h-5 w-5" />} />

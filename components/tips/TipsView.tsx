@@ -482,7 +482,7 @@ const TipsView: React.FC = () => {
                         
                         <button 
                             onClick={() => setSelectedTip(null)}
-                            className={`w-full mt-6 ${classes.bg} hover:brightness-110 text-white py-3 rounded-xl font-medium transition-all`}
+                            className={`w-full mt-6 ${classes.bg} hover:brightness-110 text-on-accent py-3 rounded-xl font-medium transition-all`}
                         >
                             Entendi
                         </button>

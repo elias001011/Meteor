@@ -1,9 +1,10 @@
-const CACHE_NAME = 'meteor-shell-v6';
+const CACHE_NAME = 'meteor-shell-visual3';
 const APP_SHELL_URLS = [
   '/',
   '/index.html',
   '/favicon.svg',
   '/manifest.json',
+  '/theme-init.js',
 ];
 
 self.addEventListener('install', event => {
@@ -18,7 +19,7 @@ self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keyList => {
       return Promise.all(keyList.map(key => {
-        if (key !== CACHE_NAME) {
+        if (key.startsWith('meteor-shell-') && key !== CACHE_NAME) {
           return caches.delete(key);
         }
       }));
@@ -54,7 +55,12 @@ self.addEventListener('fetch', event => {
     event.respondWith(
       (async () => {
         try {
-          return await fetch(event.request, { cache: 'no-store' });
+          const response = await fetch(event.request, { cache: 'no-store' });
+          if (response.ok && response.headers.get('content-type')?.includes('text/html')) {
+            const cache = await caches.open(CACHE_NAME);
+            await cache.put('/index.html', response.clone());
+          }
+          return response;
         } catch (error) {
           const shell = await caches.match('/index.html') || await caches.match('/');
           if (shell) {
@@ -67,6 +73,8 @@ self.addEventListener('fetch', event => {
     );
     return;
   }
+
+  if (!/^\/(assets\/|fonts\/|favicon\.svg$|manifest\.json$|theme-init\.js$)/.test(url.pathname)) return;
 
   event.respondWith(
     (async () => {

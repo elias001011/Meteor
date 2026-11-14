@@ -175,6 +175,7 @@ const AppContent: React.FC<{
                 showClock={settings.showClock} 
                 borderEffect={settings.borderEffect}
                 onToggleZenMode={props.toggleZenMode}
+                onToggleTheme={() => props.handleSettingsChange({ ...settings, backgroundMode: settings.backgroundMode === 'light' ? 'solid' : 'light' })}
             />
             
             {appError && <ErrorPopup message={appError} onClose={() => props.setAppError(null)} />}

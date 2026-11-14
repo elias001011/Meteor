@@ -2,19 +2,19 @@
   <title id="title">Meteor</title>
   <defs>
     <linearGradient id="meteor" x1="12" y1="10" x2="52" y2="54" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#67e8f9"/>
-      <stop offset="0.48" stop-color="#38bdf8"/>
-      <stop offset="1" stop-color="#fb923c"/>
+      <stop stop-color="#f0efec"/>
+      <stop offset="0.48" stop-color="#bab9b6"/>
+      <stop offset="1" stop-color="#f0efec"/>
     </linearGradient>
     <radialGradient id="core" cx="0" cy="0" r="1" gradientTransform="translate(43 43) rotate(45) scale(17)">
-      <stop stop-color="#fff7ed"/>
-      <stop offset="0.35" stop-color="#fdba74"/>
-      <stop offset="1" stop-color="#f97316"/>
+      <stop stop-color="#ffffff"/>
+      <stop offset="0.35" stop-color="#d4d3d0"/>
+      <stop offset="1" stop-color="#92918e"/>
     </radialGradient>
   </defs>
   <path d="M10 12.5 31.5 34M8 25l18 12M20.5 8l14 21" fill="none" stroke="url(#meteor)" stroke-width="5" stroke-linecap="round" opacity="0.88"/>
   <path d="m31 31 16.5 3.8 6.7 15.8-15.8 6.7-13.6-9.8Z" fill="url(#core)"/>
-  <path d="m38.5 36.2 9.2 2.1 3.1 7.4" fill="none" stroke="#fff7ed" stroke-width="2.8" stroke-linecap="round" opacity="0.78"/>
-  <circle cx="13" cy="45" r="2.5" fill="#38bdf8"/>
-  <circle cx="48" cy="14" r="2" fill="#fb923c"/>
+  <path d="m38.5 36.2 9.2 2.1 3.1 7.4" fill="none" stroke="#ffffff" stroke-width="2.8" stroke-linecap="round" opacity="0.78"/>
+  <circle cx="13" cy="45" r="2.5" fill="#bab9b6"/>
+  <circle cx="48" cy="14" r="2" fill="#f0efec"/>
 </svg>

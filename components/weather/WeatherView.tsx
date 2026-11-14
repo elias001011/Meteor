@@ -1,6 +1,5 @@
 import React from 'react';
 import type { AirQualityData, CitySearchResult, ClockDisplayMode, DailyForecast, DataSource, HourlyForecast, UnitSystem, WeatherAlert, WeatherData } from '../../types';
-import { useTheme } from '../context/ThemeContext';
 import AirQuality from './AirQuality';
 import Alerts from './Alerts';
 import AdditionalInfo from './AdditionalInfo';
@@ -38,7 +37,7 @@ const WeatherView: React.FC<WeatherViewProps> = ({
   status, error, clockDisplayMode, unitSystem, showDetailLabel, onCitySelect, onGeolocate,
   onRetry, onDataSourceInfoClick
 }) => {
-  const { isAmoled } = useTheme();
+
 
   if (status === 'loading') {
     return <div className="flex min-h-[65dvh] items-center justify-center"><LoadingSpinner /></div>;
@@ -55,13 +54,19 @@ const WeatherView: React.FC<WeatherViewProps> = ({
 
   if (status === 'idle') {
     return (
-      <div className="mx-auto flex min-h-[70dvh] max-w-4xl items-center px-4 py-10 sm:px-6">
-        <section className={`w-full rounded-2xl border border-white/[0.08] px-5 py-12 text-center sm:px-12 sm:py-16 ${isAmoled ? 'bg-black' : 'bg-[#111419]'}`}>
-          <img src="/favicon.svg" alt="" className="mx-auto mb-5 h-12 w-12" />
-          <h2 className="mx-auto max-w-xl text-3xl font-semibold tracking-[-0.035em] text-white sm:text-5xl">Consulte o clima da sua cidade.</h2>
-          <p className="mx-auto mt-4 max-w-md text-sm leading-relaxed text-slate-400 sm:text-base">Previsão por hora, próximos dias e informações para planejar sua rotina.</p>
-          <div className="mx-auto mt-8 max-w-xl text-left"><SearchBar onCitySelect={onCitySelect} onGeolocate={onGeolocate} /></div>
+      <div className="meteor-welcome mx-auto max-w-[1320px] px-5 py-12 sm:px-8 sm:py-20">
+        <section className="grid items-center gap-12 lg:grid-cols-[1.4fr_1fr] lg:gap-12">
+          <div>
+            <p className="meteor-kicker mb-8"><span className="meteor-dot" /> METEOR / INTELIGÊNCIA CLIMÁTICA</p>
+            <h2 className="text-[clamp(3.3rem,6.5vw,6.2rem)] font-medium leading-[0.95] tracking-[-0.065em] text-ink">Lá fora muda.<br /><span className="text-slate-400">Você se prepara.</span></h2>
+            <p className="mt-7 max-w-md text-base leading-relaxed text-slate-400">Entenda o céu, acompanhe o tempo e encontre o melhor momento para o seu dia.</p>
+            <div className="mt-9 max-w-lg"><SearchBar onCitySelect={onCitySelect} onGeolocate={onGeolocate} /></div>
+          </div>
+          <div className="meteor-orbit" aria-hidden="true"><div className="meteor-orbit-sun" /><span className="meteor-orbit-label">UM NOVO OLHAR PARA O TEMPO</span></div>
         </section>
+        <div className="mt-16 grid gap-8 border-t border-white/10 pt-8 sm:grid-cols-3">
+          {[['01 / PREVISÃO', 'Seu dia, em perspectiva.', 'Previsão por hora e para os próximos dias.'], ['02 / CONTEXTO', 'Além da temperatura.', 'Qualidade do ar, vento e alertas em um só lugar.'], ['03 / INTELIGÊNCIA', 'Menos dúvida. Mais clareza.', 'Converse com a Meteor IA sobre o clima.']].map(([label, title, text]) => <div key={label}><p className="meteor-kicker">{label}</p><h3 className="mb-2 mt-4 text-lg font-medium text-ink">{title}</h3><p className="text-sm leading-relaxed text-slate-400">{text}</p></div>)}
+        </div>
       </div>
     );
   }
@@ -69,7 +74,11 @@ const WeatherView: React.FC<WeatherViewProps> = ({
   if (!weatherData) return null;
 
   return (
-    <div className="mx-auto max-w-[1320px] space-y-3 px-3 py-4 sm:space-y-4 sm:px-5 sm:py-5 lg:px-6">
+    <div className="mx-auto max-w-[1320px] space-y-6 px-4 py-6 sm:space-y-8 sm:px-6 sm:py-10 lg:px-8">
+      <div className="flex flex-col justify-between gap-6 border-b border-white/10 pb-6 sm:flex-row sm:items-end">
+        <div><p className="meteor-kicker mb-3">METEOR / VISÃO GERAL</p><h1 className="text-3xl font-medium tracking-[-0.04em] sm:text-5xl">O seu tempo, agora.</h1></div>
+        <p className="meteor-kicker">PREVISÃO · CONTEXTO · INTELIGÊNCIA</p>
+      </div>
       <div className="relative z-30 max-w-xl">
         <SearchBar onCitySelect={onCitySelect} onGeolocate={onGeolocate} />
       </div>

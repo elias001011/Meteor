@@ -65,7 +65,7 @@ const SunriseSunset: React.FC<SunriseSunsetProps> = ({ sunrise, sunset, timezone
             <div className="relative mb-4 h-1.5 rounded-full bg-white/[0.08]" aria-hidden="true">
                 <span className="absolute inset-y-0 left-0 rounded-full bg-amber-300/70" style={{ width: `${sunPercentage}%` }} />
                 <span
-                    className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#111419] bg-amber-300"
+                    className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#0c0c0e] bg-amber-300"
                     style={{ left: `${Math.min(99, Math.max(1, sunPercentage))}%` }}
                 />
             </div>

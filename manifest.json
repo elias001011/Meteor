@@ -8,8 +8,8 @@
   "scope": "/",
   "display": "standalone",
   "orientation": "any",
-  "theme_color": "#030609",
-  "background_color": "#030609",
+  "theme_color": "#060607",
+  "background_color": "#060607",
   "categories": ["weather", "utilities"],
   "icons": [
     {

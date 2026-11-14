@@ -2,12 +2,49 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+:root, [data-color-lock="dark"] {
   color-scheme: dark;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --meteor-ink: 240 239 236;
+  --meteor-canvas: 6 6 7;
+  --meteor-surface: 12 12 14;
+  --meteor-raised: 16 16 19;
+  --meteor-neutral-50: 250 250 250;
+  --meteor-neutral-100: 244 244 245;
+  --meteor-neutral-200: 228 228 231;
+  --meteor-neutral-300: 212 212 216;
+  --meteor-neutral-400: 161 161 170;
+  --meteor-neutral-500: 139 139 148;
+  --meteor-neutral-600: 82 82 91;
+  --meteor-neutral-700: 63 63 70;
+  --meteor-neutral-800: 39 39 42;
+  --meteor-neutral-900: 24 24 27;
+  --meteor-neutral-950: 9 9 11;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --meteor-ink: 15 15 17;
+  --meteor-canvas: 240 239 236;
+  --meteor-surface: 255 255 255;
+  --meteor-raised: 232 231 227;
+  --meteor-neutral-50: 9 9 11;
+  --meteor-neutral-100: 24 24 27;
+  --meteor-neutral-200: 39 39 42;
+  --meteor-neutral-300: 63 63 70;
+  --meteor-neutral-400: 82 82 91;
+  --meteor-neutral-500: 92 92 98;
+  --meteor-neutral-600: 113 113 122;
+  --meteor-neutral-700: 161 161 170;
+  --meteor-neutral-800: 228 228 231;
+  --meteor-neutral-900: 244 244 245;
+  --meteor-neutral-950: 250 250 250;
+}
+
+:root {
+  font-family: Geist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-  background: #0b0d10;
+  background: rgb(var(--meteor-canvas));
 }
 
 * { box-sizing: border-box; }
@@ -15,7 +52,7 @@
 html {
   min-width: 320px;
   min-height: 100%;
-  background: #0b0d10;
+  background: rgb(var(--meteor-canvas));
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
@@ -26,8 +63,8 @@ body {
   min-width: 320px;
   min-height: 100dvh;
   margin: 0;
-  background: #0b0d10;
-  color: #f8fafc;
+  background: rgb(var(--meteor-canvas));
+  color: rgb(var(--meteor-ink));
   overscroll-behavior-y: none;
   overflow-anchor: none;
 }
@@ -49,13 +86,13 @@ textarea:focus-visible {
 .meteor-shell { isolation: isolate; overflow-anchor: none; }
 
 .meteor-card {
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  background: #111419;
+  border: 1px solid rgb(var(--meteor-ink) / .09);
+  background: rgb(var(--meteor-surface));
 }
 
 .meteor-card-soft {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgb(var(--meteor-ink) / .08);
+  background: rgb(var(--meteor-ink) / .035);
 }
 
 .meteor-eyebrow { color: #94a3b8; font-size: 0.75rem; font-weight: 500; }
@@ -124,4 +161,27 @@ html.show-scrollbars ::-webkit-scrollbar-thumb { border-radius: 999px; backgroun
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
   }
+}
+
+/* Meteor visual 3.0 — tokens shared with the native app. */
+@font-face { font-family: Geist; font-style: normal; font-weight: 100 900; font-display: swap; src: url('/fonts/geist-latin.woff2') format('woff2'); }
+@font-face { font-family: Geist; font-style: normal; font-weight: 100 900; font-display: swap; src: url('/fonts/geist-latin-ext.woff2') format('woff2'); unicode-range: U+0100-02BA,U+0304,U+0308,U+0329,U+1E00-1E9F; }
+.meteor-kicker { font-family: ui-monospace, monospace; font-size: 10px; line-height: 1.7; letter-spacing: .14em; color: rgb(var(--meteor-neutral-400)); }
+.meteor-dot { display: inline-block; width: 6px; height: 6px; margin-right: 8px; border-radius: 50%; background: rgb(var(--meteor-ink)); }
+.meteor-orbit { position: relative; display: grid; place-items: center; aspect-ratio: 1; max-width: 470px; width: 100%; margin: auto; border: 1px solid rgb(var(--meteor-ink) / .10); border-radius: 50%; background: radial-gradient(circle at center, rgb(var(--meteor-ink) / .04), transparent 65%); }
+.meteor-orbit::before, .meteor-orbit::after { content: ''; position: absolute; inset: 12%; border: 1px solid rgb(var(--meteor-ink) / .07); border-radius: 50%; }
+.meteor-orbit::after { inset: 25%; }
+.meteor-orbit-sun { width: 34%; aspect-ratio: 1; border-radius: 50%; background: linear-gradient(145deg, rgb(var(--meteor-ink)), rgb(var(--meteor-neutral-500))); box-shadow: 0 0 70px rgb(var(--meteor-ink) / .07); }
+.meteor-orbit-label { position: absolute; bottom: 9%; font: 9px ui-monospace, monospace; letter-spacing: .15em; color: rgb(var(--meteor-neutral-400)); }
+.meteor-shell section { scroll-margin-top: 90px; }
+@media (max-width: 1023px) { .meteor-orbit { max-width: 280px; } }
+
+:root[data-theme="light"] .leaflet-container { background: #e8e7e3 !important; }
+:root[data-theme="light"] .leaflet-control-zoom a,
+:root[data-theme="light"] .leaflet-control-layers,
+:root[data-theme="light"] .leaflet-popup-content-wrapper,
+:root[data-theme="light"] .leaflet-popup-tip {
+  color: #0f0f11 !important;
+  background-color: #ffffff !important;
+  border-color: #d4d3d0 !important;
 }

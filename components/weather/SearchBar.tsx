@@ -79,14 +79,14 @@ const SearchBar: React.FC<SearchBarProps> = ({ onCitySelect, onGeolocate, showGe
           onChange={event => setQuery(event.target.value)}
           placeholder="Pesquise uma cidade"
           autoComplete="off"
-          className={`h-11 w-full rounded-xl border border-white/[0.09] py-2.5 pl-10 pr-12 text-sm text-white outline-none placeholder:text-slate-500 focus:ring-1 ${classes.ring} ${isAmoled ? 'bg-black' : 'bg-[#111419]'}`}
+          className={`h-11 w-full rounded-xl border border-white/[0.09] py-2.5 pl-10 pr-12 text-sm text-white outline-none placeholder:text-slate-500 focus:ring-1 ${classes.ring} ${isAmoled ? 'bg-black' : 'bg-surface'}`}
         />
-        <button type="submit" aria-label="Pesquisar" className={`absolute right-1 top-1 flex h-9 w-9 items-center justify-center rounded-lg ${classes.bg} text-white transition-opacity hover:opacity-90`}>
+        <button type="submit" aria-label="Pesquisar" className={`absolute right-1 top-1 flex h-9 w-9 items-center justify-center rounded-lg ${classes.bg} text-on-accent transition-opacity hover:opacity-90`}>
           <SearchIcon className="h-4 w-4" />
         </button>
 
         {open && (
-          <div id="city-search-results" className={`absolute left-0 right-0 top-[calc(100%+0.4rem)] z-50 max-h-72 overflow-y-auto rounded-xl border border-white/10 p-1.5 shadow-xl ${isAmoled ? 'bg-black' : 'bg-[#15191f]'}`} role="listbox">
+          <div id="city-search-results" className={`absolute left-0 right-0 top-[calc(100%+0.4rem)] z-50 max-h-72 overflow-y-auto rounded-xl border border-white/10 p-1.5 shadow-xl ${isAmoled ? 'bg-black' : 'bg-raised'}`} role="listbox">
             {loading ? (
               <p className="px-4 py-5 text-center text-sm font-medium text-slate-400">Buscando cidades…</p>
             ) : results.length > 0 ? results.map((city, index) => (
