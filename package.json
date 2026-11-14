@@ -12,7 +12,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test tests/netlify/*.test.ts",
+    "test": "tsx --test tests/netlify/*.test.ts tests/client/*.test.ts",
     "check": "npm run typecheck && npm test && npm run build"
   },
   "dependencies": {

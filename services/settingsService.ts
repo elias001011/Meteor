@@ -1,3 +1,4 @@
+import { safeExternalUrl } from './urlSafety';
 
 
 import type { AppSettings, ChatMessage, CitySearchResult, ExportData } from '../types';
@@ -94,7 +95,7 @@ const ALLOWED_STARTUP_BEHAVIOR_VALUES = ['last_location', 'idle', 'specific_loca
 const ALLOWED_THEME_VALUES = ['cyan', 'blue', 'purple', 'emerald', 'rose', 'amber'] as const;
 const ALLOWED_TRANSPARENCY_VALUES = ['off', 'subtle', 'balanced', 'glass', 'transparent'] as const;
 const ALLOWED_CLOCK_VALUES = ['always', 'different_zone', 'never'] as const;
-const ALLOWED_BACKGROUND_VALUES = ['gradient', 'solid', 'amoled'] as const;
+const ALLOWED_BACKGROUND_VALUES = ['gradient', 'solid', 'amoled', 'light'] as const;
 const ALLOWED_MAP_VALUES = ['light', 'dark'] as const;
 const ALLOWED_BORDER_VALUES = ['none', 'top', 'bottom'] as const;
 const ALLOWED_DENSITY_VALUES = ['comfortable', 'compact'] as const;
@@ -147,7 +148,7 @@ const sanitizeCitySearchResult = (value: unknown): CitySearchResult | undefined 
     const lat = readNumber(value.lat);
     const lon = readNumber(value.lon);
 
-    if (!name || !country || lat === undefined || lon === undefined) return undefined;
+    if (!name || !country || lat === undefined || lon === undefined || Math.abs(lat) > 90 || Math.abs(lon) > 180) return undefined;
 
     const sanitized: CitySearchResult = { name, country, lat, lon };
     const state = readString(value.state, 120);
@@ -171,7 +172,12 @@ const sanitizeChatHistory = (value: unknown): ChatMessage[] => {
                 id: readString(entry.id, 128) || `${Date.now()}-${index}`,
                 role,
                 text,
-                sources: Array.isArray(entry.sources) ? entry.sources : undefined,
+                sources: Array.isArray(entry.sources)
+                    ? entry.sources.filter(isRecord).flatMap(source => {
+                        const uri = safeExternalUrl(source.uri);
+                        return uri ? [{ uri, title: readString(source.title, 200) || 'Fonte' }] : [];
+                    }).slice(0, 10)
+                    : undefined,
                 modelUsed: readString(entry.modelUsed, 128),
                 processingTime: readNumber(entry.processingTime),
                 toolExecuted: readString(entry.toolExecuted, 128),
@@ -424,7 +430,7 @@ export const exportAppData = (): void => {
             if (isRecord(parsedCoords)) {
                 const lat = readNumber(parsedCoords.lat);
                 const lon = readNumber(parsedCoords.lon);
-                if (lat !== undefined && lon !== undefined) {
+                if (lat !== undefined && lon !== undefined && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
                     lastCoords = { lat, lon };
                 }
             }
@@ -469,12 +475,7 @@ export const importAppData = (
 
         if (options.importCache && data.weatherCache) {
             const sanitizedCache = sanitizeWeatherCache(data.weatherCache);
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key && key.startsWith(WEATHER_CACHE_PREFIX)) {
-                    localStorage.removeItem(key);
-                }
-            }
+            resetCache();
             Object.entries(sanitizedCache).forEach(([key, value]) => {
                 localStorage.setItem(key, JSON.stringify(value));
             });
@@ -487,7 +488,7 @@ export const importAppData = (
         if (data.lastCoords && isRecord(data.lastCoords)) {
             const lat = readNumber(data.lastCoords.lat);
             const lon = readNumber(data.lastCoords.lon);
-            if (lat !== undefined && lon !== undefined) {
+            if (lat !== undefined && lon !== undefined && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
                 localStorage.setItem('last_coords', JSON.stringify({ lat, lon }));
             }
         }

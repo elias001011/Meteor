@@ -289,7 +289,7 @@ const ZenMode: React.FC<ZenModeProps> = ({ data, onExit }) => {
     );
 
     return (
-        <div 
+        <div data-color-lock="dark"
             ref={containerRef}
             className="fixed inset-0 z-[9999] bg-black text-white font-sans select-none overflow-hidden h-[100dvh]"
         >

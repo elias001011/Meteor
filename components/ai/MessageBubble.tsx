@@ -1,3 +1,4 @@
+import { safeExternalUrl } from '../../services/urlSafety';
 
 
 import React, { useState } from 'react';
@@ -11,14 +12,7 @@ interface MessageBubbleProps {
   onRegenerate?: () => void;
 }
 
-const safeExternalUrl = (value: string): string | undefined => {
-  try {
-    const url = new URL(value);
-    return url.protocol === 'https:' || url.protocol === 'http:' ? url.toString() : undefined;
-  } catch {
-    return undefined;
-  }
-};
+
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, onRegenerate }) => {
   const isModel = message.role === 'model';
@@ -73,7 +67,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, onRegene
               return part;
           }
           if (part.startsWith('`') && part.endsWith('`')) {
-              return <code key={j} className="bg-black/40 border border-white/10 px-1.5 py-0.5 rounded text-xs font-mono text-cyan-300">{part.substring(1, part.length - 1)}</code>;
+              return <code key={j} className="bg-white/[0.06] border border-white/10 px-1.5 py-0.5 rounded text-xs font-mono text-cyan-300">{part.substring(1, part.length - 1)}</code>;
           }
           return part;
       });
@@ -124,7 +118,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, onRegene
           className={`px-6 py-5 rounded-3xl shadow-sm ${
             isModel
               ? 'bg-gray-800/95 border border-gray-700/50 rounded-bl-none text-gray-100'
-              : `${classes.bg} text-white rounded-br-none shadow-lg`
+              : `${classes.bg} text-on-accent rounded-br-none shadow-lg`
           }`}
           style={isModel ? undefined : { boxShadow: `0 0 24px ${classes.hex}33` }}
         >
@@ -185,7 +179,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, onRegene
             <p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-2">Fontes</p>
             <div className="flex flex-wrap gap-2">
               {message.sources.map((source, index) => {
-                const safeUrl = safeExternalUrl(source.uri);
+                const safeUrl = safeExternalUrl(source?.uri);
                 if (!safeUrl) return null;
                 return <a
                   key={index}

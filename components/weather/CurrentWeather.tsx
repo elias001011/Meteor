@@ -1,3 +1,4 @@
+import { safeExternalUrl } from '../../services/urlSafety';
 import React, { useEffect, useState } from 'react';
 import type { ClockDisplayMode, UnitSystem, WeatherData } from '../../types';
 import { DropletsIcon, MapPinIcon, WindIcon } from '../icons';
@@ -10,15 +11,7 @@ interface CurrentWeatherProps {
   unitSystem: UnitSystem;
 }
 
-const safeExternalUrl = (value?: string): string | undefined => {
-  if (!value) return undefined;
-  try {
-    const url = new URL(value);
-    return url.protocol === 'https:' || url.protocol === 'http:' ? url.toString() : undefined;
-  } catch {
-    return undefined;
-  }
-};
+
 
 const CurrentWeather: React.FC<CurrentWeatherProps> = ({ data, clockDisplayMode, unitSystem }) => {
   const [localTime, setLocalTime] = useState('');
@@ -50,7 +43,7 @@ const CurrentWeather: React.FC<CurrentWeatherProps> = ({ data, clockDisplayMode,
   const photoUrl = safeExternalUrl(attribution?.photoUrl);
 
   return (
-    <section className={`relative min-h-[23rem] overflow-hidden rounded-2xl border border-white/[0.08] text-white sm:min-h-[26rem] ${isAmoled ? 'bg-black' : 'bg-[#111419]'}`}>
+    <section data-color-lock="dark" className={`relative min-h-[23rem] overflow-hidden rounded-xl border border-white/[0.08] text-white sm:min-h-[29rem] ${isAmoled ? 'bg-black' : 'bg-surface'}`}>
       <img
         key={data.imageUrl}
         src={data.imageUrl}
@@ -70,7 +63,7 @@ const CurrentWeather: React.FC<CurrentWeatherProps> = ({ data, clockDisplayMode,
       />
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,7,10,0.2)_0%,rgba(5,7,10,0.42)_42%,rgba(5,7,10,0.96)_100%)]" />
 
-      <div className="relative z-10 flex min-h-[23rem] flex-col justify-between p-5 sm:min-h-[26rem] sm:p-6">
+      <div className="relative z-10 flex min-h-[23rem] flex-col justify-between p-5 sm:min-h-[29rem] sm:p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-white/70"><MapPinIcon className="h-3.5 w-3.5" /> Agora</p>
@@ -88,7 +81,7 @@ const CurrentWeather: React.FC<CurrentWeatherProps> = ({ data, clockDisplayMode,
           <div className="mb-5 flex items-end justify-between gap-3">
             <div>
               <div className="flex items-start">
-                <span className="text-[4.5rem] font-medium leading-[0.85] tracking-[-0.07em] sm:text-[5.4rem]">{temp(data.temperature)}</span>
+                <span className="text-[5.5rem] font-medium leading-[0.85] tracking-[-0.07em] sm:text-[7rem]">{temp(data.temperature)}</span>
                 <span className="mt-1 text-2xl font-medium text-white/65">°</span>
               </div>
               <p className="mt-3 text-base font-medium capitalize">{data.condition}</p>

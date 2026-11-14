@@ -125,7 +125,7 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onImport }) 
                 
                 <button 
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-full bg-cyan-500 text-white font-bold py-3 rounded-xl hover:bg-cyan-400 transition-colors"
+                    className="w-full bg-cyan-500 text-on-accent font-bold py-3 rounded-xl hover:bg-cyan-400 transition-colors"
                 >
                     Selecionar Arquivo de Backup
                 </button>

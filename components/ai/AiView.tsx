@@ -163,7 +163,7 @@ const AiView: React.FC<AiViewProps> = (props) => {
         <div className="absolute top-4 right-4 z-10">
             <button
                 onClick={() => setIsHistoryOpen(true)}
-                className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-[#111419] px-3 py-2 text-gray-400 transition-colors hover:text-white"
+                className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-surface px-3 py-2 text-gray-400 transition-colors hover:text-white"
             >
                 <HistoryIcon className="w-4 h-4" />
                 <span className="text-sm font-medium hidden sm:inline">Histórico</span>
@@ -180,7 +180,7 @@ const AiView: React.FC<AiViewProps> = (props) => {
         
         {/* Input Area (Always visible unless on specific conditions, but requested to keep) */}
         <div className="hidden lg:block fixed bottom-4 left-1/2 -translate-x-1/2 w-full max-w-3xl px-4 z-20">
-            <div className="rounded-xl border border-white/[0.09] bg-[#111419] p-2">
+            <div className="rounded-xl border border-white/[0.09] bg-surface p-2">
                     <ChatInput 
                         onSendMessage={(text) => onSendMessage(text, false)} 
                         isSending={isSending}

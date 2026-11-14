@@ -72,7 +72,7 @@ const AlertsView: React.FC<AlertsViewProps> = ({ currentWeather, dailyForecast =
           {alerts.map(alert => {
             const style = styles[alert.level];
             return (
-              <article key={alert.id} className={`rounded-xl border border-white/[0.08] border-l-2 bg-[#111419] p-4 sm:p-5 ${style.accent}`}>
+              <article key={alert.id} className={`rounded-xl border border-white/[0.08] border-l-2 bg-surface p-4 sm:p-5 ${style.accent}`}>
                 <div className="flex items-start gap-3.5">
                   <AlertTriangleIcon className="mt-0.5 h-4 w-4 flex-none" />
                   <div className="min-w-0 flex-1">

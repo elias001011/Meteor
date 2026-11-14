@@ -85,8 +85,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
     } catch { notify('Não foi possível copiar automaticamente.'); }
   };
 
-  const inputClass = `w-full rounded-xl border border-white/[0.08] bg-black/20 px-3.5 py-3 text-sm text-slate-200 outline-none placeholder:text-slate-600 focus:ring-1 ${classes.ring}`;
-  const optionClass = 'bg-[#15191f] text-white';
+  const inputClass = `w-full rounded-xl border border-white/[0.08] bg-white/[0.06] px-3.5 py-3 text-sm text-slate-200 outline-none placeholder:text-slate-600 focus:ring-1 ${classes.ring}`;
+  const optionClass = 'bg-raised text-white';
 
   const Toggle = ({ checked, onChange, label }: { checked: boolean; onChange: () => void; label: string }) => (
     <button type="button" role="switch" aria-checked={checked} aria-label={label} onMouseDown={event => event.preventDefault()} onClick={onChange} className={`relative h-6 w-10 flex-none rounded-full transition-colors ${checked ? classes.bg : 'bg-slate-700'}`}>
@@ -102,7 +102,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
   );
 
   const Segment = <T extends string,>({ value, options, onChange }: { value: T; options: Array<{ value: T; label: string }>; onChange: (value: T) => void }) => (
-    <div className="flex min-w-0 rounded-xl bg-black/20 p-1">
+    <div className="flex min-w-0 rounded-xl bg-white/[0.06] p-1">
       {options.map(option => <button type="button" key={option.value} onMouseDown={event => event.preventDefault()} onClick={() => onChange(option.value)} className={`min-w-0 flex-1 rounded-lg px-2.5 py-2 text-xs transition-colors ${value === option.value ? 'bg-white/[0.09] text-white' : 'text-slate-500 hover:text-slate-300'}`}>{option.label}</button>)}
     </div>
   );
@@ -145,7 +145,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
       </Panel>
       <Panel title="Superfície" description="Os modos mantêm o mesmo layout; muda apenas o fundo e a opacidade.">
         <div className="grid gap-3 sm:grid-cols-2">
-          <div><label className="mb-2 block text-xs text-slate-500">Fundo</label><Segment<BackgroundMode> value={settings.backgroundMode} options={[{ value: 'solid', label: 'Sólido' }, { value: 'gradient', label: 'Gradiente' }, { value: 'amoled', label: 'AMOLED' }]} onChange={backgroundMode => save({ backgroundMode })} /></div>
+          <div><label className="mb-2 block text-xs text-slate-500">Fundo</label><Segment<BackgroundMode> value={settings.backgroundMode} options={[{ value: 'light', label: 'Claro' }, { value: 'solid', label: 'Escuro' }, { value: 'gradient', label: 'Gradiente' }, { value: 'amoled', label: 'AMOLED' }]} onChange={backgroundMode => save({ backgroundMode })} /></div>
           <div className={isPerformanceMode ? 'pointer-events-none opacity-40' : ''}><label className="mb-2 block text-xs text-slate-500">Transparência</label><Segment value={transparency} options={[{ value: 'off', label: 'Sólido' }, { value: 'subtle', label: 'Sutil' }, { value: 'glass', label: 'Vidro' }]} onChange={transparencyMode => save({ transparencyMode })} /></div>
           <div><label className="mb-2 block text-xs text-slate-500">Densidade</label><Segment<LayoutDensity> value={settings.layoutDensity} options={[{ value: 'compact', label: 'Compacta' }, { value: 'comfortable', label: 'Confortável' }]} onChange={layoutDensity => save({ layoutDensity })} /></div>
           <div><label className="mb-2 block text-xs text-slate-500">Mapa</label><Segment<MapTheme> value={settings.mapTheme} options={[{ value: 'dark', label: 'Escuro' }, { value: 'light', label: 'Claro' }]} onChange={mapTheme => save({ mapTheme })} /></div>
@@ -189,12 +189,12 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSettingsChanged
     <Panel title="Links"><div className="grid gap-2">{[
       { href: 'https://policies-meteor-ai.netlify.app/', label: 'Política de privacidade', icon: <FileTextIcon className="h-4 w-4" /> }, { href: 'https://sobre-meteor-ai.netlify.app/', label: 'Sobre o projeto', icon: <GlobeIcon className="h-4 w-4" /> }, { href: 'https://github.com/elias001011/Meteor', label: 'Código no GitHub', icon: <GithubIcon className="h-4 w-4" /> },
     ].map(link => <a key={link.href} href={link.href} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 rounded-xl bg-white/[0.035] px-3 py-3 text-sm text-slate-300 hover:bg-white/[0.06] hover:text-white">{link.icon}{link.label}</a>)}</div></Panel>
-    <Panel title="Apoie o projeto" description="Contribuição opcional via Pix."><code className="block break-all rounded-xl bg-black/20 px-3 py-3 text-xs text-slate-400">8001be0f-4952-4ef8-b2a5-9bafe691c65c</code><button type="button" onClick={handleCopyPix} className={`mt-2 w-full rounded-xl px-4 py-3 text-sm ${pixCopied ? `${classes.bg} text-white` : 'bg-white/[0.06] text-slate-200 hover:bg-white/[0.09]'}`}>{pixCopied ? 'Chave copiada' : 'Copiar chave Pix'}</button></Panel>
+    <Panel title="Apoie o projeto" description="Contribuição opcional via Pix."><code className="block break-all rounded-xl bg-white/[0.06] px-3 py-3 text-xs text-slate-400">8001be0f-4952-4ef8-b2a5-9bafe691c65c</code><button type="button" onClick={handleCopyPix} className={`mt-2 w-full rounded-xl px-4 py-3 text-sm ${pixCopied ? `${classes.bg} text-on-accent` : 'bg-white/[0.06] text-slate-200 hover:bg-white/[0.09]'}`}>{pixCopied ? 'Chave copiada' : 'Copiar chave Pix'}</button></Panel>
   </div>;
 
   return <div className="mx-auto max-w-4xl px-4 pb-32 pt-6 sm:px-6">
     <div className="mb-5 flex flex-wrap items-end justify-between gap-4"><div><h2 className="text-2xl font-semibold tracking-tight text-white">Ajustes</h2><p className="mt-1 text-sm text-slate-500">Preferências salvas neste navegador.</p></div><nav className="flex max-w-full gap-1 overflow-x-auto rounded-xl bg-white/[0.035] p-1" aria-label="Seções dos ajustes">{tabs.map(tab => <button type="button" key={tab.id} onMouseDown={event => event.preventDefault()} onClick={() => setActiveTab(tab.id)} aria-current={activeTab === tab.id ? 'page' : undefined} className={`flex-none rounded-lg px-3 py-2 text-xs font-medium transition-colors ${activeTab === tab.id ? 'bg-white/[0.09] text-white' : 'text-slate-500 hover:text-slate-200'}`}>{tab.label}</button>)}</nav></div>
-    {feedbackMessage && <div role="status" className="fixed left-1/2 top-20 z-[200] -translate-x-1/2 rounded-xl border border-white/[0.08] bg-[#15191f] px-4 py-3 text-sm text-slate-200 shadow-xl">{feedbackMessage}</div>}
+    {feedbackMessage && <div role="status" className="fixed left-1/2 top-20 z-[200] -translate-x-1/2 rounded-xl border border-white/[0.08] bg-raised px-4 py-3 text-sm text-slate-200 shadow-xl">{feedbackMessage}</div>}
     {activeTab === 'general' && renderGeneral()}{activeTab === 'appearance' && renderAppearance()}{activeTab === 'ai' && renderAi()}{activeTab === 'data' && renderData()}{activeTab === 'about' && renderAbout()}
   </div>;
 };

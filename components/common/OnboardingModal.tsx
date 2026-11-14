@@ -72,14 +72,14 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ onClose }) => {
 
     return (
         <div className={`fixed inset-0 z-[200] flex items-center justify-center p-4 transition-opacity duration-200 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
-            <div className="absolute inset-0 bg-[#010305]/85 backdrop-blur-xl" aria-hidden="true" />
+            <div className="absolute inset-0 bg-canvas/85 backdrop-blur-xl" aria-hidden="true" />
 
             <section
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="onboarding-title"
                 aria-describedby="onboarding-description"
-                className={`relative w-full max-w-md overflow-hidden rounded-[2rem] border border-white/10 shadow-2xl ${isAmoled ? 'bg-black' : 'bg-[#0b1524]/95'}`}
+                className={`relative w-full max-w-md overflow-hidden rounded-[2rem] border border-white/10 shadow-2xl ${isAmoled ? 'bg-black' : 'bg-surface/95'}`}
             >
                 <div className="flex gap-1.5 px-6 pt-5" aria-hidden="true">
                     {slides.map((_, index) => (

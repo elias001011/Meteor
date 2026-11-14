@@ -137,7 +137,7 @@ const NewsView: React.FC<NewsViewProps> = ({ onAskAIAboutNews }) => {
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Buscar notícias..."
-                        className={`h-11 w-full rounded-xl border border-white/[0.08] bg-[#111419] pl-10 pr-24 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 ${classes.ring}`}
+                        className={`h-11 w-full rounded-xl border border-white/[0.08] bg-surface pl-10 pr-24 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 ${classes.ring}`}
                     />
                     <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                     
@@ -154,7 +154,7 @@ const NewsView: React.FC<NewsViewProps> = ({ onAskAIAboutNews }) => {
                         <button
                             type="submit"
                             disabled={loading}
-                            className={`${classes.bg} ${classes.bgHover} text-white text-xs px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50`}
+                            className={`${classes.bg} ${classes.bgHover} text-on-accent text-xs px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50`}
                         >
                             Buscar
                         </button>
@@ -196,7 +196,7 @@ const NewsView: React.FC<NewsViewProps> = ({ onAskAIAboutNews }) => {
                         <p className="text-gray-400 text-sm mb-4">{error}</p>
                         <button
                             onClick={fetchNews}
-                            className={`inline-flex items-center gap-2 ${classes.bg} ${classes.bgHover} text-white px-4 py-2 rounded-lg text-sm transition-colors`}
+                            className={`inline-flex items-center gap-2 ${classes.bg} ${classes.bgHover} text-on-accent px-4 py-2 rounded-lg text-sm transition-colors`}
                         >
                             <RefreshCwIcon className="w-4 h-4" />
                             Tentar novamente
@@ -213,7 +213,7 @@ const NewsView: React.FC<NewsViewProps> = ({ onAskAIAboutNews }) => {
                                 className={`group overflow-hidden rounded-2xl sm:flex ${cardClass}`}
                             >
                                 {/* Imagem */}
-                                <div className="relative h-40 flex-none overflow-hidden bg-[#181c22] sm:h-auto sm:w-52">
+                                <div className="relative h-40 flex-none overflow-hidden bg-raised sm:h-auto sm:w-52">
                                     {article.image ? (
                                         <img
                                             src={article.image}
@@ -225,13 +225,13 @@ const NewsView: React.FC<NewsViewProps> = ({ onAskAIAboutNews }) => {
                                             }}
                                         />
                                     ) : (
-                                        <div className="flex h-full w-full items-center justify-center bg-[#181c22]">
+                                        <div className="flex h-full w-full items-center justify-center bg-raised">
                                             <NewspaperIcon className="h-8 w-8 text-gray-700" />
                                         </div>
                                     )}
                                     
                                     {/* Badge de data */}
-                                    <div className="absolute right-2 top-2 rounded-md bg-black/65 px-2 py-1 text-[10px] text-white/75">
+                                    <div data-color-lock="dark" className="absolute right-2 top-2 rounded-md bg-black/65 px-2 py-1 text-[10px] text-white/75">
                                         {formatPublishedDate(article.publishedAt)}
                                     </div>
                                 </div>

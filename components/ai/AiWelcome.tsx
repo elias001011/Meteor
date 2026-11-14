@@ -94,7 +94,7 @@ const AiWelcome: React.FC<AiWelcomeProps> = ({ onPromptSelect }) => {
             {/* AI INFO MODAL */}
             {showInfoModal && (
                 <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-enter" onClick={() => setShowInfoModal(false)}>
-                    <div className="relative w-full max-w-sm rounded-2xl border border-white/[0.09] bg-[#15191f] p-6" onClick={e => e.stopPropagation()}>
+                    <div className="relative w-full max-w-sm rounded-2xl border border-white/[0.09] bg-raised p-6" onClick={e => e.stopPropagation()}>
                         <h3 className="text-xl font-bold text-white mb-4">Capacidades da IA</h3>
                         <ul className="space-y-4 text-sm text-gray-300">
                             <li className="flex gap-3">

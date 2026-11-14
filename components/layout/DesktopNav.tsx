@@ -27,7 +27,7 @@ const DesktopNav: React.FC<DesktopNavProps> = ({ activeView, setView }) => {
             type="button"
             onClick={() => setView(item.view)}
             aria-current={active ? 'page' : undefined}
-            className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors xl:px-3.5 ${active ? 'bg-white/[0.08] text-white' : 'text-slate-500 hover:bg-white/[0.04] hover:text-slate-200'}`}
+            className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors xl:px-3.5 ${active ? 'bg-ink text-canvas' : 'text-slate-500 hover:bg-white/[0.04] hover:text-slate-200'}`}
           >
             {item.label}
           </button>
